@@ -255,7 +255,7 @@ int get_hash(mongoc_client_t *client, const char *db_name, char *hash)
 
         gettimeofday(&current_time, NULL);
         timersub(&current_time, &start_time, &result_time);
-        if (test_settings == 0)
+        if (test_settings == 0 && debug_settings == 1)
         {
           PRINT_DEBUG("Missed hash for %s recalculation takes %ld.%06ld sec\n", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
         }
@@ -298,7 +298,7 @@ int get_dbhash(mongoc_client_t *client, const char *db_name, char *db_hash)
 
         gettimeofday(&current_time, NULL);
         timersub(&current_time, &start_time, &result_time);
-        if (test_settings == 0)
+        if (test_settings == 0 && debug_settings == 1)
         {
           PRINT_DEBUG("Missed hash for %s recalculation takes %ld.%06ld sec\n", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
         }
@@ -336,9 +336,9 @@ int del_hash(mongoc_client_t *client, const char *db_name)
 
     bson_destroy(filter);
     mongoc_collection_destroy(collection);
-    if (test_settings == 0)
+    if (test_settings == 0 && debug_settings == 1)
     {
-      PRINT_DEBUG("Hash been deleted for %s\n", db_name);
+    //   PRINT_DEBUG("Hash been deleted for %s\n", db_name);
     }
 
     return result;
@@ -363,7 +363,7 @@ int drop_all_hashes(mongoc_client_t *client)
     }
 
     mongoc_collection_destroy(collection);
-    if (test_settings == 0)
+    if (test_settings == 0 && debug_settings == 1)
     {
       PRINT_DEBUG("All hashes are been dropped\n");
     }

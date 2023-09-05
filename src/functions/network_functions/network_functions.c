@@ -113,8 +113,10 @@ int send_http_request(char *result, const char* HOST, const char* URL, const int
 
   // define macros
   #define SEND_HTTP_REQUEST_ERROR(data_settings,socket_settings) \
-  if (test_settings == 1) \
+  if (debug_settings == 1) \
   { \
+    DEBUG_FUNC_PRINT(); \
+    fprintf(stderr,"%s:%d %s,%d\n", HOST, PORT, data_settings, socket_settings); \
     memcpy(error_message.function[error_message.total],"send_http_request",17); \
     memcpy(error_message.data[error_message.total],data_settings,sizeof(data_settings)-1); \
     error_message.total++; \
@@ -319,6 +321,8 @@ int send_and_receive_data_socket(char *result, const size_t RESULT_LENGTH, const
   #define SEND_AND_RECEIVE_DATA_SOCKET_ERROR(data_settings,socket_settings) \
   if (debug_settings == 1) \
   { \
+    DEBUG_FUNC_PRINT(); \
+    fprintf(stderr,"%s:%d %s,%d\n", HOST, PORT, data_settings, socket_settings); \
     memcpy(error_message.function[error_message.total],"send_and_receive_data_socket",28); \
     memcpy(error_message.data[error_message.total],data_settings,sizeof(data_settings)-1); \
     error_message.total++; \
@@ -483,6 +487,8 @@ int send_data_socket(const char* HOST, const int PORT, const char* DATA, const i
   #define SEND_DATA_SOCKET_ERROR(data_settings,socket_settings) \
   if (debug_settings == 1) \
   { \
+    DEBUG_FUNC_PRINT(); \
+    fprintf(stderr,"%s:%d %s,%d\n", HOST, PORT, data_settings, socket_settings); \
     memcpy(error_message.function[error_message.total],"send_data_socket",16); \
     memcpy(error_message.data[error_message.total],data_settings,sizeof(data_settings)-1); \
     error_message.total++; \

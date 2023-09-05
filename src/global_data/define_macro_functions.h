@@ -14,6 +14,7 @@ Using define macros instead of functions for increased efficiency
 -----------------------------------------------------------------------------------------------------------
 */
 
+#define DEBUG_FUNC_PRINT() fprintf(stderr, "Function: %s: %s(), line %d\n", __FILE__, __FUNCTION__, __LINE__)
 
 
 /*

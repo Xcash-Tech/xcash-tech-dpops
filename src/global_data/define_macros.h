@@ -67,10 +67,10 @@ Using define statements instead of constants for increased efficiency
 
 // XCASH DPOPS
 // Note the BLOCK_VERIFIERS_TOTAL_AMOUNT and BLOCK_VERIFIERS_AMOUNT should be a number that is a multiple of 4 or of 5 or BLOCK_VERIFIERS_TOTAL_AMOUNT should be lower than 50, otherwise it will not have enough time in the round to verify all of the block verifiers signatures
-#define XCASH_DPOPS_CURRENT_VERSION "xcash-dpops - Version 1.2.0\n"
+#define XCASH_DPOPS_CURRENT_VERSION "xcash-dpops - Version 1.2.1\n"
 #define BLOCK_VERIFIERS_TOTAL_AMOUNT 100 // The total amount of block verifiers
 #define BLOCK_VERIFIERS_AMOUNT 50 // The amount of block verifiers in a round
-#define BLOCK_VERIFIERS_VALID_AMOUNT 27 // The amount of block verifiers that need to vote true for the part of the round to be valid
+#define BLOCK_VERIFIERS_VALID_AMOUNT 7 // The amount of block verifiers that need to vote true for the part of the round to be valid
 #define MAXIMUM_AMOUNT_OF_DELEGATES 150 // The maximum amount of delegates that can be registered
 #define MAXIMUM_AMOUNT_OF_VOTERS_PER_DELEGATE 1000 // The maximum amount of voters that a delegate can have
 #define MAXIMUM_AMOUNT_OF_VOTERS_PER_DELEGATE_PRIVATE_GROUP 300 // The maximum amount of voters that a delegate can have for a private group
@@ -150,7 +150,7 @@ Using define statements instead of constants for increased efficiency
 #define VRF_DATA "74727565" // true when the VRF data is verified
 
 // Database
-#define DATABASE_CONNECTION "mongodb://localhost:27017" // The database connection string
+// #define DATABASE_CONNECTION "mongodb://localhost:27017" // The database connection string
 #define DATABASE_NAME "XCASH_PROOF_OF_STAKE" // The name of the database
 #define DATABASE_NAME_DELEGATES "XCASH_PROOF_OF_STAKE_DELEGATES" // The name of the database for the delegates
 #define DATABASE_EMPTY_STRING "empty_database_collection" // The database data to give when the database collection is empty
@@ -171,8 +171,8 @@ Using define statements instead of constants for increased efficiency
 
 // Network data nodes
 #define NETWORK_DATA_NODES_AMOUNT 5 // The amount of network data nodes
-#define NETWORK_DATA_NODES_VALID_AMOUNT 3 // The amount of network data nodes need to reach a consensus on the database data
-#define NETWORK_DATA_NODES_VALID_AMOUNT_PERCENTAGE 0.60 // The percentage of network data nodes need to reach a consensus on the database data
+#define NETWORK_DATA_NODES_VALID_AMOUNT 2 // The amount of network data nodes need to reach a consensus on the database data
+#define NETWORK_DATA_NODES_VALID_AMOUNT_PERCENTAGE 0.40 // The percentage of network data nodes need to reach a consensus on the database data
 
 // Updates data
 #define BLOCK_HEIGHT_RESTART 800123 // restart the chain a few days after launch
@@ -184,34 +184,34 @@ Using define statements instead of constants for increased efficiency
 #define TIME_SF_V_1_2_0 1648221480 // _id field sort all collections Friday, March 25, 2022 15:18:00 UTC
 
 
-#define NETWORK_DATA_NODE_1_PUBLIC_ADDRESS_PRODUCTION "XCA1a9usG2UKajV1Dqzp8fL1BbN3hzuaaJMYjCo7qDoC4C3Vvc5owiLAqKbVw2cRbwRqx3mgrau1Z7LkX6cxR2NC4ZmFBLe2Mf"
-#define NETWORK_DATA_NODE_1_IP_ADDRESS_PRODUCTION "us1.xcash.foundation"
-#define NETWORK_DATA_NODE_1_PUBLIC_KEY_PRODUCTION "5fb63257a8ea3c74addb07fb06dd14a42e21cff0d9cabb8e555c6b5e6f0959cf"
-#define NETWORK_DATA_NODE_2_PUBLIC_ADDRESS_PRODUCTION "XCA1YhckQgqGQvMsS2xi4n3cHBPo39WYFC1AXskqaFB87Q6EX5LheKK6E3ZqQmD9CDFX8br8Mfvff7RqT6UcuUja46qKC1vEJb"
-#define NETWORK_DATA_NODE_2_IP_ADDRESS_PRODUCTION "europe1.xcash.foundation"
-#define NETWORK_DATA_NODE_2_PUBLIC_KEY_PRODUCTION "db1f54fd9a52ee96c529eef5002e428e7f808fc4c47fcf55467f69ea73271fc1"
-#define NETWORK_DATA_NODE_3_PUBLIC_ADDRESS_PRODUCTION "XCA1c2ahjRvBsp35ynTknNYczj9y42hN9ht1vNyns2FCTU4qbLqahtsTw2E7JTKLd3ecSGLe2zWJgCiwrMhecsbT38i3Smy9vW"
-#define NETWORK_DATA_NODE_3_IP_ADDRESS_PRODUCTION "europe2.xcash.foundation"
-#define NETWORK_DATA_NODE_3_PUBLIC_KEY_PRODUCTION "b8e7c84b2ccecae9c8cf8a462e56986936086285c0a046957097f689db7e7340"
-#define NETWORK_DATA_NODE_4_PUBLIC_ADDRESS_PRODUCTION "XCA1jN7CNCKEN1kDuqxiuUPyKWiVp68RsYxshdohaQ1k8NN11ZWX9dSJv3hx6qxfPaKVAnet4LTda9fsK81c9wRN5Aj78KyZEg"
-#define NETWORK_DATA_NODE_4_IP_ADDRESS_PRODUCTION "europe3.xcash.foundation"
-#define NETWORK_DATA_NODE_4_PUBLIC_KEY_PRODUCTION "8a38de7edd55437abeda49cf5a2aa6f53a7d05b1b2e8be1ab4679c306c3fc6d4"
-#define NETWORK_DATA_NODE_5_PUBLIC_ADDRESS_PRODUCTION "XCA1hKDayQXECEA5Yja4a8CU6Suoo9XT9jET7Ng2Rx2z3fLsGy5iVQCL9hWWTi3TroJxihWY4j84n9WMJvpFvagW5hMNpq1jh9"
-#define NETWORK_DATA_NODE_5_IP_ADDRESS_PRODUCTION "oceania1.xcash.foundation"
-#define NETWORK_DATA_NODE_5_PUBLIC_KEY_PRODUCTION "338bdb7894a9168de0da30b74d5f9c5d362343b1951c573d535e33ea3bed07c4"
+#define NETWORK_DATA_NODE_1_PUBLIC_ADDRESS_PRODUCTION "XCA1SkZTKvC1vMR3vzdsBiFY69RXHJYw2TZ7jPTtsFGCUj7JfEaDXuSMBXrhaGHf7QJH5PyBxQK2K7gNs9pYGBGs7zfS7cPHd9"
+#define NETWORK_DATA_NODE_1_IP_ADDRESS_PRODUCTION "seed1.xcash.tech"
+#define NETWORK_DATA_NODE_1_PUBLIC_KEY_PRODUCTION "707a57d0ec077e1ae594c6c7afac203aa8a720713e5ce7258b0d6cd33923e1e2"
+#define NETWORK_DATA_NODE_2_PUBLIC_ADDRESS_PRODUCTION "XCA1d6XRJLYGyHnwoywSTbadrVYc7S8spHTGQRJyw5uLRRycH46wgVx9o1A1MaRwmZTiV16ooDsEPjHnioCyV3xk3wHiFqwWuu"
+#define NETWORK_DATA_NODE_2_IP_ADDRESS_PRODUCTION "seed2.xcash.tech"
+#define NETWORK_DATA_NODE_2_PUBLIC_KEY_PRODUCTION "6f100bc821a727efb411b334eeb72895cd178de87f821ceaf41b4e7347339bc1"
+#define NETWORK_DATA_NODE_3_PUBLIC_ADDRESS_PRODUCTION "XCA1UNwXyshf1cuN4LRWxgX84rkoM1fo12AbG7CiuTi27PEuxPicaTfNSA5WtsHHTkZ1GAy4bsd6CXy6ag6YEM9H7oNuBihrzM"
+#define NETWORK_DATA_NODE_3_IP_ADDRESS_PRODUCTION "seed3.xcash.tech"
+#define NETWORK_DATA_NODE_3_PUBLIC_KEY_PRODUCTION "5dc835dbf22bf2e40a7ebd9713ae23705f2fe87cf43d1cee75a161ed53f1b89b"
+#define NETWORK_DATA_NODE_4_PUBLIC_ADDRESS_PRODUCTION "XCA1WDfJTzqLJjn9YgXubf4RnxzUqMrWJaMWQKH8V3tZ9tgtWs5RoXfcHo7vQnZndj7PeyfcUcgkGX6cQNfVrWfC1g2iN84K1w"
+#define NETWORK_DATA_NODE_4_IP_ADDRESS_PRODUCTION "seed4.xcash.tech"
+#define NETWORK_DATA_NODE_4_PUBLIC_KEY_PRODUCTION "6210338078086c98b3288c511e2ed156658391425bdab5b276f86ab0c6fcba7c"
+#define NETWORK_DATA_NODE_5_PUBLIC_ADDRESS_PRODUCTION "XCA1fjt6X5k9CR13Pq1BKpJKLUjmcBCd3NDyhAfVnDvUirv16tmv4gQ4L3MtK1TfBoUdM1d48HN6kZS7NyYWJLmQ8xQiGXsS3z"
+#define NETWORK_DATA_NODE_5_IP_ADDRESS_PRODUCTION "seed5.xcash.tech"
+#define NETWORK_DATA_NODE_5_PUBLIC_KEY_PRODUCTION "de061a1468867f365ae112e8e3cda82243bfdaa2ba5118ec6f706781b26e4a85"
 
-#define OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION "XCA1cYCAbFsKvGRFYpX5QKgBYpx1yimURVcGvdTLdrm5ig9Ka9bMZ9vBXLn9iHKViYRQbmqKfmWRPDziae5rUPaQ3NXtXzKbvC"
-#define OFFICIAL_SHARED_DELEGATE_IP_ADDRESS_PRODUCTION "officialdelegate.xcash.foundation"
-#define OFFICIAL_SHARED_DELEGATE_PUBLIC_KEY_PRODUCTION "1d20ac52c1b1bf5669d980bd839073b89e40cfe9f066dbbb18935aa0d9dd920c"
+// #define OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION "XCA1cYCAbFsKvGRFYpX5QKgBYpx1yimURVcGvdTLdrm5ig9Ka9bMZ9vBXLn9iHKViYRQbmqKfmWRPDziae5rUPaQ3NXtXzKbvC"
+// #define OFFICIAL_SHARED_DELEGATE_IP_ADDRESS_PRODUCTION "officialdelegate.xcash.foundation"
+// #define OFFICIAL_SHARED_DELEGATE_PUBLIC_KEY_PRODUCTION "1d20ac52c1b1bf5669d980bd839073b89e40cfe9f066dbbb18935aa0d9dd920c"
 
-#define DATABASE_COLLECTION_DELEGATES_DATA_1_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_1_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_1_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"us1_xcash_foundation\",\"about\":\"Official X-Network node\",\"website\":\"" NETWORK_DATA_NODE_1_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Network Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 18.04 CPU = 32 threads (Intel 2xE5 - 2660 - 2.2GHz RAM = 256GB DDR3 Hard drive = 2x240 GB SSD + 4x2TB SATA Bandwidth Transfer = Unlimited Bandwidth Speed = 500 Mbps upload and 500 Mbps download\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"|" XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT_DATA "\",\"public_key\":\"" NETWORK_DATA_NODE_1_PUBLIC_KEY_PRODUCTION "\"}"
-#define DATABASE_COLLECTION_DELEGATES_DATA_2_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_2_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_2_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"europe1_xcash_foundation\",\"about\":\"Official X-Network node\",\"website\":\"" NETWORK_DATA_NODE_2_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Network Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 18.04 CPU = 8 threads (Intel D-1521 - 2.40GHz RAM = 32GB DDR3 Hard drive = 2x HDD SATA 2 TB\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" NETWORK_DATA_NODE_2_PUBLIC_KEY_PRODUCTION "\"}"
-#define DATABASE_COLLECTION_DELEGATES_DATA_3_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_3_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_3_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"europe2_xcash_foundation\",\"about\":\"Official X-Network node\",\"website\":\"" NETWORK_DATA_NODE_3_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Network Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 18.04 CPU = 8 threads (Intel i7-6700 - 3.40GHz RAM = 64GB DDR4 Hard drive = 2x NVMe SSD 512GB Bandwidth Transfer = Unlimited Bandwidth Speed = 1 Gbps upload and 1 Gbps download\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" NETWORK_DATA_NODE_3_PUBLIC_KEY_PRODUCTION "\"}"
-#define DATABASE_COLLECTION_DELEGATES_DATA_4_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_4_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_4_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"europe3_xcash_foundation\",\"about\":\"Official X-Network node\",\"website\":\"" NETWORK_DATA_NODE_4_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Network Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 18.04 CPU = 8 threads (Intel i7-6700 - 3.40GHz RAM = 64GB DDR4 Hard drive = 2x NVMe SSD 512GB Bandwidth Transfer = Unlimited Bandwidth Speed = 1 Gbps upload and 1 Gbps download\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" NETWORK_DATA_NODE_4_PUBLIC_KEY_PRODUCTION "\"}"
-#define DATABASE_COLLECTION_DELEGATES_DATA_5_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_5_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_5_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"oceania1_xcash_foundation\",\"about\":\"Official X-Network node\",\"website\":\"" NETWORK_DATA_NODE_5_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Network Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 18.04 CPU = 32 threads (Intel 2xE5 - 2660 - 2.2GHz RAM = 256GB DDR3 Hard drive = 2x240 GB SSD + 4x2TB SATA Bandwidth Transfer = Unlimited Bandwidth Speed = 500 Mbps upload and 500 Mbps download\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" NETWORK_DATA_NODE_5_PUBLIC_KEY_PRODUCTION "\"}"
-#define DATABASE_COLLECTION_DELEGATES_DATA_6_PRODUCTION "{\"public_address\":\"" OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" OFFICIAL_SHARED_DELEGATE_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"officialdelegate_xcash_foundation\",\"about\":\"Official X-Network Backup Delegate\",\"website\":\"\",\"team\":\"X-Network Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 18.04 CPU = 8 threads (Intel E3-1246 v3 - 3.50GHz RAM = 32GB DDR3 Hard drive = 2x HDD SATA 2 TB Bandwidth Transfer = Unlimited Bandwidth Speed = 1 Gbps upload and 1 Gbps download\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" OFFICIAL_SHARED_DELEGATE_PUBLIC_KEY_PRODUCTION "\"}"
+#define DATABASE_COLLECTION_DELEGATES_DATA_1_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_1_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_1_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"seed1_xcash_tech\",\"about\":\"Official X-Tech node\",\"website\":\"" NETWORK_DATA_NODE_1_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Tech Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 22.04\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"|" XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT_DATA "\",\"public_key\":\"" NETWORK_DATA_NODE_1_PUBLIC_KEY_PRODUCTION "\"}"
+#define DATABASE_COLLECTION_DELEGATES_DATA_2_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_2_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_2_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"seed2_xcash_tech\",\"about\":\"Official X-Tech node\",\"website\":\"" NETWORK_DATA_NODE_2_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Tech Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 22.04\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" NETWORK_DATA_NODE_2_PUBLIC_KEY_PRODUCTION "\"}"
+#define DATABASE_COLLECTION_DELEGATES_DATA_3_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_3_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_3_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"seed3_xcash_tech\",\"about\":\"Official X-Tech node\",\"website\":\"" NETWORK_DATA_NODE_3_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Tech Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 22.04\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" NETWORK_DATA_NODE_3_PUBLIC_KEY_PRODUCTION "\"}"
+#define DATABASE_COLLECTION_DELEGATES_DATA_4_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_4_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_4_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"seed4_xcash_tech\",\"about\":\"Official X-Tech node\",\"website\":\"" NETWORK_DATA_NODE_4_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Tech Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 22.04\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" NETWORK_DATA_NODE_4_PUBLIC_KEY_PRODUCTION "\"}"
+#define DATABASE_COLLECTION_DELEGATES_DATA_5_PRODUCTION "{\"public_address\":\"" NETWORK_DATA_NODE_5_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" NETWORK_DATA_NODE_5_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"seed5_xcash_tech\",\"about\":\"Official X-Tech node\",\"website\":\"" NETWORK_DATA_NODE_5_IP_ADDRESS_PRODUCTION "\",\"team\":\"X-Tech Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 22.04\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" NETWORK_DATA_NODE_5_PUBLIC_KEY_PRODUCTION "\"}"
+// #define DATABASE_COLLECTION_DELEGATES_DATA_6_PRODUCTION "{\"public_address\":\"" OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION "\",\"total_vote_count\":\"0\",\"IP_address\":\"" OFFICIAL_SHARED_DELEGATE_IP_ADDRESS_PRODUCTION "\",\"delegate_name\":\"officialdelegate_xcash_foundation\",\"about\":\"Official X-Network Backup Delegate\",\"website\":\"\",\"team\":\"X-Network Team\",\"shared_delegate_status\":\"solo\",\"delegate_fee\":\"\",\"server_specs\":\"Operating System = Ubuntu 18.04 CPU = 8 threads (Intel E3-1246 v3 - 3.50GHz RAM = 32GB DDR3 Hard drive = 2x HDD SATA 2 TB Bandwidth Transfer = Unlimited Bandwidth Speed = 1 Gbps upload and 1 Gbps download\",\"block_verifier_score\":\"0\",\"online_status\":\"true\",\"block_verifier_total_rounds\":\"0\",\"block_verifier_online_total_rounds\":\"0\",\"block_verifier_online_percentage\":\"0\",\"block_producer_total_rounds\":\"0\",\"block_producer_block_heights\":\"\",\"public_key\":\"" OFFICIAL_SHARED_DELEGATE_PUBLIC_KEY_PRODUCTION "\"}"
 
-#define DATABASE_COLLECTION_STATISTICS_DATA_PRODUCTION "{\"username\":\"XCASH\",\"most_total_rounds_delegate_name\":\"us1_xcash_foundation\",\"most_total_rounds\":\"0\",\"best_block_verifier_online_percentage_delegate_name\":\"us1_xcash_foundation\",\"best_block_verifier_online_percentage\":\"0\",\"most_block_producer_total_rounds_delegate_name\":\"us1_xcash_foundation\",\"most_block_producer_total_rounds\":\"0\"}"
+#define DATABASE_COLLECTION_STATISTICS_DATA_PRODUCTION "{\"username\":\"XCASH\",\"most_total_rounds_delegate_name\":\"seed1_xcash_tech\",\"most_total_rounds\":\"0\",\"best_block_verifier_online_percentage_delegate_name\":\"seed1_xcash_tech\",\"best_block_verifier_online_percentage\":\"0\",\"most_block_producer_total_rounds_delegate_name\":\"seed1_xcash_tech\",\"most_block_producer_total_rounds\":\"0\"}"
 
 #define INITIALIZE_NETWORK_DATA_NODES \
 if (production_settings == 0) \
@@ -479,7 +479,6 @@ insert_document_into_collection_json(database_name,"delegates",DATABASE_COLLECTI
 insert_document_into_collection_json(database_name,"delegates",DATABASE_COLLECTION_DELEGATES_DATA_3_PRODUCTION); \
 insert_document_into_collection_json(database_name,"delegates",DATABASE_COLLECTION_DELEGATES_DATA_4_PRODUCTION); \
 insert_document_into_collection_json(database_name,"delegates",DATABASE_COLLECTION_DELEGATES_DATA_5_PRODUCTION); \
-insert_document_into_collection_json(database_name,"delegates",DATABASE_COLLECTION_DELEGATES_DATA_6_PRODUCTION); \
 insert_document_into_collection_json(database_name,"statistics",DATABASE_COLLECTION_STATISTICS_DATA_PRODUCTION); \
 } \
 else if ((settings) == 1) \
@@ -747,7 +746,10 @@ sleep(BLOCK_VERIFIERS_SETTINGS);
 "--log-file-color <log_file> - Write all output to a log file with colors.\n" \
 "--total-threads <total_threads> - Total threads to use, the minimum is 2.Default is the CPU total number of threads.\n" \
 "--delegates-ip-address <delegates_IP_address> - The delegates IP address (IPV4 only) to create the node on. Default is 0.0.0.0 (all available networking interfaces).\n" \
+"--xcash-daemon-ip-address <daemon_IP_address> - Thedaemon IP address (IPV4 only). Default is 127.0.0.1\n" \
+"--xcash-wallet-ip-address <wallet_rpc_IP_address> - The wallet RPC IP address (IPV4 only). Default is 127.0.0.1\n" \
 "--xcash-wallet-port <xcash_wallet_port> - X-Cash wallet port. Default port is 18285.\n" \
+"--mongodb-ip-address <mongodb_IP_address> - MongoDB IP address. Default is 127.0.0.1\n" \
 "--database-name - Name of the database. Default name is XCASH_PROOF_OF_STAKE.\n" \
 "--shared-delegates-database-name - Name of the shared delegates database. Default name is XCASH_PROOF_OF_STAKE_DELEGATES.\n" \
 "--delegates-website - Run the delegates website.\n" \

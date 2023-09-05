@@ -56,7 +56,7 @@ for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++) \
   { \
     memset(data,0,strlen(data)); \
     memset(data2,0,strlen(data2)); \
-    if (send_and_receive_data_socket(data,sizeof(data),synced_block_verifiers.synced_block_verifiers_IP_address[count],SEND_DATA_PORT,message,CONNECTION_TIMEOUT_SETTINGS) == 0 || verify_data(data,0) == 0) \
+    if (strlen(synced_block_verifiers.synced_block_verifiers_IP_address[count])==0 || send_and_receive_data_socket(data,sizeof(data),synced_block_verifiers.synced_block_verifiers_IP_address[count],SEND_DATA_PORT,message,CONNECTION_TIMEOUT_SETTINGS) == 0 || verify_data(data,0) == 0) \
     { \
       memcpy(synced_block_verifiers.vote_settings[count],"connection_timeout",18); \
       synced_block_verifiers.vote_settings_connection_timeout++; \
@@ -247,6 +247,7 @@ int sync_check_reserve_proofs_database(int settings)
       {
         color_print("A Consensus could not be reached for trying to sync the reserve proofs database, syncing from a random network data node","red");
       }
+      // if we are one of datanodes, sync only from main node
       settings = 2;
     }
     else if (synced_block_verifiers.vote_settings_false >= BLOCK_VERIFIERS_VALID_AMOUNT)
@@ -505,6 +506,7 @@ int sync_check_reserve_bytes_database(int settings, const int RESERVE_BYTES_STAR
       {
         return 2;
       }
+      // if we are one of datanodes, sync only from main node
       settings = 2;
     }
     else if (synced_block_verifiers.vote_settings_false >= BLOCK_VERIFIERS_VALID_AMOUNT)
@@ -743,6 +745,7 @@ int sync_check_delegates_database(int settings)
       {
         color_print("A Consensus could not be reached for trying to sync the delegates database, syncing from a random network data node","red");
       }
+      // if we are one of datanodes, sync only from main node
       settings = 2;
     }
     else if (synced_block_verifiers.vote_settings_false >= BLOCK_VERIFIERS_VALID_AMOUNT)
@@ -959,6 +962,7 @@ int sync_check_statistics_database(int settings)
       {
         color_print("A Consensus could not be reached for trying to sync the statistics database, syncing from a random network data node","red");
       }
+      // if we are one of datanodes, sync only from main node
       settings = 2;
     }
     else if (synced_block_verifiers.vote_settings_false >= BLOCK_VERIFIERS_VALID_AMOUNT)

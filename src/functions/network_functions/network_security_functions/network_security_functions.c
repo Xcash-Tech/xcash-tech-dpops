@@ -146,7 +146,7 @@ int sign_data(char *message)
     memcpy(string+strlen(string),"\"}}",3);
     memset(result,0,strlen(result));
   
-    if (send_http_request(data,"127.0.0.1","/json_rpc",xcash_wallet_port,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,string,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0)
+    if (send_http_request(data,XCASH_wallet_IP_address,"/json_rpc",xcash_wallet_port,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,string,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0)
     {  
       SIGN_DATA_ERROR("Could not create the message");
     } 
@@ -239,6 +239,8 @@ int verify_data(const char* MESSAGE, const int VERIFY_CURRENT_ROUND_PART_AND_CUR
   #define VERIFY_DATA_ERROR(settings) \
   if (network_functions_test_error_settings == 1 && debug_settings == 1) \
   { \
+  DEBUG_FUNC_PRINT(); \
+  fprintf(stderr,"%s\n\n%s\n\n\n", settings, MESSAGE); \
   memcpy(error_message.function[error_message.total],"verify_data",11); \
   memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
   error_message.total++; \
@@ -448,17 +450,32 @@ int verify_data(const char* MESSAGE, const int VERIFY_CURRENT_ROUND_PART_AND_CUR
   } 
   else
   {
-    // check if the public address is in the current_block_verifiers_list struct
-    for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
-    {
-      if (strncmp(public_address,current_block_verifiers_list.block_verifiers_public_address[count],XCASH_WALLET_LENGTH) == 0)
+
+    bool pub_key_found = false;
+
+    //search in seed nodes list first
+    for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
+    {      
+      if (strncmp(network_data_nodes_list.network_data_nodes_public_address[count],public_address,XCASH_WALLET_LENGTH) == 0)
       {
+        pub_key_found = true;
         break;
       }
     }
-    if (count == BLOCK_VERIFIERS_AMOUNT && test_settings == 0)
-    {
-      VERIFY_DATA_ERROR("Invalid message1");
+    if (!pub_key_found){
+      // check if the public address is in the current_block_verifiers_list struct
+      for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
+      {
+        if (strncmp(public_address,current_block_verifiers_list.block_verifiers_public_address[count],XCASH_WALLET_LENGTH) == 0)
+        {
+          pub_key_found = true;
+          break;
+        }
+      }
+    }
+
+    if (!pub_key_found && test_settings == 0){
+      VERIFY_DATA_ERROR("Invalid message signatire. Sender is unknown");
     }
     memset(data,0,sizeof(data));
   }
@@ -533,17 +550,39 @@ int verify_data(const char* MESSAGE, const int VERIFY_CURRENT_ROUND_PART_AND_CUR
 
     if (test_settings == 0)
     {
-      for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
+      bool pub_key_found = false;
+      const char* network_data_nodes_Pub_Key[] = {
+        NETWORK_DATA_NODE_1_PUBLIC_KEY_PRODUCTION,
+        NETWORK_DATA_NODE_2_PUBLIC_KEY_PRODUCTION,
+        NETWORK_DATA_NODE_3_PUBLIC_KEY_PRODUCTION,
+        NETWORK_DATA_NODE_4_PUBLIC_KEY_PRODUCTION,
+        NETWORK_DATA_NODE_5_PUBLIC_KEY_PRODUCTION
+      };
+
+      //search in seed nodes list first
+      for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
       {      
-        if (strncmp(current_block_verifiers_list.block_verifiers_public_address[count],public_address,XCASH_WALLET_LENGTH) == 0)
+        if (strncmp(network_data_nodes_list.network_data_nodes_public_address[count],public_address,XCASH_WALLET_LENGTH) == 0)
         {
-          memcpy(public_key,current_block_verifiers_list.block_verifiers_public_key[count],VRF_PUBLIC_KEY_LENGTH);
+          memcpy(public_key,network_data_nodes_Pub_Key[count],VRF_PUBLIC_KEY_LENGTH);
+          pub_key_found = true;
           break;
         }
       }
 
+      if (!pub_key_found)
+        for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
+        {      
+          if (strncmp(current_block_verifiers_list.block_verifiers_public_address[count],public_address,XCASH_WALLET_LENGTH) == 0)
+          {
+            memcpy(public_key,current_block_verifiers_list.block_verifiers_public_key[count],VRF_PUBLIC_KEY_LENGTH);
+            pub_key_found = true;
+            break;
+          }
+        }
+
       // check if the block verifiers public key was found, and if not use the database to try to find it
-      if (count == BLOCK_VERIFIERS_AMOUNT)
+      if (!pub_key_found)
       {
         // create the message
         memset(data,0,sizeof(data));
@@ -611,7 +650,7 @@ int verify_data(const char* MESSAGE, const int VERIFY_CURRENT_ROUND_PART_AND_CUR
 
     memset(result,0,strnlen(result,BUFFER_SIZE));
 
-    if (send_http_request(result,"127.0.0.1","/json_rpc",xcash_wallet_port,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,string,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0)
+    if (send_http_request(result,XCASH_wallet_IP_address,"/json_rpc",xcash_wallet_port,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,string,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0)
     {
       VERIFY_DATA_ERROR("Could not verify the data");
     }
@@ -660,6 +699,8 @@ int validate_data(const char* MESSAGE)
   #define VALIDATE_DATA_ERROR(settings) \
   if (debug_settings == 1 && test_settings == 0) \
   { \
+  DEBUG_FUNC_PRINT(); \
+  fprintf(stderr,"\n\n\n%s\n\n%s\n", MESSAGE, settings); \
   memcpy(error_message.function[error_message.total],"validate_data",13); \
   memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
   error_message.total++; \
@@ -785,7 +826,8 @@ int validate_data(const char* MESSAGE)
   }
   else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS") != NULL)
   {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS",sizeof(data)) != 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
+    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 ||
+     strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS",sizeof(data)) != 0)
     {
       VALIDATE_DATA_ERROR("Invalid message");
     }

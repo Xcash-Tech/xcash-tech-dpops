@@ -420,15 +420,15 @@ void sync_block_verifiers_database(void)
   }
 
   // if this is the xcash official shared delegate save a copy of the database before the majority check
-  if (production_settings == 1 && strncmp(xcash_wallet_public_address,OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,BUFFER_SIZE) == 0)
-  {
-    color_print("Saving a copy of the database before the majority check","yellow");
-    memset(data3,0,sizeof(data3));
-    memcpy(data3,database_path_write_before_majority,strnlen(database_path_write_before_majority,sizeof(database_path_write_before_majority)));
-    memcpy(data3+strlen(data3),current_block_height,strnlen(current_block_height,sizeof(current_block_height)));
-    memcpy(data3+strlen(data3),"/",1);
-    count = system(data3);
-  }
+  // if (production_settings == 1 && strncmp(xcash_wallet_public_address,OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,BUFFER_SIZE) == 0)
+  // {
+  //   color_print("Saving a copy of the database before the majority check","yellow");
+  //   memset(data3,0,sizeof(data3));
+  //   memcpy(data3,database_path_write_before_majority,strnlen(database_path_write_before_majority,sizeof(database_path_write_before_majority)));
+  //   memcpy(data3+strlen(data3),current_block_height,strnlen(current_block_height,sizeof(current_block_height)));
+  //   memcpy(data3+strlen(data3),"/",1);
+  //   count = system(data3);
+  // }
 
   // wait for all of the block verifiers to process the data
   sync_block_verifiers_minutes_and_seconds(1,15);

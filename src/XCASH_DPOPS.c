@@ -94,6 +94,13 @@ int network_data_node_valid_amount; // The amount of network data nodes that wer
 int log_file_settings; // 0 to use the terminal, 1 to use a log file, 2 to use a log file with color output
 char log_file[BUFFER_SIZE_NETWORK_BLOCK_DATA]; // The log file
 char XCASH_DPOPS_delegates_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The  block verifiers IP address to run the server on
+
+
+char XCASH_daemon_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The  block verifiers IP address to run the server on
+char MongoDB_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // MongoDB IP
+
+char XCASH_wallet_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The  wallet IP address
+
 int xcash_wallet_port; // The xcash wallet port
 char database_name[BUFFER_SIZE_NETWORK_BLOCK_DATA];
 char shared_delegates_database_name[BUFFER_SIZE_NETWORK_BLOCK_DATA];
@@ -179,6 +186,13 @@ void initialize_data(int parameters_count, char* parameters[])
   memset(log_file,0,sizeof(log_file));
   memset(XCASH_DPOPS_delegates_IP_address,0,sizeof(XCASH_DPOPS_delegates_IP_address));
   memcpy(XCASH_DPOPS_delegates_IP_address,"127.0.0.1",9);
+
+  memset(XCASH_daemon_IP_address,0,sizeof(XCASH_daemon_IP_address));
+  memcpy(XCASH_daemon_IP_address,"127.0.0.1",9);
+
+  memset(MongoDB_IP_address,0,sizeof(MongoDB_IP_address));
+  memcpy(MongoDB_IP_address,"127.0.0.1",9);
+
   memset(database_name,0,sizeof(database_name));
   memset(shared_delegates_database_name,0,sizeof(shared_delegates_database_name));
   memset(database_path_write,0,sizeof(database_path_write));
@@ -186,7 +200,10 @@ void initialize_data(int parameters_count, char* parameters[])
   memset(database_path_read,0,sizeof(database_path_read));
   memset(voter_inactivity_count,0,sizeof(voter_inactivity_count));
   log_file_settings = 0;
+
+  sprintf(XCASH_wallet_IP_address,"127.0.0.1");
   xcash_wallet_port = XCASH_WALLET_PORT;
+
   network_functions_test_settings = 0;
   network_functions_test_error_settings = 1;
   network_functions_test_server_messages_settings = 1;
@@ -449,6 +466,8 @@ void create_overall_database_connection(void)
 {
   // Variables
   char data[SMALL_BUFFER_SIZE];
+  char mongo_uri[256];
+
   time_t current_date_and_time;
   struct tm current_UTC_date_and_time;
 
@@ -467,7 +486,8 @@ void create_overall_database_connection(void)
   mongoc_init();
 
   // create a connection to the database
-  if (!(uri_thread_pool = mongoc_uri_new_with_error(DATABASE_CONNECTION, &error)))
+  sprintf(mongo_uri,"mongodb://%s:27017", MongoDB_IP_address);
+  if (!(uri_thread_pool = mongoc_uri_new_with_error(mongo_uri, &error)))
   {
     CREATE_OVERALL_DATABASE_CONNECTION_ERROR;
   }
@@ -493,7 +513,7 @@ Description: Gets the delegates data
 void get_delegates_data(void)
 {
   // Variables
-  FILE* file;
+  // FILE* file;
   char data[SMALL_BUFFER_SIZE];
   time_t current_date_and_time;
   struct tm current_UTC_date_and_time;
@@ -530,21 +550,21 @@ void get_delegates_data(void)
   CHECK_IF_BLOCK_VERIFIERS_IS_NETWORK_DATA_NODE;
 
   // get the database paths
-  if (production_settings == 1 && strncmp(xcash_wallet_public_address,OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,BUFFER_SIZE) == 0)
-  {
-    // get the database path
-    file = popen("sudo find / -path /sys -prune -o -path /proc -prune -o -path /dev -prune -o -path /var -prune -o -type d -name 'mongodb-linux-x86_64-ubuntu1804-*' -print", "r");
+  // if (production_settings == 1 && strncmp(xcash_wallet_public_address,OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,BUFFER_SIZE) == 0)
+  // {
+  //   // get the database path
+  //   file = popen("sudo find / -path /sys -prune -o -path /proc -prune -o -path /dev -prune -o -path /var -prune -o -type d -name 'mongodb-linux-x86_64-ubuntu1804-*' -print", "r");
 
-    if (fgets(database_path_write,(int)(sizeof(database_path_write)),file) == NULL)
-    {
-      GET_DELEGATES_DATA_ERROR("Could not get the mongo database path");
-    }
-    memcpy(database_path_read,database_path_write,strnlen(database_path_write,sizeof(database_path_read)));
-    memcpy(database_path_write_before_majority,database_path_write,strnlen(database_path_write,sizeof(database_path_write_before_majority)));
-    memcpy(database_path_write+strlen(database_path_write)-1,"/bin/mongodump --quiet --out /root/database_backup/",51);
-    memcpy(database_path_write_before_majority+strlen(database_path_write_before_majority)-1,"/bin/mongodump --quiet --out /root/database_backup_before_majority/",67);
-    memcpy(database_path_read+strlen(database_path_read)-1,"/bin/mongorestore --quiet --dir /root/database_backup/",54);
-  }
+  //   if (fgets(database_path_write,(int)(sizeof(database_path_write)),file) == NULL)
+  //   {
+  //     GET_DELEGATES_DATA_ERROR("Could not get the mongo database path");
+  //   }
+  //   memcpy(database_path_read,database_path_write,strnlen(database_path_write,sizeof(database_path_read)));
+  //   memcpy(database_path_write_before_majority,database_path_write,strnlen(database_path_write,sizeof(database_path_write_before_majority)));
+  //   memcpy(database_path_write+strlen(database_path_write)-1,"/bin/mongodump --quiet --out /root/database_backup/",51);
+  //   memcpy(database_path_write_before_majority+strlen(database_path_write_before_majority)-1,"/bin/mongodump --quiet --out /root/database_backup_before_majority/",67);
+  //   memcpy(database_path_read+strlen(database_path_read)-1,"/bin/mongorestore --quiet --dir /root/database_backup/",54);
+  // }
 
   // get the website path
   memset(website_path,0,sizeof(website_path));
@@ -697,10 +717,23 @@ int set_parameters(int parameters_count, char* parameters[])
       memset(XCASH_DPOPS_delegates_IP_address,0,strlen(XCASH_DPOPS_delegates_IP_address));
       memcpy(XCASH_DPOPS_delegates_IP_address,parameters[count+1],strnlen(parameters[count+1],sizeof(XCASH_DPOPS_delegates_IP_address)));
     }
+
+
+    if (strncmp(parameters[count],"--xcash-daemon-ip-address",BUFFER_SIZE) == 0 && count != (size_t)parameters_count)
+    {
+      strncpy(XCASH_daemon_IP_address,parameters[count+1],sizeof(XCASH_daemon_IP_address)-1);
+    }
+
+    if (strncmp(parameters[count],"--xcash-wallet-ip-address",BUFFER_SIZE) == 0 && count != (size_t)parameters_count)
+    {
+      strncpy(XCASH_wallet_IP_address,parameters[count+1],sizeof(XCASH_wallet_IP_address)-1);
+    }
+
     if (strncmp(parameters[count],"--xcash-wallet-port",BUFFER_SIZE) == 0 && count != (size_t)parameters_count)
     {
       sscanf(parameters[count+1],"%d",&xcash_wallet_port);
     }
+
     if (strncmp(parameters[count],"--database-name",BUFFER_SIZE) == 0 && count != (size_t)parameters_count)
     {
       memset(database_name,0,sizeof(database_name));
@@ -863,51 +896,67 @@ Description: Prints the delegates settings
 void print_settings(void)
 {
   // Variables
-  char data[SMALL_BUFFER_SIZE];
+  char buffer[SMALL_BUFFER_SIZE];
 
-  memset(data,0,sizeof(data));
+  int offset = 0; // To keep track of how many characters have been written
 
-  memset(data,0,sizeof(data));
-  memcpy(data,"Settings\n\nPublic Address: ",26);
-  memcpy(data+strlen(data),xcash_wallet_public_address,XCASH_WALLET_LENGTH);
-  memcpy(data+strlen(data),"\nBlock Verifiers Secret Key: ",29);
-  memcpy(data+strlen(data),secret_key,VRF_SECRET_KEY_LENGTH);
-  memcpy(data+strlen(data),"\nDatabase Name: ",16);
-  memcpy(data+strlen(data),database_name,strnlen(database_name,sizeof(database_name)));
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Settings\n\nPublic Address: %s\n", xcash_wallet_public_address);
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\nBlock Verifiers Secret Key: %s\n", secret_key);
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\nDatabase Name: %s\n", database_name);
+
   if (shared_delegates_website == 1)
   {
-    memcpy(data+strlen(data),"\nShared Delegate Settings: YES\nFee: ",36);
-    snprintf(data+strlen(data),sizeof(data)-1,"%lf",fee);
-    memcpy(data+strlen(data),"\nMinimum Amount: ",17);
-    snprintf(data+strlen(data),sizeof(data)-1,"%lld",minimum_amount);
-    memcpy(data+strlen(data),"\nShared Delegates Database Name: ",33);
-    memcpy(data+strlen(data),shared_delegates_database_name,strnlen(shared_delegates_database_name,sizeof(shared_delegates_database_name)));
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\nShared Delegate Settings: YES\nFee: %lf\n", fee);
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\nMinimum Amount: %lld\n", minimum_amount);
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\nShared Delegates Database Name %s\n", shared_delegates_database_name);
   }
   else
   {
-    memcpy(data+strlen(data),"\nShared Delegate Settings: NO",29);
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\nShared Delegate Settings: NO\n");
   }
-  delegates_website == 1 ? memcpy(data+strlen(data),"\nDelegate Settings: YES",23) : memcpy(data+strlen(data),"\nDelegate Settings: NO",22);
+
+  if (delegates_website == 1) {
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Delegate Settings: YES\n");
+  }else{
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Delegate Settings: NO\n");
+  }
+
   if (log_file_settings == 0)
   {
-    memcpy(data+strlen(data),"\nLog file Settings: NO",22);
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Log file Settings: NO\n");
   }
   else
   {
-    log_file_settings == 1 ? memcpy(data+strlen(data),"\nLog file Settings: YES\nLog File Color Output: NO",49) : memcpy(data+strlen(data),"\nLog file Settings: YES\nLog File Color Output: YES",50);
+      if (log_file_settings == 1)
+      {
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Log file Settings: YES\nLog File Color Output: NO\n");
+      }else{
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Log file Settings: YES\nLog File Color Output: YES\n");
+
+      }
   }
-  debug_settings == 1 ? memcpy(data+strlen(data),"\nDebug Settings: YES",20) : memcpy(data+strlen(data),"\nDebug Settings: NO",19);
-  memcpy(data+strlen(data),"\nDelegates Server IP Address: ",30);
-  strncmp(XCASH_DPOPS_delegates_IP_address,"127.0.0.1",9) == 0 ? memcpy(data+strlen(data),"0.0.0.0",7) : memcpy(data+strlen(data),XCASH_DPOPS_delegates_IP_address,strnlen(XCASH_DPOPS_delegates_IP_address,sizeof(XCASH_DPOPS_delegates_IP_address)));
-  memcpy(data+strlen(data),"\nDelegates Server Port: 18283\nXCASH Wallet Port: ",49);
-  snprintf(data+strlen(data),sizeof(data)-1,"%d",xcash_wallet_port);
-  memcpy(data+strlen(data),"\nTotal Threads: ",16);
-  snprintf(data+strlen(data),sizeof(data)-1,"%d",total_threads);
-  memcpy(data+strlen(data),"\n\n",2);
-  color_print(data,"yellow");
+  if (debug_settings == 1){
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Debug Settings: YES\n");
+  }else{
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Debug Settings: NO\n");
+  }
+
+  if (network_data_node_settings){
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Mode: SEED NODE\n");
+  }else{
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Mode: DELEGATE NODE\n");
+  }
+
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "DPOPS Server: %s:%d\n", XCASH_DPOPS_delegates_IP_address, SEND_DATA_PORT);
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Daemon Node: %s:%d\n", XCASH_daemon_IP_address,XCASH_DAEMON_PORT);
+
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "XCASH Wallet: %s:%d\n", XCASH_wallet_IP_address, xcash_wallet_port);
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "MongoDB: %s:27017\n", MongoDB_IP_address);
+
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\nTotal Threads: %d\n", total_threads);
+
+  color_print(buffer, "yellow");
 }
-
-
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -943,6 +992,8 @@ void database_sync_check(void)
   // check if all network data nodes are offline
   if (get_network_data_nodes_online_status() == 0)
   {
+    color_print("All seed nodes offline. Starting first seed node...","green");
+
     // this is the first network data node on the network, or none of the network data nodes are on the network. load the current block verifiers from your database and skip the database syncing and skip the check the block verifiers current time
     if (sync_all_block_verifiers_list(1,0) == 0)
     {
@@ -1154,6 +1205,17 @@ int main(int parameters_count, char* parameters[])
     generate_key();
     exit(0);
   }
+
+  for (int param_idx = 0; param_idx < parameters_count; param_idx++)
+  { 
+
+    if (strncmp(parameters[param_idx],"--mongodb-ip-address",BUFFER_SIZE) == 0 && param_idx != parameters_count)
+    {
+      strncpy(MongoDB_IP_address,parameters[param_idx+1],sizeof(MongoDB_IP_address)-1);
+      break;
+    }
+  }
+
 
   create_overall_database_connection();
 

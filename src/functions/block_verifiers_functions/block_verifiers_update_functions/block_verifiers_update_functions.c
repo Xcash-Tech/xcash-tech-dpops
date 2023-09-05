@@ -878,6 +878,10 @@ int calculate_main_nodes_roles(void)
     {
       count2 = count2 % total_block_verifiers;
 
+      // if the slot is empty try another one
+      if (strlen(current_block_verifiers_list.block_verifiers_public_address[count2]) == 0)
+        continue;
+
       // check if this is a network data node, since they will not produce the blocks
       if (strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[0],XCASH_WALLET_LENGTH) == 0 || strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[1],XCASH_WALLET_LENGTH) == 0 || strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[2],XCASH_WALLET_LENGTH) == 0 || strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[3],XCASH_WALLET_LENGTH) == 0 || strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[4],XCASH_WALLET_LENGTH) == 0)
       {
