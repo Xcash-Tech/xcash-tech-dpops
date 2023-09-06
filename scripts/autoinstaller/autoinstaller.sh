@@ -33,7 +33,7 @@ XCASH_DPOPS_BLOCK_HEIGHT=800000
 # Latest versions
 MONGODB_LATEST_VERSION="mongodb-linux-x86_64-ubuntu1804-4.4.1"
 MONGODB_TOOLS_LATEST_VERSION="mongodb-database-tools-ubuntu1804-x86_64-100.2.1"
-MONGOC_DRIVER_LATEST_VERSION="mongo-c-driver-1.17.0"
+MONGOC_DRIVER_LATEST_VERSION="mongo-c-driver-1.17.1"
 NODEJS_LATEST_VERSION="node-v14.10.1-linux-x64"
 
 # Restore versions
@@ -47,14 +47,15 @@ MONGODB_TOOLS_RESTORE_URL="https://fastdl.mongodb.org/tools/db/${MONGODB_TOOLS_R
 MONGOC_DRIVER_RESTORE_URL="https://github.com/mongodb/mongo-c-driver/releases/download/${MONGOC_DRIVER_RESTORE_VERSION:15}/${MONGOC_DRIVER_RESTORE_VERSION}.tar.gz"
 
 # Settings
-XCASH_URL="https://github.com/X-CASH-official/xcash-core.git"
+XCASH_URL="https://github.com/Xcash-Tech/xcash-tech-core.git"
 XCASH_CORE_BRANCH="master"
-XCASH_BLOCKCHAIN_BOOTSTRAP_URL="http://94.130.59.172/xcash-blockchain.7z"
+XCASH_BLOCKCHAIN_BOOTSTRAP_URL="http://xcash.tech/snapshot/block-1033979.zip"
+XCASH_BLOCKCHAIN_BOOTSTRAP_FILE="${XCASH_BLOCKCHAIN_BOOTSTRAP_URL##*/}"
 XCASH_DIR=""
 XCASH_WALLET_DIR=""
 XCASH_SYSTEMPID_DIR=""
 XCASH_LOGS_DIR=""
-XCASH_DPOPS_URL="https://github.com/X-CASH-official/xcash-dpops.git"
+XCASH_DPOPS_URL="https://github.com/Xcash-Tech/xcash-tech-dpops.git"
 XCASH_DPOPS_BRANCH="master"
 XCASH_DPOPS_DIR=""
 XCASH_DPOPS_SHARED_DELEGATE_FOLDER_DIR=""
@@ -88,17 +89,17 @@ SYSTEMD_TIMER_FILE_XCASH_DPOPS=""
 SYSTEMD_TIMER_FILE_XCASH_WALLET=""
 
 # File URLs
-FIREWALL_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/firewall/firewall_script.sh"
-FIREWALL_SHARED_DELEGATES_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/firewall/firewall_shared_delegates_script.sh"
-FIREWALL_XCASH_NODE_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/firewall/firewall_script_xcash_node.sh"
-SYSTEMD_SERVICE_FILE_FIREWALL_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/systemd/firewall.service"
-SYSTEMD_SERVICE_FILE_MONGODB_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/systemd/MongoDB.service"
-SYSTEMD_SERVICE_FILE_XCASH_DAEMON_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/systemd/xcash-daemon.service"
-SYSTEMD_SERVICE_FILE_XCASH_DPOPS_SOLO_DELEGATE_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/systemd/xcash-dpops.service"
-SYSTEMD_SERVICE_FILE_XCASH_DPOPS_SHARED_DELEGATE_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/systemd/xcash-dpops-shared-delegate.service"
-SYSTEMD_SERVICE_FILE_XCASH_WALLET_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/systemd/xcash-rpc-wallet.service"
-SYSTEMD_TIMER_FILE_XCASH_DPOPS_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/systemd/xcash-dpops.timer"
-SYSTEMD_TIMER_FILE_XCASH_WALLET_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/systemd/xcash-rpc-wallet.timer"
+FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_script.sh"
+FIREWALL_SHARED_DELEGATES_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_shared_delegates_script.sh"
+FIREWALL_XCASH_NODE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_script_xcash_node.sh"
+SYSTEMD_SERVICE_FILE_FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/firewall.service"
+SYSTEMD_SERVICE_FILE_MONGODB_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/MongoDB.service"
+SYSTEMD_SERVICE_FILE_XCASH_DAEMON_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-daemon.service"
+SYSTEMD_SERVICE_FILE_XCASH_DPOPS_SOLO_DELEGATE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-dpops.service"
+SYSTEMD_SERVICE_FILE_XCASH_DPOPS_SHARED_DELEGATE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-dpops-shared-delegate.service"
+SYSTEMD_SERVICE_FILE_XCASH_WALLET_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-rpc-wallet.service"
+SYSTEMD_TIMER_FILE_XCASH_DPOPS_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-dpops.timer"
+SYSTEMD_TIMER_FILE_XCASH_WALLET_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-rpc-wallet.timer"
 
 # System settings
 CPU_THREADS=$(nproc)
@@ -152,17 +153,17 @@ function sed_services()
 
 function get_installation_settings()
 {
-  echo -ne "${COLOR_PRINT_GREEN}X-Cash DPoPS Installation Settings\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_GREEN}Xcash-Tech DPoPS Installation Settings\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}1 = Install\n2 = Update\n3 = Quick Update (only xcash-dpops)\n4 = Uninstall\n5 = Restore Tools\n\n${END_COLOR_PRINT}"
-  echo -ne "${COLOR_PRINT_GREEN}X-Cash Node (Daemon Only) Installation Settings\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_GREEN}Xcash-Tech Node (Daemon Only) Installation Settings\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}6 = Install\n7 = Update\n8 = Uninstall\n\n${END_COLOR_PRINT}"
-  echo -ne "${COLOR_PRINT_GREEN}X-Cash Blockchain Management\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_GREEN}Xcash-Tech Blockchain Management\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}9 = Install / Update Blockchain\n\n${END_COLOR_PRINT}"
-  echo -ne "${COLOR_PRINT_GREEN}X-Cash DPoPS Delegate Configuration\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_GREEN}Xcash-Tech DPoPS Delegate Configuration\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}10 = Change Solo Delegate or Shared Delegate\n11 = Edit Shared Delegate Settings\n12 = Register / Update Delegate\n\n${END_COLOR_PRINT}"
-  echo -ne "${COLOR_PRINT_GREEN}X-Cash DPoPS Delegate Management\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_GREEN}Xcash-Tech DPoPS Delegate Management\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}13 = Restart Programs\n14 = Stop Programs\n\n${END_COLOR_PRINT}"
-  echo -ne "${COLOR_PRINT_GREEN}X-Cash DPoPS Testing\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_GREEN}Xcash-Tech DPoPS Testing\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}15 = Mainnet Reset\n16 = Beta/Alpha Test Reset\n\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_GREEN}Miscellaneous\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}17 = Configure Installation\n18 = Firewall\n19 = Shared Delegates Firewall\n\n${END_COLOR_PRINT}"
@@ -458,10 +459,10 @@ function installation_settings()
 {
   echo
   echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
-  echo -e "${COLOR_PRINT_GREEN}         Welcome to X-Cash DPoPS auto-install script  ${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}         Welcome to Xcash Tech DPoPS auto-install script  ${END_COLOR_PRINT}"
   echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
   echo
-  echo -e "${COLOR_PRINT_GREEN}SUGGESTION: if your are running the script through SSH, it's suggested the use of a terminal multiplexer like 'byobu'. You can install it with 'sudo apt install byobu' and then enter the session with 'byobu' command. If your SSH connection crashes you can reconnect to your byobu session using the same command. Please consider running this script inside the byobu session to prevent corrupted installations due to SSH disconnection.${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}SUGGESTION: if your are running the script through SSH, it's suggested the use of a terminal multiplexer like 'byobu' or 'tmux'. You can install it with 'sudo apt install byobu' and then enter the session with 'byobu' command. If your SSH connection crashes you can reconnect to your byobu session using the same command. Please consider running this script inside the byobu session to prevent corrupted installations due to SSH disconnection.${END_COLOR_PRINT}"
   echo
   echo -e "${COLOR_PRINT_YELLOW}The available options of the script are:${END_COLOR_PRINT}"
   echo
@@ -777,7 +778,7 @@ function download_xcash()
 {
   echo -ne "${COLOR_PRINT_YELLOW}Downloading X-CASH${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_INSTALLATION_DIR}"
-  git clone --quiet ${XCASH_URL}
+  git clone --quiet "${XCASH_URL}" "${XCASH_DIR}"
   echo -ne "\r${COLOR_PRINT_GREEN}Downloading X-CASH${END_COLOR_PRINT}"
   echo
 }
@@ -786,7 +787,7 @@ function build_xcash()
 {
   echo -ne "${COLOR_PRINT_YELLOW}Building X-CASH (This Might Take A While)${END_COLOR_PRINT}"
   cd "${XCASH_DIR}"
-  git checkout --quiet ${XCASH_CORE_BRANCH}
+  git checkout --quiet "${XCASH_CORE_BRANCH}"
   if [ "$RAM_CPU_RATIO" -ge "$RAM_CPU_RATIO_ALL_CPU_THREADS" ]; then
     echo "y" | make clean &>/dev/null
     make release -j "${CPU_THREADS}" &>/dev/null
@@ -928,7 +929,7 @@ function download_xcash_dpops()
 {
   echo -ne "${COLOR_PRINT_YELLOW}Downloading xcash-dpops${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_INSTALLATION_DIR}"
-  git clone --quiet ${XCASH_DPOPS_URL}
+  git clone --quiet "${XCASH_DPOPS_URL}" "${XCASH_DPOPS_DIR}"
   echo -ne "\r${COLOR_PRINT_GREEN}Downloading xcash-dpops${END_COLOR_PRINT}"
   echo
 }
@@ -937,7 +938,7 @@ function build_xcash_dpops()
 {
   echo -ne "${COLOR_PRINT_YELLOW}Building xcash-dpops${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_DIR}"
-  git checkout --quiet ${XCASH_DPOPS_BRANCH}
+  git checkout --quiet "${XCASH_DPOPS_BRANCH}"
   if [ "$RAM_CPU_RATIO" -ge "$RAM_CPU_RATIO_ALL_CPU_THREADS" ]; then
     echo "y" | make clean &>/dev/null
     make release -j "${CPU_THREADS}" &>/dev/null
@@ -1149,7 +1150,7 @@ function download_shared_delegate_website()
 {
   echo -ne "${COLOR_PRINT_YELLOW}Downloading Shared Delegates Website${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_INSTALLATION_DIR}"
-  git clone --quiet ${SHARED_DELEGATES_WEBSITE_URL}
+  git clone --quiet "${SHARED_DELEGATES_WEBSITE_URL}"
   echo -ne "\r${COLOR_PRINT_GREEN}Downloading Shared Delegates Website${END_COLOR_PRINT}"
   echo
 }
@@ -1280,7 +1281,7 @@ function update_xcash()
   echo -ne "${COLOR_PRINT_YELLOW}Updating X-CASH (This Might Take A While)${END_COLOR_PRINT}"
   if [ ! -d "$XCASH_DIR" ]; then
     cd "${XCASH_DPOPS_INSTALLATION_DIR}"
-    git clone --quiet "${XCASH_URL}"
+    git clone --quiet "${XCASH_URL}" "${XCASH_DIR}"
   fi
   cd "${XCASH_DIR}"
   data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
@@ -1308,7 +1309,7 @@ function update_xcash_dpops()
   echo -ne "${COLOR_PRINT_YELLOW}Updating xcash-dpops${END_COLOR_PRINT}"
   if [ ! -d "$XCASH_DPOPS_DIR" ]; then
     cd "${XCASH_DPOPS_INSTALLATION_DIR}"
-    git clone --quiet "${XCASH_DPOPS_URL}"
+    git clone --quiet "${XCASH_DPOPS_URL}" "${XCASH_DPOPS_DIR}"
   fi
   cd "${XCASH_DPOPS_DIR}"
   data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
@@ -2174,13 +2175,13 @@ function install_or_update_blockchain()
   # Install 7z and wget if not already installed
   wait_for_package_manager
   sudo apt install -y p7zip-full wget &>/dev/null
-  cd && test -f xcash-blockchain.7z && sudo rm -rf xcash-blockchain.7z*
+  cd && test -f ${XCASH_BLOCKCHAIN_BOOTSTRAP_FILE} && sudo rm -rf ${XCASH_BLOCKCHAIN_BOOTSTRAP_FILE}*
   echo -e "${COLOR_PRINT_GREEN}Starting the Download${END_COLOR_PRINT}"
   wget -q --show-progress ${XCASH_BLOCKCHAIN_BOOTSTRAP_URL}
   echo -e "${COLOR_PRINT_GREEN}Starting Extraction${END_COLOR_PRINT}"
-  sudo rm -r ${XCASH_BLOCKCHAIN_INSTALLATION_DIR} &>/dev/null || true  
-  7z x xcash-blockchain.7z -bso0 -bse0 -o${XCASH_BLOCKCHAIN_INSTALLATION_DIR::-8}
-  sudo rm xcash-blockchain.7z
+  sudo rm -r ${XCASH_BLOCKCHAIN_INSTALLATION_DIR} &>/dev/null || true
+  7z x ${XCASH_BLOCKCHAIN_BOOTSTRAP_FILE} -bso0 -bse0 -o${XCASH_BLOCKCHAIN_INSTALLATION_DIR::-8}
+  sudo rm ${XCASH_BLOCKCHAIN_BOOTSTRAP_FILE}
   echo -e "${COLOR_PRINT_GREEN}Installing / Updating The BlockChain Completed${END_COLOR_PRINT}"
   echo
 }
@@ -2199,13 +2200,13 @@ function install_blockchain()
     done
 
     cd $HOME
-    cd && test -f xcash-blockchain.7z && sudo rm -rf xcash-blockchain.7z*
+    cd && test -f ${XCASH_BLOCKCHAIN_BOOTSTRAP_FILE} && sudo rm -rf ${XCASH_BLOCKCHAIN_BOOTSTRAP_FILE}*
     echo -e "${COLOR_PRINT_GREEN}Starting the Download${END_COLOR_PRINT}"
     wget -q --show-progress ${XCASH_BLOCKCHAIN_BOOTSTRAP_URL}
     echo -e "${COLOR_PRINT_GREEN}Starting Extraction${END_COLOR_PRINT}"
-    sudo rm -r ${XCASH_BLOCKCHAIN_INSTALLATION_DIR} &>/dev/null || true  
-    7z x xcash-blockchain.7z -bso0 -bse0 -o${XCASH_BLOCKCHAIN_INSTALLATION_DIR::-8}
-    sudo rm xcash-blockchain.7z
+    sudo rm -r ${XCASH_BLOCKCHAIN_INSTALLATION_DIR} &>/dev/null || true
+    7z x ${XCASH_BLOCKCHAIN_BOOTSTRAP_FILE} -bso0 -bse0 -o${XCASH_BLOCKCHAIN_INSTALLATION_DIR::-8}
+    sudo rm ${XCASH_BLOCKCHAIN_BOOTSTRAP_FILE}
     echo -e "${COLOR_PRINT_GREEN}Installing The BlockChain Completed${END_COLOR_PRINT}"
     echo
   fi

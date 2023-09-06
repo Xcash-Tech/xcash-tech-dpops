@@ -3,7 +3,7 @@
 Run the LXC Autoinstaller
 
 ```sh
-rm -f lxc_autoinstaller.sh 2&> /dev/null && wget https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/autoinstaller/lxc_autoinstaller.sh && chmod +x lxc_autoinstaller.sh && ./lxc_autoinstaller.sh
+rm -f lxc_autoinstaller.sh 2&> /dev/null && wget https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/autoinstaller/lxc_autoinstaller.sh && chmod +x lxc_autoinstaller.sh && ./lxc_autoinstaller.sh
 ```
 
 ![{E1A63E86-014B-4C7C-A5BC-3F16C5AC1354} png](https://user-images.githubusercontent.com/68710094/92037635-5f59d980-ed72-11ea-909c-128aeb20f91e.jpg)

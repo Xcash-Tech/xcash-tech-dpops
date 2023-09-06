@@ -5,7 +5,7 @@ INSTALLATION_DIRECTORY="$HOME/xcash-official/"
 PROGRAMS_INSTALLATION_DIRECTORY="${INSTALLATION_DIRECTORY}Installed-Programs/"
 
 # Latest versions
-XCASH_URL="https://github.com/X-CASH-official/xcash-core.git"
+XCASH_URL="https://github.com/Xcash-Tech/xcash-tech-core.git"
 BOOST_URL="https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.gz"
 OPENSSL_URL="https://www.openssl.org/source/openssl-1.1.1d.tar.gz"
 PCSC_LITE_URL="https://pcsclite.apdu.fr/files/pcsc-lite-1.8.25.tar.bz2"

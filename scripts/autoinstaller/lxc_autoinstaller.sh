@@ -17,9 +17,9 @@ XCASH_AUTOINSTALLER_FIREWALL_OPTION_NUMBER=17
 XCASH_AUTOINSTALLER_FIREWALL_SHARED_OPTION_NUMBER=18
 XCASH_MAINTENANCE_SCRIPT_NAME="xcash-maintenance"
 XCASH_DPOPS_SRV="xcash-dpops"
-XCASH_AUTOINSTALLER_SCRIPT_SCRATCH_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/autoinstaller/autoinstaller.sh"
-XCASH_MAINTENANCE_SCRIPT_SCRATCH_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/management/xcash-maintenance"
-XCASH_AUTOINSTALLER_HOST_FIREWALL_URL="https://raw.githubusercontent.com/X-CASH-official/xcash-dpops/master/scripts/autoinstaller/autoinstaller.sh"
+XCASH_AUTOINSTALLER_SCRIPT_SCRATCH_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/autoinstaller/autoinstaller.sh"
+XCASH_MAINTENANCE_SCRIPT_SCRATCH_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/management/xcash-maintenance"
+XCASH_AUTOINSTALLER_HOST_FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/autoinstaller/autoinstaller.sh"
 LOG_GREP_BEFORE_LINES=20
 LOG_GREP_AFTER_LINES=83
 
