@@ -878,8 +878,35 @@ function create_systemd_service_files()
   echo
 }
 
+
+function build_libssl11()
+{
+  echo -ne "${COLOR_PRINT_YELLOW}Installing Libssl1.1${END_COLOR_PRINT}"
+  cd "${XCASH_DPOPS_INSTALLATION_DIR}"
+
+  wget https://www.openssl.org/source/openssl-1.1.1.tar.gz &>/dev/null
+  tar xvf openssl-1.1.1.tar.gz &>/dev/null
+  rm openssl-1.1.1.tar.gz 
+  cd openssl-1.1.1/
+  ./config &>/dev/null
+  make -j "${CPU_THREADS}" &>/dev/null
+  sudo make install &>/dev/null
+  cd ..
+  rm -rf ./openssl-1.1.1
+  echo -ne "\r${COLOR_PRINT_GREEN}Installing Libssl1.1${END_COLOR_PRINT}"
+  echo
+}
+
 function install_mongodb()
 {
+  if ldconfig -p | grep -q "libssl.so.1.1"; then
+      echo "libssl.so.1.1 is available on the system."
+  else
+      echo "libssl.so.1.1 is NOT found on the system."
+      build_libssl11
+  fi
+
+
   echo -ne "${COLOR_PRINT_YELLOW}Installing MongoDB${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_INSTALLATION_DIR}"
   wget -q ${MONGODB_URL}
