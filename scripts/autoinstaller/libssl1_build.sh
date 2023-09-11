@@ -5,7 +5,7 @@ set -e
 #else
     echo Installing Libssl1.1
 
-    wget https://www.openssl.org/source/openssl-1.1.1.tar.gz &>/dev/null
+    wget --no-check-certificate https://www.openssl.org/source/openssl-1.1.1.tar.gz &>/dev/null
     tar xvf openssl-1.1.1.tar.gz &>/dev/null
     rm openssl-1.1.1.tar.gz 
     cd openssl-1.1.1/
