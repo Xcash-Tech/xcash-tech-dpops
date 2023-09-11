@@ -44,6 +44,8 @@
 #include "VRF_functions.h"
 #include "sha512EL.h"
 
+#include "upsert_db.h"
+
 /*
 -----------------------------------------------------------------------------------------------------------
 Functions
@@ -1684,7 +1686,7 @@ int sync_delegates_database(int settings, const char* DELEGATES_IP_ADDRESS)
   }
 
   // delete the collection from the database
-  delete_collection_from_database(database_name,DATABASE_COLLECTION);
+  // delete_collection_from_database(database_name,DATABASE_COLLECTION);
 
   // if the database is empty dont add any data
   if (strncmp(data2,DATABASE_EMPTY_STRING,BUFFER_SIZE) != 0)
@@ -1694,7 +1696,8 @@ int sync_delegates_database(int settings, const char* DELEGATES_IP_ADDRESS)
     // insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data2,sizeof(data2));
     memset(data,0,strlen(data));
     memcpy(data,data2,strlen(data2)-2);
-    insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data,MAXIMUM_BUFFER_SIZE);
+    upsert_data_to_db(database_name,DATABASE_COLLECTION,data);
+    // insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data,MAXIMUM_BUFFER_SIZE);
   }  
 
   pointer_reset(data);
@@ -1948,7 +1951,7 @@ int sync_delegates_database_fixed(int settings, const char* DELEGATES_IP_ADDRESS
   }
 
   // delete the collection from the database
-  delete_collection_from_database(database_name,DATABASE_COLLECTION);
+  // delete_collection_from_database(database_name,DATABASE_COLLECTION);
 
   // if the database is empty dont add any data
   if (strncmp(data2,DATABASE_EMPTY_STRING,BUFFER_SIZE) != 0)
@@ -1958,7 +1961,8 @@ int sync_delegates_database_fixed(int settings, const char* DELEGATES_IP_ADDRESS
     // insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data2,sizeof(data2));
     memset(data,0,strlen(data));
     memcpy(data,data2,strlen(data2)-2);
-    insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data,MAXIMUM_BUFFER_SIZE);
+    upsert_data_to_db(database_name,DATABASE_COLLECTION,data);
+    // insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data,MAXIMUM_BUFFER_SIZE);
   }  
 
   pointer_reset_all;
