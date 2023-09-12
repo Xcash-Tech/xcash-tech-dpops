@@ -540,8 +540,9 @@ void get_delegates_data(void)
     GET_DELEGATES_DATA_ERROR("Could not get the current block height");
   }
 
+  // FIXME: maybe it's really better to go offline if there is no previous block hash , it causes error later
   // get the previous block hash
-  if (get_previous_block_hash(previous_block_hash) == 0)
+  if (get_previous_block_hash(previous_block_hash) == 0) 
   {
     GET_DELEGATES_DATA_ERROR("Could not get the previous block hash");
   }

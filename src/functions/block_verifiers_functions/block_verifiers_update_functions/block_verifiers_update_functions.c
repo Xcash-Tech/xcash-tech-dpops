@@ -113,22 +113,23 @@ int get_block_verifiers_from_network_block(const int TOTAL_DELEGATES, const stru
   snprintf(data3+14,MAXIMUM_NUMBER_SIZE,"%zu",block_height);
   if (read_document_field_from_collection(database_name,data3,data,"reserve_bytes",message) == 0)
   {
+    fprintf(stderr,"\033[1;31m%s\t%d: Can't read from DB %s, searching for block_height %ld\033[0m\n",__func__, __LINE__, data3, CURRENT_BLOCK_HEIGHT);
     // restore the database from the backup
-    if (production_settings == 1 && network_data_node_settings == 1)
-    {
-      /*color_print("Could not get the previous blocks reserve bytes, restoring the database from the backup","red");
-      memset(data,0,sizeof(data));
-      memcpy(data,database_path_read,strnlen(database_path_read,sizeof(data)));
-      snprintf(data+strlen(data),MAXIMUM_NUMBER_SIZE,"%zu",block_height);
-      memcpy(data+strlen(data),"/",1);
-      count = system(data);*/
-    }
-    else if (production_settings == 1 && network_data_node_settings == 0)
-    {
+    // if (production_settings == 1 && network_data_node_settings == 1)
+    // {
+    //   /*color_print("Could not get the previous blocks reserve bytes, restoring the database from the backup","red");
+    //   memset(data,0,sizeof(data));
+    //   memcpy(data,database_path_read,strnlen(database_path_read,sizeof(data)));
+    //   snprintf(data+strlen(data),MAXIMUM_NUMBER_SIZE,"%zu",block_height);
+    //   memcpy(data+strlen(data),"/",1);
+    //   count = system(data);*/
+    // }
+    // else if (production_settings == 1 && network_data_node_settings == 0)
+    // {
       color_print("Could not get the previous blocks reserve bytes, syncing from a random network data node","red");
       sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-1),SUBMIT_NETWORK_BLOCK_TIME_SECONDS);
       exit(0);
-    }
+    // }
   }
   
   // get the next block verifiers public keys from the previous network blocks reserve bytes
