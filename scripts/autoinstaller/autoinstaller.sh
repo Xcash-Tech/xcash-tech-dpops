@@ -72,7 +72,7 @@ MONGODB_CURRENT_VERSION=""
 MONGOC_DRIVER_URL="https://github.com/mongodb/mongo-c-driver/releases/download/${MONGOC_DRIVER_LATEST_VERSION:15}/${MONGOC_DRIVER_LATEST_VERSION}.tar.gz"
 MONGOC_DRIVER_DIR=""
 MONGOC_DRIVER_CURRENT_VERSION=""
-XCASH_DPOPS_PACKAGES="build-essential cmake pkg-config libboost-all-dev libssl-dev libzmq3-dev libunbound-dev libsodium-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libpcsclite-dev git screen p7zip-full moreutils wget iptables"
+XCASH_DPOPS_PACKAGES="build-essential cmake pkg-config libboost-all-dev libssl-dev libzmq3-dev libunbound-dev libsodium-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libpcsclite-dev git screen p7zip-full moreutils wget iptables libuv1-dev"
 CURRENT_XCASH_WALLET_INFORMATION=""
 PUBLIC_ADDRESS=""
 
@@ -957,6 +957,7 @@ function download_xcash_dpops()
   echo -ne "${COLOR_PRINT_YELLOW}Downloading xcash-dpops${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_INSTALLATION_DIR}"
   git clone --quiet "${XCASH_DPOPS_URL}" "${XCASH_DPOPS_DIR}"
+  git switch next
   echo -ne "\r${COLOR_PRINT_GREEN}Downloading xcash-dpops${END_COLOR_PRINT}"
   echo
 }
@@ -1339,6 +1340,7 @@ function update_xcash_dpops()
     git clone --quiet "${XCASH_DPOPS_URL}" "${XCASH_DPOPS_DIR}"
   fi
   cd "${XCASH_DPOPS_DIR}"
+  git switch next
   data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
   if [ "$data" == "0" ]; then
     git reset --hard HEAD --quiet
