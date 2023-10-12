@@ -627,13 +627,18 @@ bool processing(const arg_config_t *arg_config) {
         return false;
     };
 
-    // if (arg_config->sync_dbs_from_node) return synchronize_database_from_network_data_node();
-
-    // if (arg_config->sync_dbs_from_delegate_ip) return synchronize_database_from_network_data_node();
+    if (arg_config->init_db_from_seeds) {
+        INFO_STAGE_PRINT("Initializing database from seeds")
+        if (!init_db_from_seeds()) {
+            ERROR_PRINT("Can't initialize database from seeds");
+        };
+        cleanup_data_structures();
+        return false;
+    }
 
     // brief check if database is empty
     if (count_db_delegates() <= 0 || count_db_statistics() <= 0) {
-        ERROR_PRINT("'delegates' or 'statistics' DB not initialized. Do it manually");
+        ERROR_PRINT("'delegates' or 'statistics' DB not initialized. Do it manually with --init-db-from-seeds");
         cleanup_data_structures();
         return false;
     }

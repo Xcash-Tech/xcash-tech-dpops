@@ -74,6 +74,8 @@ int get_random_majority(xcash_node_sync_info_t* majority_list, size_t majority_c
 bool initial_db_sync_check(size_t* majority_count, xcash_node_sync_info_t** majority_list_result);
 bool check_time_sync_to_seeds(void);
 
+bool init_db_from_seeds(void);
+
 bool synchronize_database_from_specific_delegate(const char* delegate_ip);
 bool synchronize_database_from_network_data_node(void);
 

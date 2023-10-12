@@ -1100,33 +1100,33 @@ void show_majority_statistics(xcash_node_sync_info_t* majority_list, size_t item
 }
 
 
-// bool get_sync_seeds_majority_list(xcash_node_sync_info_t** majority_list_result, size_t* majority_count_result) {
-//     bool result = false;
-//     *majority_list_result = NULL;
-//     *majority_count_result = 0;
+bool get_sync_seeds_majority_list(xcash_node_sync_info_t** majority_list_result, size_t* majority_count_result) {
+    bool result = false;
+    *majority_list_result = NULL;
+    *majority_count_result = 0;
 
 
-//     response_t** replies =  NULL;
-//     bool send_result = send_message(XNET_SEEDS_ALL, XMSG_XCASH_GET_SYNC_INFO, &replies);
-//     if (!send_result) {
-//         ERROR_PRINT("Can't get sync info from all delegates");
-//         cleanup_responses(replies);
-//     }
+    response_t** replies =  NULL;
+    bool send_result = send_message(XNET_SEEDS_ALL, XMSG_XCASH_GET_SYNC_INFO, &replies);
+    if (!send_result) {
+        ERROR_PRINT("Can't get sync info from all delegates");
+        cleanup_responses(replies);
+    }
 
-//     xcash_node_sync_info_t* majority_list;
-//     size_t majority_count = 0;
-//     if (check_sync_nodes_majority_list(replies, &majority_list, &majority_count)) {
-//         result = true;
-//     }
+    xcash_node_sync_info_t* majority_list;
+    size_t majority_count = 0;
+    if (check_sync_nodes_majority_list(replies, &majority_list, &majority_count)) {
+        result = true;
+    }
 
-//     *majority_count_result =  majority_count;
-//     *majority_list_result = majority_list;
+    *majority_count_result =  majority_count;
+    *majority_list_result = majority_list;
 
-//     // free(majority_list);
-//     cleanup_responses(replies);
+    // free(majority_list);
+    cleanup_responses(replies);
     
-//     return result;    
-// }
+    return result;    
+}
 
 
 
@@ -1439,3 +1439,41 @@ bool check_time_sync_to_seeds(void) {
 //     color_print("Successfully synced all databases", "yellow");
 //     return true;
 // }
+
+
+
+bool init_db_from_seeds(void) {
+    bool result = false;
+
+    while (!result)
+    {
+        size_t nodes_majority_count = 0;
+        xcash_node_sync_info_t* nodes_majority_list = NULL;
+    
+        INFO_STAGE_PRINT("Checking the network data majority");
+
+        if (!get_sync_seeds_majority_list(&nodes_majority_list, &nodes_majority_count)) {
+            WARNING_PRINT("Could not get data majority nodes sync list");
+        }else{
+            show_majority_statistics(nodes_majority_list, nodes_majority_count);
+
+            if ((nodes_majority_count < NETWORK_DATA_NODES_VALID_AMOUNT)) {
+                INFO_PRINT_STATUS_FAIL("Not enough data majority. Nodes: [%ld/%d]", nodes_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT);
+                result = false;
+            } else {
+                INFO_PRINT_STATUS_OK("Data majority reached. Nodes: [%ld/%d]",  nodes_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT);
+                int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
+                result = initial_sync_node(&nodes_majority_list[sync_source_index]);
+            }
+        }
+        free(nodes_majority_list);
+
+        if (!result) {
+            INFO_STAGE_PRINT("Waiting for network recovery...");
+            sleep(10);
+        };
+    }
+    INFO_PRINT_STATUS_OK("Database successfully synced")
+
+    return result;
+}

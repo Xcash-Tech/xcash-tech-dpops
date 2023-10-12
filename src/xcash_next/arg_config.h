@@ -28,6 +28,7 @@ typedef struct {
     char* sync_dbs_from_delegate_ip;
     int total_threads;
     char* server_log_file;
+    bool init_db_from_seeds;
 } arg_config_t;
 
 // Define an enum for option IDs
@@ -54,6 +55,7 @@ typedef enum {
     OPTION_SYNCHRONIZE_DATABASE_FROM_SPECIFIC_DELEGATE,
     OPTION_TOTAL_THREADS,
     OPTION_SERVER_LOG_FILE,
+    OPTION_INIT_DB_FROM_SEEDS,
 } option_ids;
 
 
