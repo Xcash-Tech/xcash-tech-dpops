@@ -73,10 +73,10 @@ int compare_delegates(const void* a, const void* b) {
 
     // to be compatible to original
 
-    int settings;
-    if ((settings = strcmp(delegate2->online_status, delegate1->online_status)) != 0) {
-        return settings < 0 ? -1 : 1;
-    }
+    // int settings;
+    // if ((settings = strcmp(delegate2->online_status, delegate1->online_status)) != 0) {
+    //     return settings < 0 ? -1 : 1;
+    // }
 
     // int online_status1 = strcmp(delegate1->online_status, "true") == 0 ? 1 : 0;
     // int online_status2 = strcmp(delegate2->online_status, "true") == 0 ? 1 : 0;
