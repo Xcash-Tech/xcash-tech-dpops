@@ -273,7 +273,8 @@ int main(int argc, char **argv) {
     }
 
     shutdown_database();
-    fclose(server_log_fp);
+    if (server_log_fp)
+        fclose(server_log_fp);
 
 
     return 0;

@@ -1484,7 +1484,9 @@ bool init_db_from_seeds(void) {
             sleep(10);
         };
     }
-    INFO_PRINT_STATUS_OK("Database successfully synced")
+    if (result) {
+        INFO_PRINT_STATUS_OK("Database successfully synced")
+    }
 
     return result;
 }
