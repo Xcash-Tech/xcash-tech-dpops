@@ -20,6 +20,7 @@
 #include "log.h"
 #include "xcash_db_sync.h"
 #include "network_daemon_functions.h"
+#include "xcash_node.h"
 
 bool get_node_data(void);
 bool init_data_by_config(const arg_config_t* config);

@@ -50,6 +50,7 @@ typedef enum {
     XMSG_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_UPDATE,
     XMSG_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_DOWNLOAD,  // server answer
     XMSG_XCASH_GET_SYNC_INFO, // get server hashes and block_height
+    XMSG_XCASH_GET_BLOCK_PRODUCERS, // get current block producers
 
     XMSG_MESSAGES_COUNT,
     XMSG_NONE = XMSG_MESSAGES_COUNT  // for iteration purpose
@@ -63,7 +64,7 @@ bool is_unsigned_type(xcash_msg_t msg);
 bool is_walletsign_type(xcash_msg_t msg);
 bool is_nonreturn_type(xcash_msg_t msg);
 
-char* create_message_param_list(xcash_msg_t msg, char** pair_params);
+char* create_message_param_list(xcash_msg_t msg, const char** pair_params);
 
 char* create_message(xcash_msg_t msg);
 char* create_message_args(xcash_msg_t msg, va_list args);

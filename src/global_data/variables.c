@@ -46,9 +46,13 @@ Global Variables
 mongoc_client_pool_t* database_client_thread_pool;
 
 // xcash-next
-int seed_index; // -1 - not a seed node, >0 index of seed node
 bool is_seed_node = false;
 bool network_recovery_state;
+bool is_shutdown_state = false;
+int threads_running = 0;
+FILE* server_log_fp =  NULL;
+int sig_requests = 0;
+bool is_block_creation_stage = false;
 
 delegates_t delegates_all[BLOCK_VERIFIERS_TOTAL_AMOUNT];
 

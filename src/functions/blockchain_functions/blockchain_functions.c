@@ -996,43 +996,46 @@ Return: 0 if an error has occured or it is not verified, 1 if successfull
 -----------------------------------------------------------------------------------------------------------
 */
 
-int add_data_hash_to_network_block_string(const char* NETWORK_BLOCK_STRING, char *network_block_string_data_hash)
-{
-  // Variables
-  char data[BUFFER_SIZE];
-  char data2[DATA_HASH_LENGTH+SMALL_BUFFER_SIZE];
-  int count;
-  int count2;
+int add_data_hash_to_network_block_string(const char* NETWORK_BLOCK_STRING, char* network_block_string_data_hash) {
+    // Variables
+    char data[BUFFER_SIZE];
+    char data2[DATA_HASH_LENGTH + SMALL_BUFFER_SIZE];
+    int count;
+    int count2;
 
-  memset(data,0,sizeof(data));
-  memset(data2,0,sizeof(data2));
+    memset(data, 0, sizeof(data));
+    memset(data2, 0, sizeof(data2));
 
-  // get the data hash of the network block string
-  crypto_hash_sha512((unsigned char*)data,(const unsigned char*)NETWORK_BLOCK_STRING,(unsigned long long)strnlen(NETWORK_BLOCK_STRING,BUFFER_SIZE));
+    // get the data hash of the network block string
+    crypto_hash_sha512((unsigned char*)data, (const unsigned char*)NETWORK_BLOCK_STRING,
+                       (unsigned long long)strnlen(NETWORK_BLOCK_STRING, BUFFER_SIZE));
 
-  // convert the SHA512 data hash to a string
-  for (count2 = 0, count = 0; count2 < DATA_HASH_LENGTH / 2; count2++, count += 2)
-  {
-    snprintf(data2+count,MAXIMUM_NUMBER_SIZE,"%02x",data[count2] & 0xFF);
-  }
+    // convert the SHA512 data hash to a string
+    for (count2 = 0, count = 0; count2 < DATA_HASH_LENGTH / 2; count2++, count += 2) {
+        snprintf(data2 + count, MAXIMUM_NUMBER_SIZE, "%02x", data[count2] & 0xFF);
+    }
 
-  // copy the reserve bytes data hash
-  memset(VRF_data.reserve_bytes_data_hash,0,strlen(VRF_data.reserve_bytes_data_hash));
-  memcpy(VRF_data.reserve_bytes_data_hash,data2,DATA_HASH_LENGTH);
+    // copy the reserve bytes data hash
+    memset(VRF_data.reserve_bytes_data_hash, 0, DATA_HASH_LENGTH + 1);
+    memcpy(VRF_data.reserve_bytes_data_hash, data2, DATA_HASH_LENGTH);
 
-  // add the data hash to the network block string
-  memset(data,0,strnlen(data,BUFFER_SIZE));
-  memcpy(data,&NETWORK_BLOCK_STRING[(strnlen(NETWORK_BLOCK_STRING,BUFFER_SIZE)) - (strnlen(strstr(NETWORK_BLOCK_STRING,BLOCKCHAIN_RESERVED_BYTES_START),BUFFER_SIZE) - (sizeof(BLOCKCHAIN_RESERVED_BYTES_START)-1))],((strnlen(NETWORK_BLOCK_STRING,BUFFER_SIZE)) - (strnlen(strstr(NETWORK_BLOCK_STRING,BLOCKCHAIN_RESERVED_BYTES_END),BUFFER_SIZE) - (sizeof(BLOCKCHAIN_RESERVED_BYTES_END)-1))) - ((strnlen(NETWORK_BLOCK_STRING,BUFFER_SIZE)) - (strnlen(strstr(NETWORK_BLOCK_STRING,BLOCKCHAIN_RESERVED_BYTES_START),BUFFER_SIZE) - (sizeof(BLOCKCHAIN_RESERVED_BYTES_START)-1))) - (sizeof(BLOCKCHAIN_RESERVED_BYTES_END)-1));
+    // add the data hash to the network block string
 
-  memset(network_block_string_data_hash,0,strnlen(network_block_string_data_hash,BUFFER_SIZE));
-  memcpy(network_block_string_data_hash,NETWORK_BLOCK_STRING,strnlen(NETWORK_BLOCK_STRING,BUFFER_SIZE));
-  
-  // replace the reserve bytes with the network block string data hash
-  string_replace(network_block_string_data_hash,BUFFER_SIZE,data,data2);
-  return 1;
+    const char *hash_start_ptr = strstr(NETWORK_BLOCK_STRING, BLOCKCHAIN_RESERVED_BYTES_START);
+    const char *hash_end_ptr = strstr(NETWORK_BLOCK_STRING, BLOCKCHAIN_RESERVED_BYTES_END);
+
+    if (hash_start_ptr && hash_end_ptr) {
+        hash_start_ptr+= sizeof(BLOCKCHAIN_RESERVED_BYTES_START)-1;
+        size_t bg_block_size = hash_start_ptr-NETWORK_BLOCK_STRING;
+        memcpy(network_block_string_data_hash,NETWORK_BLOCK_STRING, bg_block_size);
+        sprintf(network_block_string_data_hash+bg_block_size, "%s%s", VRF_data.reserve_bytes_data_hash, hash_end_ptr);
+    } else{
+      ERROR_PRINT("Wrong block blob passed. %s",NETWORK_BLOCK_STRING);
+      return XCASH_ERROR;
+    }
+
+    return XCASH_OK;
 }
-
-
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -1419,10 +1422,10 @@ int verify_network_block_data(const int BLOCK_VALIDATION_SIGNATURES_SETTINGS, co
       }
     }
     // check for what delegates did not send any response for this round
-    if (delegates_error_list_settings == 1 && vrf_data_verify_count != BLOCK_VERIFIERS_AMOUNT)
-    {
-      color_print(delegates_error_list,"red");   
-    }
+    // if (delegates_error_list_settings == 1 && vrf_data_verify_count != BLOCK_VERIFIERS_AMOUNT)
+    // {
+    //   color_print(delegates_error_list,"red");   
+    // }
     if (vrf_data_verify_count < BLOCK_VERIFIERS_VALID_AMOUNT)
     {
       // run the double for loop to check all signatures with all block verifiers public address in case the order is off
@@ -1439,17 +1442,17 @@ int verify_network_block_data(const int BLOCK_VALIDATION_SIGNATURES_SETTINGS, co
       }
       if (vrf_data_verify_count >= BLOCK_VERIFIERS_VALID_AMOUNT)
       {
-        fprintf(stderr,"\033[1;32m%d / %d block verifiers from the previous block signatures are valid\n\033[0m\n",vrf_data_verify_count,BLOCK_VERIFIERS_VALID_AMOUNT);
+        INFO_PRINT_STATUS_OK("[%d / %d] block verifiers from the previous block signatures are valid",vrf_data_verify_count,BLOCK_VERIFIERS_VALID_AMOUNT);
       }
       else
       {
-        fprintf(stderr,"\033[1;31m%d / %d block verifiers from the previous block signatures are valid\n\033[0m\n",vrf_data_verify_count,BLOCK_VERIFIERS_VALID_AMOUNT);
+        INFO_PRINT("[%d / %d] block verifiers from the previous block signatures are valid",vrf_data_verify_count,BLOCK_VERIFIERS_VALID_AMOUNT);
         VERIFY_NETWORK_BLOCK_DATA_ERROR("Invalid network_block_string, The block was not signed by the required amount of block validation nodes from the previous block");
       }
     }
     else
     {
-      fprintf(stderr,"\033[1;32m%d / %d block verifiers from the previous block signatures are valid\n\033[0m\n",vrf_data_verify_count,BLOCK_VERIFIERS_VALID_AMOUNT);
+      INFO_PRINT_STATUS_OK("[%d / %d] block verifiers from the previous block signatures are valid",vrf_data_verify_count,BLOCK_VERIFIERS_VALID_AMOUNT);
     }    
   }
 

@@ -11,13 +11,7 @@ Description: Gets the delegates data
 -----------------------------------------------------------------------------------------------------------
 */
 
-bool get_node_data(void) {
-    // get the wallets public address
-    if (get_public_address() == 0) {
-        ERROR_PRINT("Could not get the wallets public address");
-        return false;
-    }
-
+bool get_daemon_data(void) {
     // get the current block height
     if (get_current_block_height(current_block_height) == 0) {
         ERROR_PRINT("Could not get the current block height");
@@ -37,37 +31,20 @@ bool get_node_data(void) {
         return false;
     }
 
-    // check if the block verifier is a network data node
-    // CHECK_IF_BLOCK_VERIFIERS_IS_NETWORK_DATA_NODE;
 
-    is_seed_node = false;
-    network_data_node_settings = 0;
-    seed_index = -1;
-    for (size_t i = 0; i < NETWORK_DATA_NODES_AMOUNT; i++) {
-        if (strncmp(xcash_wallet_public_address, network_data_nodes_list.network_data_nodes_public_address[i],
-                    XCASH_WALLET_LENGTH) == 0) {
-            network_data_node_settings = 1;
-            seed_index = i;
-            is_seed_node = true;
-            break;
-        }
-    }
+    return true;
+}
 
-    // TODO move website processing to other service
-    // get the website path
 
-    char data[SMALL_BUFFER_SIZE];
-    memset(website_path, 0, sizeof(website_path));
-    memset(data, 0, sizeof(data));
-    if (readlink("/proc/self/exe", data, sizeof(data)) == -1) {
-        ERROR_PRINT("Could not get the websites path");
+bool get_node_data(void) {
+    // get the wallets public address
+    if (get_public_address() == 0) {
+        ERROR_PRINT("Could not get the wallets public address");
         return false;
     }
-    memcpy(website_path, data, strnlen(data, sizeof(website_path)) - 17);
-    delegates_website == 1
-        ? memcpy(website_path + strlen(website_path), DELEGATES_WEBSITE_PATH, sizeof(DELEGATES_WEBSITE_PATH) - 1)
-        : memcpy(website_path + strlen(website_path), SHARED_DELEGATES_WEBSITE_PATH,
-                 sizeof(SHARED_DELEGATES_WEBSITE_PATH) - 1);
+
+    is_seed_node = is_seed_address(xcash_wallet_public_address);
+    network_data_node_settings = is_seed_node? 1:0;
 
     return true;
 }

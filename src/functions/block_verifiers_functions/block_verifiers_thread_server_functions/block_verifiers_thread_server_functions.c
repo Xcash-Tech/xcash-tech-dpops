@@ -123,138 +123,138 @@ Return: NULL
 -----------------------------------------------------------------------------------------------------------
 */
 
-void* current_block_height_timer_thread(void* parameters)
-{
-  // Variables
-  char data[BUFFER_SIZE_NETWORK_BLOCK_DATA];
-  char data2[BUFFER_SIZE_NETWORK_BLOCK_DATA];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-  size_t count;
-  int settings = 0;
-  int block_verifier_settings;
+// void* current_block_height_timer_thread(void* parameters)
+// {
+//   // Variables
+//   char data[BUFFER_SIZE_NETWORK_BLOCK_DATA];
+//   char data2[BUFFER_SIZE_NETWORK_BLOCK_DATA];
+//   time_t current_date_and_time;
+//   struct tm current_UTC_date_and_time;
+//   size_t count;
+//   int settings = 0;
+//   int block_verifier_settings;
   
-  memset(data,0,sizeof(data));
-  memset(data2,0,sizeof(data2));
+//   memset(data,0,sizeof(data));
+//   memset(data2,0,sizeof(data2));
 
-  // unused parameters
-  (void)parameters;
+//   // unused parameters
+//   (void)parameters;
 
-  // wait for the specific start time if the block_height_start_time is on
-  if (block_height_start_time.block_height_start_time == 1 && registration_settings == 0)
-  {
-    start_time:
-    color_print("Waiting for the specific start time","yellow");
-    do
-    {
-      get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
-      nanosleep((const struct timespec[]){{0, 200000000L}}, NULL);  
+//   // wait for the specific start time if the block_height_start_time is on
+//   if (block_height_start_time.block_height_start_time == 1 && registration_settings == 0)
+//   {
+//     start_time:
+//     color_print("Waiting for the specific start time","yellow");
+//     do
+//     {
+//       get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
+//       nanosleep((const struct timespec[]){{0, 200000000L}}, NULL);  
 
-      // check if it is 30 minutes before the start time and restart, this way non network data nodes get an up to date copy of the database
-      if (network_data_node_settings == 0 && current_UTC_date_and_time.tm_year == block_height_start_time.block_height_start_time_year && current_UTC_date_and_time.tm_mon == block_height_start_time.block_height_start_time_month && current_UTC_date_and_time.tm_mday == block_height_start_time.block_height_start_time_day && current_UTC_date_and_time.tm_hour == block_height_start_time.block_height_start_time_hour && block_height_start_time.block_height_start_time_minute - current_UTC_date_and_time.tm_min == 30)
-      {
+//       // check if it is 30 minutes before the start time and restart, this way non network data nodes get an up to date copy of the database
+//       if (network_data_node_settings == 0 && current_UTC_date_and_time.tm_year == block_height_start_time.block_height_start_time_year && current_UTC_date_and_time.tm_mon == block_height_start_time.block_height_start_time_month && current_UTC_date_and_time.tm_mday == block_height_start_time.block_height_start_time_day && current_UTC_date_and_time.tm_hour == block_height_start_time.block_height_start_time_hour && block_height_start_time.block_height_start_time_minute - current_UTC_date_and_time.tm_min == 30)
+//       {
 
-        // FIXME this is unfucking believable logic. restart node to sync db...
-        sleep(60);
-        color_print("Restarting to get a up to date copy of the database","green");
-        exit(0);
-      }
-    } while (current_UTC_date_and_time.tm_year != block_height_start_time.block_height_start_time_year || current_UTC_date_and_time.tm_mon != block_height_start_time.block_height_start_time_month || current_UTC_date_and_time.tm_mday != block_height_start_time.block_height_start_time_day || current_UTC_date_and_time.tm_hour != block_height_start_time.block_height_start_time_hour || current_UTC_date_and_time.tm_min != block_height_start_time.block_height_start_time_minute);
-  }
+//         // FIXME this is unfucking believable logic. restart node to sync db...
+//         sleep(60);
+//         color_print("Restarting to get a up to date copy of the database","green");
+//         exit(0);
+//       }
+//     } while (current_UTC_date_and_time.tm_year != block_height_start_time.block_height_start_time_year || current_UTC_date_and_time.tm_mon != block_height_start_time.block_height_start_time_month || current_UTC_date_and_time.tm_mday != block_height_start_time.block_height_start_time_day || current_UTC_date_and_time.tm_hour != block_height_start_time.block_height_start_time_hour || current_UTC_date_and_time.tm_min != block_height_start_time.block_height_start_time_minute);
+//   }
   
-  // get the current block height and wait until the block height is at the XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT
-  get_current_block_height(current_block_height);
-  get_previous_block_hash(previous_block_hash);
-  sscanf(current_block_height,"%zu", &count);
+//   // get the current block height and wait until the block height is at the XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT
+//   get_current_block_height(current_block_height);
+//   get_previous_block_hash(previous_block_hash);
+//   sscanf(current_block_height,"%zu", &count);
 
-  if (registration_settings == 0)
-  {
-    while (count < XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT)
-    {
-      get_current_block_height(current_block_height);
-      get_previous_block_hash(previous_block_hash);
-      sscanf(current_block_height,"%zu", &count);
-      sleep(1);
-    }
-  }
+//   if (registration_settings == 0)
+//   {
+//     while (count < XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT)
+//     {
+//       get_current_block_height(current_block_height);
+//       get_previous_block_hash(previous_block_hash);
+//       sscanf(current_block_height,"%zu", &count);
+//       sleep(1);
+//     }
+//   }
 
-  for (;;)
-  {
-    get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
-    if ((settings == 0 && current_UTC_date_and_time.tm_min % BLOCK_TIME == 0 && current_UTC_date_and_time.tm_sec == 0) || (settings == 1 && current_UTC_date_and_time.tm_min % BLOCK_TIME == 0))
-    {
-      if (settings == 0)
-      {
-        if ((block_verifier_settings = start_new_round()) == 0)
-        {
-          print_error_message(current_date_and_time,current_UTC_date_and_time,data);
-        }
-        else if (block_verifier_settings == 1)
-        {
-          memset(data,0,strlen(data));
-          memcpy(data,"Your delegate is not a block verifier for network block ",56);
-          memcpy(data+56,current_block_height,strnlen(current_block_height,sizeof(data)));
-          color_print(data,"red");
-        }
-        else if (block_verifier_settings == 10)
-        {
-          goto start_time;
-        }
-        else
-        {
-          if (registration_settings == 0)
-          {
-            memset(data,0,strlen(data));
-            memcpy(data,"Network Block ",14);
-            memcpy(data+14,current_block_height,strnlen(current_block_height,sizeof(data)));
-            memcpy(data+strlen(data)," Has Been Created Successfully\n",31);
-            color_print(data,"green");
-          }
-        }
-        settings = 1;
-        continue;
-      }
+//   for (;;)
+//   {
+//     get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
+//     if ((settings == 0 && current_UTC_date_and_time.tm_min % BLOCK_TIME == 0 && current_UTC_date_and_time.tm_sec == 0) || (settings == 1 && current_UTC_date_and_time.tm_min % BLOCK_TIME == 0))
+//     {
+//       if (settings == 0)
+//       {
+//         if ((block_verifier_settings = start_new_round()) == 0)
+//         {
+//           print_error_message(current_date_and_time,current_UTC_date_and_time,data);
+//         }
+//         else if (block_verifier_settings == 1)
+//         {
+//           memset(data,0,strlen(data));
+//           memcpy(data,"Your delegate is not a block verifier for network block ",56);
+//           memcpy(data+56,current_block_height,strnlen(current_block_height,sizeof(data)));
+//           color_print(data,"red");
+//         }
+//         else if (block_verifier_settings == 10)
+//         {
+//           goto start_time;
+//         }
+//         else
+//         {
+//           if (registration_settings == 0)
+//           {
+//             memset(data,0,strlen(data));
+//             memcpy(data,"Network Block ",14);
+//             memcpy(data+14,current_block_height,strnlen(current_block_height,sizeof(data)));
+//             memcpy(data+strlen(data)," Has Been Created Successfully\n",31);
+//             color_print(data,"green");
+//           }
+//         }
+//         settings = 1;
+//         continue;
+//       }
 
-      get_current_block_height(current_block_height);
-      get_previous_block_hash(previous_block_hash);
+//       get_current_block_height(current_block_height);
+//       get_previous_block_hash(previous_block_hash);
 
-      // check if this round is a replayed round
-      replayed_round_settings = check_if_replayed_round();
+//       // check if this round is a replayed round
+//       replayed_round_settings = check_if_replayed_round();
 
-      if ((block_verifier_settings = start_new_round()) == 0)
-      {
-        print_error_message(current_date_and_time,current_UTC_date_and_time,data);
-      }
-      else if (block_verifier_settings == 1)
-      {
-        memset(data,0,strlen(data));
-        memcpy(data,"Your delegate is not a block verifier for network block ",56);
-        memcpy(data+56,current_block_height,strnlen(current_block_height,sizeof(data)));
-        color_print(data,"red");
-      }
-      else if (block_verifier_settings == 10)
-      {
-        goto start_time;
-      }
-      else
-      {
-        if (registration_settings == 0)
-        {
-          // wait for the reserve proof checking before displaying the message
-          sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-1),45);
+//       if ((block_verifier_settings = start_new_round()) == 0)
+//       {
+//         print_error_message(current_date_and_time,current_UTC_date_and_time,data);
+//       }
+//       else if (block_verifier_settings == 1)
+//       {
+//         memset(data,0,strlen(data));
+//         memcpy(data,"Your delegate is not a block verifier for network block ",56);
+//         memcpy(data+56,current_block_height,strnlen(current_block_height,sizeof(data)));
+//         color_print(data,"red");
+//       }
+//       else if (block_verifier_settings == 10)
+//       {
+//         goto start_time;
+//       }
+//       else
+//       {
+//         if (registration_settings == 0)
+//         {
+//           // wait for the reserve proof checking before displaying the message
+//           sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-1),45);
 
-          memset(data,0,strlen(data));
-          memcpy(data,"Network Block ",14);
-          memcpy(data+14,current_block_height,strnlen(current_block_height,sizeof(data)));
-          memcpy(data+strlen(data)," Has Been Created Successfully\n",31);
-          color_print(data,"green");
-        }
-      }  
-    }
-    nanosleep((const struct timespec[]){{0, 200000000L}}, NULL);
-  }
-  pthread_exit((void *)(intptr_t)1);
-}
+//           memset(data,0,strlen(data));
+//           memcpy(data,"Network Block ",14);
+//           memcpy(data+14,current_block_height,strnlen(current_block_height,sizeof(data)));
+//           memcpy(data+strlen(data)," Has Been Created Successfully\n",31);
+//           color_print(data,"green");
+//         }
+//       }  
+//     }
+//     nanosleep((const struct timespec[]){{0, 200000000L}}, NULL);
+//   }
+//   pthread_exit((void *)(intptr_t)1);
+// }
 
 
 
@@ -786,8 +786,8 @@ void* check_reserve_proofs_timer_thread(void* parameters)
   // Variables
   char data[SMALL_BUFFER_SIZE];
   char data2[SMALL_BUFFER_SIZE];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
+  // time_t current_date_and_time;
+  // struct tm current_UTC_date_and_time;
   int count;
   int settings;
   struct reserve_proof reserve_proof;
@@ -805,8 +805,7 @@ void* check_reserve_proofs_timer_thread(void* parameters)
     pointer_reset(invalid_reserve_proofs.reserve_proof[count]); \
   } \
   invalid_reserve_proofs.count = 0; \
-  color_print("Stopping the check reserve proofs timer thread","yellow"); \
-  fprintf(stderr,"\n"); \
+  INFO_PRINT("Stopping the check reserve proofs timer thread"); \
   pthread_exit((void *)(intptr_t)1);
 
   // reset the reserve_proof struct
@@ -819,8 +818,10 @@ void* check_reserve_proofs_timer_thread(void* parameters)
   memset(data,0,sizeof(data));
   memset(data2,0,sizeof(data2));
   
-  color_print("Started the check reserve proofs timer thread","green");
-  color_print("Part 1 - Randomly select reserve proofs and check if they are valid","yellow");
+  INFO_STAGE_PRINT("Started the check reserve proofs timer thread");
+  INFO_STAGE_PRINT("Part 1 - Randomly select reserve proofs and check if they are valid");
+
+  // as a block producer we're fucked here
 
   // check if there are any reserve proofs in the database
   for (count = 1, settings = 0; count <= TOTAL_RESERVE_PROOFS_DATABASES; count++)
@@ -836,24 +837,32 @@ void* check_reserve_proofs_timer_thread(void* parameters)
 
   if (settings == 0)
   {
-    color_print("There are no reserve proofs in the database","yellow");
+    WARNING_PRINT("There are no reserve proofs in the database");
     RESET_INVALID_RESERVE_PROOFS_DATA;
   }
 
+
+  struct timeval current_time, last_time, tmp_time;
+
+  gettimeofday(&last_time, NULL);
+
   for (;;)
   {
-    get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
-    if (current_UTC_date_and_time.tm_min % BLOCK_TIME == (BLOCK_TIME-1))
+    gettimeofday(&current_time, NULL);
+    size_t seconds_within_block = current_time.tv_sec % (BLOCK_TIME * 60);
+    if (seconds_within_block >= ((BLOCK_TIME-2)*60 + 30)) //3:30
     {
+      INFO_PRINT("Finishing reserve proofs check...");
+
       // check if there was any invalid reserve proofs found
       if (invalid_reserve_proofs.count <= 0)
       {
-        color_print("No invalid reserve proofs were found","yellow");
+        INFO_PRINT_STATUS_OK("No invalid reserve proofs were found");
         RESET_INVALID_RESERVE_PROOFS_DATA;
       }
 
       // wait for any block verifiers sending messages, or any block verifiers waiting to process a reserve proof
-      sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-1),15);
+      sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-2),45); //3:45
 
       /* disable this part for now
 
@@ -889,17 +898,27 @@ void* check_reserve_proofs_timer_thread(void* parameters)
 
       color_print("Part 4 - Remove the invalid reserve proofs from the database","yellow");*/
 
-      color_print("Part 2 - Remove the invalid reserve proofs from the database","yellow");
+      INFO_STAGE_PRINT("Part 2 - Remove the invalid reserve proofs from the database");
 
       // update the database
       check_reserve_proofs_timer_update_database();
 
-      color_print("Invalid reserve proofs have been removed from the database","yellow");
+      INFO_PRINT_STATUS_OK("Invalid reserve proofs have been removed from the database");
 
       // reset the invalid_reserve_proofs and the block_verifiers_invalid_reserve_proofs
       RESET_INVALID_RESERVE_PROOFS_DATA;
     }
     
+
+    gettimeofday(&current_time, NULL);
+    timersub(&current_time, &last_time, &tmp_time);
+
+
+    if (tmp_time.tv_sec > 5) {
+        INFO_PRINT("Checking reserve proofs...");
+        last_time = current_time;
+    }
+
     // check if the reserve proof is invalid
     memset(data,0,strlen(data));
     if (select_random_unique_reserve_proof(&reserve_proof) == 1 && check_reserve_proofs(data,reserve_proof.public_address_created_reserve_proof,reserve_proof.reserve_proof) == 0)

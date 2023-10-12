@@ -8,10 +8,6 @@ void on_close(uv_handle_t* handle) {
     client_t* client = (client_t*)handle->data;
     client->is_closing = 1;
     client->response->req_time_end = time(NULL);
-    // if (client) {
-    //     free(client);
-    //     handle->data = NULL;
-    // }
 }
 
 void safe_close(client_t* client) {
@@ -29,6 +25,7 @@ void on_timeout(uv_timer_t* timer) {
 }
 
 void alloc_buffer(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+    (void)handle;
     suggested_size = TRANSFER_BUFFER_SIZE;
     buf->base = (char*)malloc(suggested_size);
     buf->len = suggested_size;
@@ -60,9 +57,6 @@ void on_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
         client->response->data = realloc(client->response->data, client->response->size + nread);
         memcpy(client->response->data + client->response->size, buf->base, nread);
         client->response->size += nread;
-
-        // fprintf(stderr, "id: %ld - %ld bytes read\n", (size_t)client, client->response->size);
-
 
         // extend timeout_if_data_received
         if (client->response->size > 0) {
@@ -131,7 +125,7 @@ void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
     free(resolver);
 }
 
-response_t** send_multi_request(char *hosts[], int port, const char* message) {
+response_t** send_multi_request(const char **hosts, int port, const char* message) {
     // count the number of hosts
     int total_hosts = 0;
     while (hosts[total_hosts] != NULL) total_hosts++;
@@ -189,11 +183,6 @@ response_t** send_multi_request(char *hosts[], int port, const char* message) {
             resolver->data = client;
             uv_getaddrinfo(uv_default_loop(), resolver, on_resolved, hosts[i], port_str, &hints);
         }
-
-        // struct sockaddr_in dest;
-        // uv_ip4_addr(hosts[i], 80, &dest);  // Assuming port 80 for all hosts
-
-        // uv_tcp_connect(&client->connect_req, &client->handle, (const struct sockaddr*)&dest, on_connect);
     }
 
     uv_run(loop, UV_RUN_DEFAULT);

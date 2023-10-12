@@ -18,14 +18,18 @@ void remove_enders(response_t **responses) {
             if (responses[i]->size == 0) {
                 responses[i]->status = STATUS_INCOMPLETE;
                 // FIXME wtf is this
-                WARNING_PRINT("Returned data from host '%s' is empty. Marked it as STATUS_INCOMPLETE", responses[i]->host);
+                DEBUG_PRINT("Returned data from host '%s' is empty. Marked it as STATUS_INCOMPLETE", responses[i]->host);
             }else{
                 char* ender_position = strnstr(responses[i]->data, SOCKET_END_STRING, responses[i]->size);
                 if (ender_position) {
                     *ender_position = '\0';
                     responses[i]->size = strlen(responses[i]->data);
                 }else {
-                    WARNING_PRINT("Returned data has no |END|  %s", responses[i]->data);
+                    char* tmp =  calloc(responses[i]->size+1,1);
+                    memcpy(tmp,responses[i]->data, responses[i]->size);
+
+                    WARNING_PRINT("Returned data has no |END| data size %ld, message:  %s",responses[i]->size, tmp);
+                    free(tmp);
                 }
             }
         }
@@ -49,7 +53,7 @@ bool xnet_send_data_multi(xcash_dest_t dest, const char* message, response_t ***
     {
     case XNET_SEEDS_ALL:
     {
-        char *hosts[NETWORK_DATA_NODES_AMOUNT+1];
+        const char *hosts[NETWORK_DATA_NODES_AMOUNT+1];
         int i = 0;
         while (i<NETWORK_DATA_NODES_AMOUNT) {
             hosts[i] = network_data_nodes_list.network_data_nodes_IP_address[i];
@@ -75,7 +79,7 @@ bool xnet_send_data_multi(xcash_dest_t dest, const char* message, response_t ***
         break;
     case XNET_SEEDS_ALL_ONLINE:
     {
-        char *hosts[NETWORK_DATA_NODES_AMOUNT+1];
+        const char *hosts[NETWORK_DATA_NODES_AMOUNT+1];
         int si = 0, di = 0;
         while (si<NETWORK_DATA_NODES_AMOUNT) {
             if (network_data_nodes_list.online_status[si]==1) {
@@ -103,7 +107,7 @@ bool xnet_send_data_multi(xcash_dest_t dest, const char* message, response_t ***
         break;
     }
     case XNET_DELEGATES_ALL: {
-        char* hosts[BLOCK_VERIFIERS_TOTAL_AMOUNT+1];
+        const char* hosts[BLOCK_VERIFIERS_TOTAL_AMOUNT+1];
 
         // TODO Maybe need to revise this.  BLOCK_VERIFIERS_AMOUNT because there is no reason to check nodes out of active list
         size_t host_index = 0;
@@ -131,6 +135,37 @@ bool xnet_send_data_multi(xcash_dest_t dest, const char* message, response_t ***
         *reply = responses;
         break;
     }
+    case XNET_DELEGATES_ALL_ONLINE: {
+        const char* hosts[BLOCK_VERIFIERS_TOTAL_AMOUNT+1];
+
+        // TODO Maybe need to revise this.  BLOCK_VERIFIERS_AMOUNT because there is no reason to check nodes out of active list
+        size_t host_index = 0;
+        for (size_t i = 0; i < BLOCK_VERIFIERS_AMOUNT; i++)
+        {
+            //! only online, existing and not myself
+            if ((strcmp(delegates_all[i].online_status,"true") == 0) &&  (strlen(delegates_all[i].IP_address) != 0) && (strcmp(delegates_all[i].public_address, xcash_wallet_public_address) != 0)) {
+                hosts[host_index++] = delegates_all[i].IP_address;
+            }
+        }
+        hosts[host_index++] =  NULL;
+
+        // TODO fix the fkng message format
+        int message_buf_size = strlen(message) + strlen(SOCKET_END_STRING) +1;
+        char *message_ender = calloc(message_buf_size, 1);
+        snprintf(message_ender, message_buf_size, "%s%s",message, SOCKET_END_STRING);
+
+        response_t **responses = send_multi_request(hosts, XCASH_DPOPS_PORT, message_ender);
+        free(message_ender);
+
+        if (responses) {
+            remove_enders(responses);
+            result = true;
+        }
+
+        *reply = responses;
+        break;
+    }
+
     default:
         break;
     }
@@ -140,7 +175,7 @@ bool xnet_send_data_multi(xcash_dest_t dest, const char* message, response_t ***
 }
 
 
-bool send_message_param_list(xcash_dest_t dest, xcash_msg_t msg, response_t ***reply, char** pair_params) {
+bool send_message_param_list(xcash_dest_t dest, xcash_msg_t msg, response_t ***reply, const char** pair_params) {
     bool result = false;
     *reply = NULL;
 
@@ -197,11 +232,11 @@ bool send_message(xcash_dest_t dest, xcash_msg_t msg, response_t ***reply) {
     return result;
 }
 
-bool send_direct_message_param_list(char* host, xcash_msg_t msg, response_t ***reply, char** pair_params) {
+bool send_direct_message_param_list(const char* host, xcash_msg_t msg, response_t ***reply, const char** pair_params) {
     bool result = false;
     *reply = NULL;
 
-    char *hosts[2] = {host, NULL};
+    const char *hosts[] = {host, NULL};
 
     char* message_data = create_message_param_list(msg, pair_params);
 
@@ -225,9 +260,6 @@ bool send_direct_message_param_list(char* host, xcash_msg_t msg, response_t ***r
 
     *reply = responses;
 
-
-    // result = true;
-
     free(message_data);
     return result;
 
@@ -235,12 +267,12 @@ bool send_direct_message_param_list(char* host, xcash_msg_t msg, response_t ***r
 
 
 
-bool send_direct_message_param(char* host, xcash_msg_t msg, response_t ***reply, ...) {
+bool send_direct_message_param(const char* host, xcash_msg_t msg, response_t ***reply, ...) {
     bool result = false;
     char* message_data = NULL;
     *reply = NULL;
 
-    char *hosts[2] = {host, NULL};
+    const char *hosts[] = {host, NULL};
 
     va_list args;
 
@@ -275,7 +307,7 @@ bool send_direct_message_param(char* host, xcash_msg_t msg, response_t ***reply,
 }
 
 
-bool send_direct_message(char* host, xcash_msg_t msg, response_t ***reply) {
+bool send_direct_message(const char* host, xcash_msg_t msg, response_t ***reply) {
     bool result = false;
 
     result = send_direct_message_param(host, msg, reply, NULL);

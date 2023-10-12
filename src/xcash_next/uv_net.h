@@ -22,7 +22,7 @@ typedef enum {
 typedef struct client_t client_t;
 
 typedef struct {
-    const char *host;
+    char *host;
     char *data;
     size_t size;
     time_t req_time_start; // timestamp before connection start
@@ -52,7 +52,7 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
 
 void on_connect(uv_connect_t *req, int status);
 
-response_t **send_multi_request(char *hosts[], int port, const char *message);
+response_t **send_multi_request(const char **hosts, int port, const char *message);
 
 void cleanup_responses(response_t **responses);
 

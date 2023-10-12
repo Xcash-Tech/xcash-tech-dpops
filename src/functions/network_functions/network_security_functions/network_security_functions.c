@@ -487,7 +487,7 @@ int verify_data(const char* MESSAGE, const int VERIFY_CURRENT_ROUND_PART_AND_CUR
       // check if the public address is in the current_block_verifiers_list struct
       for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
       {
-        if (strncmp(public_address,current_block_verifiers_list.block_verifiers_public_address[count],XCASH_WALLET_LENGTH) == 0)
+        if (strncmp(public_address, delegates_all[count].public_address,XCASH_WALLET_LENGTH) == 0)
         {
           pub_key_found = true;
           break;
@@ -745,16 +745,7 @@ int validate_data(const char* MESSAGE)
       return 1;
    } else if (strstr(MESSAGE, "XCASH_GET_SYNC_INFO") != NULL) {
       if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
-          strncmp(data, "XCASH_GET_SYNC_INFO", sizeof(data)) != 0 ||
-          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
-          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
-          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
-          strlen(data) != BLOCK_HASH_LENGTH ||
-          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
-          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
-          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
-          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
-          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          strncmp(data, "XCASH_GET_SYNC_INFO", sizeof(data)) != 0) {
           VALIDATE_DATA_ERROR("Invalid message");
       }
   } else if (strstr(MESSAGE, "GET_CURRENT_BLOCK_HEIGHT") != NULL) {

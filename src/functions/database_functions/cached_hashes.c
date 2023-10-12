@@ -221,7 +221,7 @@ int get_hash(mongoc_client_t *client, const char *db_name, char *hash)
     result = get_data(client, db_name, "hash", hash);
     if (result != 0)
     {
-        DEBUG_PRINT("Missed hash for %s recalculating...", db_name);
+        // DEBUG_PRINT("Missed hash for %s recalculating...", db_name);
         // recalculate hashes
         result = calc_db_hashes(client, db_name, l_hash, l_db_hash);
         if (result != 0) {
@@ -238,7 +238,7 @@ int get_hash(mongoc_client_t *client, const char *db_name, char *hash)
 
         gettimeofday(&current_time, NULL);
         timersub(&current_time, &start_time, &result_time);
-        DEBUG_PRINT("Missed hash for %s recalculation takes %ld.%06ld sec", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
+        // DEBUG_PRINT("Missed hash for %s recalculation takes %ld.%06ld sec", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
 
         strcpy(hash, l_hash);
     }
@@ -263,11 +263,26 @@ int get_dbhash(mongoc_client_t *client, const char *db_name, char *db_hash)
     // start measuring
     gettimeofday(&start_time, NULL);
 
-    pthread_mutex_lock(&hash_mutex);
 
     result = get_data(client, db_name, "db_hash", db_hash);
     if (result != 0)
     {
+        pthread_mutex_lock(&hash_mutex);
+
+        // TODO check the performance of the solution
+        // dirty fix for concurency problem 
+        // if we got multiple requests to missed hash, only the first makes a calculation
+        // that's why we need to recheck the hash
+        // but the cons of that, we'll reread the db in case of missed hash
+        result = get_data(client, db_name, "db_hash", db_hash);
+        if (result == 0) {
+
+            pthread_mutex_unlock(&hash_mutex);
+            return result;
+        }
+
+
+
         // PRINT_ERROR("Missed hash for %s recalculating\n", db_name);
 
         // recalculate hashes
@@ -286,16 +301,18 @@ int get_dbhash(mongoc_client_t *client, const char *db_name, char *db_hash)
 
         gettimeofday(&current_time, NULL);
         timersub(&current_time, &start_time, &result_time);
-        DEBUG_PRINT("Missed hash for %s recalculation takes %ld.%06ld sec", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
+        // DEBUG_PRINT("Missed hash for %s recalculation takes %ld.%06ld sec", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
 
         strcpy(db_hash, l_db_hash);
+        
+        pthread_mutex_unlock(&hash_mutex);
+
     }
     else
     {
         //     PRINT_DEBUG("Hash hit cache for %s\n", db_name);
     }
 
-    pthread_mutex_unlock(&hash_mutex);
 
     return result;
 }
@@ -323,6 +340,18 @@ int del_hash(mongoc_client_t *client, const char *db_name)
     if (test_settings == 0 && debug_settings == 1)
     {
     //   PRINT_DEBUG("Hash been deleted for %s\n", db_name);
+    }
+
+
+    const char *db_check1 = "reserve_proofs";
+    const char *db_check2 = "reserve_bytes";
+
+    // delete multicahe if single cache changed
+    if (strstr(db_name, db_check1) && (strcmp(db_name, db_check1)!=0))
+    {
+        result = del_hash(client, db_check1);
+    }else if (strstr(db_name, db_check2) && (strcmp(db_name, db_check2)!=0)) {
+        result = del_hash(client, db_check2);
     }
 
     return result;
@@ -398,6 +427,15 @@ int calc_multi_hash(mongoc_client_t *client, const char *db_prefix, int max_inde
     // this is more than enough for name+index
     char db_name[64];
 
+    // check for cached multi hash first
+    if (get_data(client, db_prefix, "hash", hash) == 0)
+    {
+        return 0;
+    }
+
+    // otherwise recalculate the hash
+
+
     // start measuring
     gettimeofday(&start_time, NULL);
     last_time = start_time;
@@ -435,9 +473,16 @@ int calc_multi_hash(mongoc_client_t *client, const char *db_prefix, int max_inde
     }
     MD5_Final(md5_bin, &md5);
     memset(hash, '0', 96);
-    bin_to_hex(md5_bin, sizeof(md5_bin), hash + 96);
+    bin_to_hex(md5_bin, sizeof(md5_bin), hash + 96);    
 
     free(names_array);
+
+    // update multihash
+    result = update_hashes(client, db_prefix, hash, hash + 96);
+    if (result != 0) {
+        return -2;
+    }
+
 
     return result;
 }

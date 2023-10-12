@@ -605,6 +605,14 @@ void socket_thread(const int CLIENT_SOCKET)
      server_limit_IP_addresses(0,(const char*)client_IP_address);
    }
  } else
+//  if (strstr(buffer,"\"message_settings\": \"XCASH_GET_BLOCK_PRODUCERS\"") != NULL)
+//  {
+//    if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
+//    {
+//      server_received_msg_get_block_producers(CLIENT_SOCKET,buffer);
+//      server_limit_IP_addresses(0,(const char*)client_IP_address);
+//    }
+//  } else
  if (strstr(buffer,"\"message_settings\": \"XCASH_PROOF_OF_STAKE_TEST_DATA\"") != NULL)
  {
    if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
@@ -938,11 +946,12 @@ void socket_thread(const int CLIENT_SOCKET)
  }
  else if (strstr(buffer,"GET /") != NULL && strstr(&buffer[5]," HTTP/") != NULL && (delegates_website == 1 || shared_delegates_website == 1))
  {
-   if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
-   {
-     server_receive_data_socket_get_files(CLIENT_SOCKET,(const char*)buffer);
-     server_limit_IP_addresses(0,(const char*)client_IP_address);
-   }
+  // TODO: move website functionality to other service
+  //  if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
+  //  {
+  //    server_receive_data_socket_get_files(CLIENT_SOCKET,(const char*)buffer);
+  //    server_limit_IP_addresses(0,(const char*)client_IP_address);
+  //  }
  }
 
 
@@ -979,6 +988,9 @@ Description: socket receive data thread
 
 void* socket_receive_data_thread(void* parameters)
 {
+
+  threads_running++;
+
   // Constants
   const int CONNECTIONS_PER_THREAD = MAXIMUM_CONNECTIONS / total_threads;
   
@@ -993,6 +1005,10 @@ void* socket_receive_data_thread(void* parameters)
   // get the events that have a ready signal
  for (;;)
  { 
+  if (is_shutdown_state) {
+    break;
+  }
+
    count = epoll_wait(epoll_fd, events, CONNECTIONS_PER_THREAD, -1);
    for (count2 = 0; count2 < count; count2++)
    {    
@@ -1017,6 +1033,9 @@ void* socket_receive_data_thread(void* parameters)
      }
    } 
 }
+
+  threads_running--;
+
 pthread_exit((void *)(intptr_t)1);
 }
 

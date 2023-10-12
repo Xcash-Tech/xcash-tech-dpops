@@ -11,7 +11,7 @@
 #include "arg_config.h"
 #include "init_processing.h"
 #include "round.h"
-
+#include "xnet_helpers.h"
 
 const char *argp_program_version = "Xcash Tech DPoPS v. 1.3";
 const char *argp_program_bug_address = "https://github.com/Xcash-Tech/xcash-tech-dpops/issues";
@@ -24,7 +24,7 @@ BRIGHT_WHITE_TEXT("General Options:\n")
 "\n"
 BRIGHT_WHITE_TEXT("Debug Options:\n")
 "  -d, --debug                             Display all server messages.\n"
-"  -e, --debug-delegates-error             Show delegates not sending messages for parts of the round.\n"
+// "  -e, --debug-delegates-error             Show delegates not sending messages for parts of the round.\n"
 "  --log-file FILE                         Log all output without colors to FILE.\n"
 "  --log-file-color FILE                   Log all output with colors to FILE.\n"
 "\n"
@@ -38,8 +38,8 @@ BRIGHT_WHITE_TEXT("Network Options:\n")
 BRIGHT_WHITE_TEXT("Database Options:\n")
 "  --database-name NAME                    Set database name (Default: XCASH_PROOF_OF_STAKE).\n"
 "  --shared-delegates-database-name NAME   Set shared delegates database name (Default: XCASH_PROOF_OF_STAKE_DELEGATES).\n"
-"  --synchronize-database-from-network-data-node  Sync database from a network data node.\n"
-"  --synchronize-database-from-specific-delegate IP  Sync database from a specific node without majority checks.\n"
+// "  --synchronize-database-from-network-data-node  Sync database from a network data node.\n"
+// "  --synchronize-database-from-specific-delegate IP  Sync database from a specific node without majority checks.\n"
 "\n"
 BRIGHT_WHITE_TEXT("Website Options: (deprecated)\n")
 "  --delegates-website                  Run the delegate's website.\n"
@@ -88,11 +88,11 @@ static struct argp_option options[] = {
     // {"optimization-test", 0, 0, 0, "Run an optimization test to check system performance.", 0},
     // {"test-mode", 0, "SETTING", 0, "Use test network data nodes (Setting: 1-9).", 0},
     {"debug", OPTION_DEBUG, 0, 0, "Display all server messages.", 0},
-    {"debug-delegates-error", OPTION_DEBUG_DELEGATES_ERROR, 0, 0, "Show delegates not sending messages for parts of the round.", 0},
+    // {"debug-delegates-error", OPTION_DEBUG_DELEGATES_ERROR, 0, 0, "Show delegates not sending messages for parts of the round.", 0},
     {"log-file", OPTION_LOG_FILE, "FILE", 0, "Log all output without colors to FILE.", 0},
     {"log-file-color", OPTION_LOG_FILE_COLOR, "FILE", 0, "Log all output with colors to FILE.", 0},
-    {"synchronize-database-from-network-data-node", OPTION_SYNCHRONIZE_DATABASE_FROM_NETWORK_DATA_NODE, 0, 0, "Sync database from a network data node.", 0},
-    {"synchronize-database-from-specific-delegate", OPTION_SYNCHRONIZE_DATABASE_FROM_SPECIFIC_DELEGATE, "IP", 0, "Sync database from a specific node without majority checks.", 0},
+    // {"synchronize-database-from-network-data-node", OPTION_SYNCHRONIZE_DATABASE_FROM_NETWORK_DATA_NODE, 0, 0, "Sync database from a network data node.", 0},
+    // {"synchronize-database-from-specific-delegate", OPTION_SYNCHRONIZE_DATABASE_FROM_SPECIFIC_DELEGATE, "IP", 0, "Sync database from a specific node without majority checks.", 0},
     {"total-threads", OPTION_TOTAL_THREADS, "THREADS", 0, "Set total threads (Default: CPU total threads).", 0},
     {"server-log-file", OPTION_SERVER_LOG_FILE, "FILE", 0, "Log server messages", 0},
     {0}
@@ -183,15 +183,50 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
 static struct argp argp = {options, parse_opt, 0, doc, NULL, NULL, NULL};
 
+void fix_pipe(int fd)
+{
+  if (fcntl(fd, F_GETFD) != -1 || errno != EBADF) {
+    return;
+  }
+
+  int f = open("/dev/null", fd == STDIN_FILENO ? O_RDONLY : O_WRONLY);
+  if (f == -1) {
+    FATAL_ERROR_EXIT("failed to open /dev/null for missing stdio pipe");
+    // abort();
+  }
+  if (f != fd) {
+    dup2(f, fd);
+    close(f);
+  }
+}
+
+
+void fix_std_pipes(void) {
+  fix_pipe(STDIN_FILENO);
+  fix_pipe(STDOUT_FILENO);
+  fix_pipe(STDERR_FILENO);
+
+}
 
 
 
 void sigint_handler(int sig_num) {
     /* Signal handler function */
-    INFO_PRINT("Termination signal %d received. Shutting down...", sig_num);
+    sig_requests++;
+    INFO_PRINT("Termination signal %d received [%d] times. Shutting down...", sig_num, sig_requests);
+    is_shutdown_state = true;
+
+    while(sig_requests < 3 && threads_running> 0) {
+        INFO_PRINT("Shutting down. Threads still running %d...", threads_running);
+        poke_dpops_port();
+        sleep(1);
+    }
+    INFO_PRINT("Shutting down. Threads remains %d", threads_running);
+    INFO_PRINT("Shutting down database engine");
     
     cleanup_data_structures();
     shutdown_database();
+    fclose(server_log_fp);
 
     exit(0);
 }
@@ -217,6 +252,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    // uvlib can cause assertion errors if some of STD PIPES closed
+    fix_std_pipes();
+
     if (!initialize_database(arg_config.mongodb_uri)){
         ERROR_PRINT("Can't initialize mongo database");
         return 1;
@@ -229,6 +267,8 @@ int main(int argc, char **argv) {
     }
 
     shutdown_database();
+    fclose(server_log_fp);
+
 
     return 0;
 }

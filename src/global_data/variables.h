@@ -119,10 +119,15 @@ extern delegates_t delegates_all[BLOCK_VERIFIERS_TOTAL_AMOUNT];
 
 extern delegates_t temp_instance;
 extern size_t delegate_field_sizes[NUM_FIELDS];
-extern const char* delegate_keys[NUM_FIELDS];
+extern const char* delegate_keys[NUM_FIELDS]; 
 extern const char* collection_names[XCASH_DB_COUNT];
-extern int seed_index; // -1 - not a seed node, >0 index of seed node
 extern bool is_seed_node; // seed node or not
 extern bool network_recovery_state; // is network is in recovering state
+
+extern bool is_shutdown_state;
+extern int threads_running;
+extern int sig_requests;
+extern FILE* server_log_fp;
+extern bool is_block_creation_stage;
 
 #endif

@@ -45,6 +45,10 @@
 #include "log.h"
 #include "xcash_message.h"
 #include "xcash_db_sync.h"
+#include "round.h"
+#include "xcash_db_helpers.h"
+
+
 /*
 -----------------------------------------------------------------------------------------------------------
 Functions
@@ -52,8 +56,52 @@ Functions
 */
 
 
+void server_received_msg_get_block_producers(const int CLIENT_SOCKET, const char* MESSAGE)
+{
+    (void)MESSAGE;
+    (void)CLIENT_SOCKET;
+
+  //   log_info("received %s, %s", __func__, "XCASH_GET_BLOCK_PRODUCERS");
+
+  //   if (!is_block_creation_stage) {
+  //     return;
+  //   };
+
+  //   char block_producers_list[MAIN_BLOCK_PRODUCERS*(XCASH_WALLET_LENGTH+1)+2];
+  //   char block_height_str[DB_COLLECTION_NAME_SIZE + 1];
+
+  //   sprintf(block_height_str,"%ld",current_block_height);
+
+  //   for (size_t i = 0, pos = 0; i < MAIN_BLOCK_PRODUCERS; i++)
+  //   {
+  //     snprintf(block_producers_list+pos,sizeof(block_producers_list)-1, "%s|", producer_refs[i].public_address);
+  //     pos = strlen(block_producers_list);
+  //   }
+    
+  //   char const **param_list = calloc(3, sizeof(char *) * 2);
+  //   int param_index = 0;
+
+  //   param_list[param_index++] = "block_height";
+  //   param_list[param_index++] = block_height_str;
+  //   param_list[param_index++] = "block_producers";
+  //   param_list[param_index++] = block_producers_list;
+
+
+  //   char* message_data = create_message_param_list(XMSG_XCASH_GET_BLOCK_PRODUCERS, param_list);
+  //   message_data = realloc(message_data,strlen(message_data)+sizeof(SOCKET_END_STRING)+1);
+  //   strcat(message_data,SOCKET_END_STRING);
+  //   free(param_list);  
+
+  // // send the data
+  //   send_data(CLIENT_SOCKET,(unsigned char*)message_data,0,0,"");
+  //   free(message_data);
+}
+
+
+
 void server_received_msg_get_sync_info(const int CLIENT_SOCKET, const char* MESSAGE)
 {
+    (void)MESSAGE;
     log_info("received %s, %s", __func__, "XCASH_GET_SYNC_INFO");
 
     xcash_node_sync_info_t sync_info;
@@ -72,11 +120,14 @@ void server_received_msg_get_sync_info(const int CLIENT_SOCKET, const char* MESS
 
     sprintf(block_height_str,"%ld",sync_info.block_height);
 
-    char const **param_list = calloc(DATABASE_TOTAL + 1 + 1, sizeof(char *) * 2);
+    const char **param_list = calloc(DATABASE_TOTAL + 1 + 1 + 1, sizeof(char *) * 2);
     int param_index = 0;
 
     param_list[param_index++] = "block_height";
     param_list[param_index++] = block_height_str;
+
+    param_list[param_index++] = "public_address";
+    param_list[param_index++] = xcash_wallet_public_address;
 
     for (size_t i = 0; i < DATABASE_TOTAL; i++) {
       sprintf(dn_field_names[i],"data_hash_%s", collection_names[i]);
@@ -85,12 +136,17 @@ void server_received_msg_get_sync_info(const int CLIENT_SOCKET, const char* MESS
     }
 
     char* message_data = create_message_param_list(XMSG_XCASH_GET_SYNC_INFO, param_list);
-    message_data = realloc(message_data,strlen(message_data)+sizeof(SOCKET_END_STRING)+1);
     free(param_list);  
 
-  // send the data
-    send_data(CLIENT_SOCKET,(unsigned char*)message_data,0,1,"");
-    free(message_data);
+    if (message_data) {
+      message_data = realloc(message_data,strlen(message_data)+sizeof(SOCKET_END_STRING)+1);
+      strcat(message_data,SOCKET_END_STRING);
+
+      // send the data
+      send_data(CLIENT_SOCKET,(unsigned char*)message_data,0,0,"");
+      free(message_data);
+    }
+
 }
 
 /*
@@ -441,6 +497,8 @@ Parameters:
 
 void server_receive_data_socket_node_to_block_verifiers_get_reserve_bytes_database_hash(const int CLIENT_SOCKET, const char* MESSAGE)
 {  
+
+  // TODO rewrite this comple
   // Variables
   char data[BUFFER_SIZE];
   char data2[BUFFER_SIZE];
@@ -505,15 +563,26 @@ void server_receive_data_socket_node_to_block_verifiers_get_reserve_bytes_databa
     }
   }
 
+  size_t reserve_bytes_index = 0;
   // calculate how many blocks to send
-  if (test_settings == 0)
-  {
-    sscanf(current_block_height,"%zu",&count2);
-  }
-  else
-  {
-    count2 = 760005;
-  }
+  // if (test_settings == 0)
+  // {
+    if (!(get_db_max_block_height(database_name, &count2,&reserve_bytes_index)>0)) {
+      DEBUG_PRINT("Can't get block height from database");
+      send_data(CLIENT_SOCKET,(unsigned char*)"Could not get the network blocks reserve bytes database hash}",0,0,""); \
+      return;
+    }
+    // // FIXME rewrite that server request
+    // if (sscanf(current_block_height,"%zu",&count2)!=1){
+    //   DEBUG_PRINT("Current block height if wrong. Possible node is syncing");
+    //   send_data(CLIENT_SOCKET,(unsigned char*)"Could not get the network blocks reserve bytes database hash}",0,0,""); \
+    //   return;
+    // }
+  // }
+  // else
+  // {
+  //   count2 = 760005;
+  // }
   sscanf(data,"%zu",&current_block_height_reserve_bytes);
   current_block_height_reserve_bytes_copy = current_block_height_reserve_bytes;
 

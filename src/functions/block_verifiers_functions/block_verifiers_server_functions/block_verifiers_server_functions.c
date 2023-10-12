@@ -40,6 +40,8 @@
 #include "sha512EL.h"
 
 #include "log.h"
+
+#include "xcash_node.h"
 /*
 -----------------------------------------------------------------------------------------------------------
 Functions
@@ -292,15 +294,6 @@ void server_receive_data_socket_main_node_to_node_message_part_4(const char* MES
 
   log_info("received %s, %s", __func__, MESSAGE);
 
-  // define macros
-  #define SERVER_RECEIVE_DATA_SOCKET_MAIN_NODE_TO_NODE_MESSAGE_PART_4_ERROR(settings) \
-  if (debug_settings == 1) \
-  { \
-  memcpy(error_message.function[error_message.total],"server_receive_data_socket_main_node_to_node_message_part_4",59); \
-  memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
-  error_message.total++; \
-  } \
-  return;
 
   memset(data,0,sizeof(data));
   memset(data2,0,sizeof(data2));
@@ -310,21 +303,34 @@ void server_receive_data_socket_main_node_to_node_message_part_4(const char* MES
   // parse the message
   if (parse_json_data(MESSAGE,"block_blob",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data2,sizeof(data2)) == 0 || strlen(data2) != XCASH_WALLET_LENGTH || strncmp(data2,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0)
   {
-    SERVER_RECEIVE_DATA_SOCKET_MAIN_NODE_TO_NODE_MESSAGE_PART_4_ERROR("Could not parse the data");
+      log_warn("Can't parse the message field  %s, %s", __func__, MESSAGE);
   }
 
   // check if the public_address is the correct main node
-  if ((test_settings == 1) || (strncmp(current_round_part_backup_node,"0",1) == 0 && strncmp(main_nodes_list.block_producer_public_address,data2,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"1",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_1_public_address,data2,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"2",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_2_public_address,data2,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"3",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_3_public_address,data2,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"4",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_4_public_address,data2,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"5",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_5_public_address,data2,XCASH_WALLET_LENGTH) == 0))
-  { 
-    memcpy(VRF_data.block_blob,data,strnlen(data,BUFFER_SIZE));
-  }
-  else
-  {
-    SERVER_RECEIVE_DATA_SOCKET_MAIN_NODE_TO_NODE_MESSAGE_PART_4_ERROR("Invalid main node");
+  if ((test_settings == 1) ||
+      (strncmp(current_round_part_backup_node, "0", 1) == 0 &&
+       strncmp(main_nodes_list.block_producer_public_address, data2, XCASH_WALLET_LENGTH) == 0) ||
+      (strncmp(current_round_part_backup_node, "1", 1) == 0 &&
+       strncmp(main_nodes_list.block_producer_backup_block_verifier_1_public_address, data2, XCASH_WALLET_LENGTH) ==
+           0) ||
+      (strncmp(current_round_part_backup_node, "2", 1) == 0 &&
+       strncmp(main_nodes_list.block_producer_backup_block_verifier_2_public_address, data2, XCASH_WALLET_LENGTH) ==
+           0) ||
+      (strncmp(current_round_part_backup_node, "3", 1) == 0 &&
+       strncmp(main_nodes_list.block_producer_backup_block_verifier_3_public_address, data2, XCASH_WALLET_LENGTH) ==
+           0) ||
+      (strncmp(current_round_part_backup_node, "4", 1) == 0 &&
+       strncmp(main_nodes_list.block_producer_backup_block_verifier_4_public_address, data2, XCASH_WALLET_LENGTH) ==
+           0) ||
+      (strncmp(current_round_part_backup_node, "5", 1) == 0 &&
+       strncmp(main_nodes_list.block_producer_backup_block_verifier_5_public_address, data2, XCASH_WALLET_LENGTH) ==
+           0)) {
+      memcpy(VRF_data.block_blob, data, strnlen(data, BUFFER_SIZE));
+  } else {
+      log_warn("Blob received from wrong producer '%s'. %s, %s", address_to_node_name(data2), __func__, MESSAGE);
   }
   return;
   
-  #undef SERVER_RECEIVE_DATA_SOCKET_MAIN_NODE_TO_NODE_MESSAGE_PART_4_ERROR
 }
 
 
@@ -363,6 +369,8 @@ void server_receive_data_socket_node_to_node_majority(const char* MESSAGE)
   // parse the public address
   if (parse_json_data(MESSAGE,"public_address",public_address,sizeof(public_address)) == 0)
   {
+    log_error("can't parse public_address %s, %s", __func__, MESSAGE);
+
     SERVER_RECEIVE_DATA_SOCKET_NODE_TO_NODE_MAJORITY_ERROR("Could not parse the data");
   }
 
@@ -383,6 +391,8 @@ void server_receive_data_socket_node_to_node_majority(const char* MESSAGE)
     snprintf(data+strlen(data),MAXIMUM_NUMBER_SIZE,"%d",count2+1);
     if (parse_json_data(MESSAGE,data,current_block_verifiers_majority_vote.data[count][count2],sizeof(current_block_verifiers_majority_vote.data[count][count2])) == 0)
     {
+      log_error("can't parse vote %s. %s, %s", data, __func__, MESSAGE);
+
       SERVER_RECEIVE_DATA_SOCKET_NODE_TO_NODE_MAJORITY_ERROR("Could not parse the data");
     }
   }
@@ -513,20 +523,24 @@ void server_receive_data_socket_block_verifiers_to_block_verifiers_vrf_data(cons
   } 
 
   // process the vote data
-  for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
-  {
-    if (strncmp(current_block_verifiers_list.block_verifiers_public_address[count],public_address,XCASH_WALLET_LENGTH) == 0 && strncmp(VRF_data.block_verifiers_vrf_secret_key_data[count],"",1) == 0 && strncmp((char*)VRF_data.block_verifiers_vrf_secret_key[count],"",1) == 0 && strncmp(VRF_data.block_verifiers_vrf_public_key_data[count],"",1) == 0 && strncmp((char*)VRF_data.block_verifiers_vrf_public_key[count],"",1) == 0 && strncmp(VRF_data.block_verifiers_random_data[count],"",1) == 0)
-    {
-      memcpy(VRF_data.block_verifiers_vrf_secret_key_data[count],vrf_secret_key_data,VRF_SECRET_KEY_LENGTH);
-      memcpy(VRF_data.block_verifiers_vrf_secret_key[count],vrf_secret_key,crypto_vrf_SECRETKEYBYTES);
-      memcpy(VRF_data.block_verifiers_vrf_public_key_data[count],vrf_public_key_data,VRF_PUBLIC_KEY_LENGTH);
-      memcpy(VRF_data.block_verifiers_vrf_public_key[count],vrf_public_key,crypto_vrf_PUBLICKEYBYTES);
-      memcpy(VRF_data.block_verifiers_random_data[count],random_data,RANDOM_STRING_LENGTH);
-    }
+  for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++) {
+      if (strncmp(current_block_verifiers_list.block_verifiers_public_address[count], public_address,
+                  XCASH_WALLET_LENGTH) == 0 &&
+          strncmp(VRF_data.block_verifiers_vrf_secret_key_data[count], "", 1) == 0 &&
+          strncmp((char*)VRF_data.block_verifiers_vrf_secret_key[count], "", 1) == 0 &&
+          strncmp(VRF_data.block_verifiers_vrf_public_key_data[count], "", 1) == 0 &&
+          strncmp((char*)VRF_data.block_verifiers_vrf_public_key[count], "", 1) == 0 &&
+          strncmp(VRF_data.block_verifiers_random_data[count], "", 1) == 0) {
+          memcpy(VRF_data.block_verifiers_vrf_secret_key_data[count], vrf_secret_key_data, VRF_SECRET_KEY_LENGTH);
+          memcpy(VRF_data.block_verifiers_vrf_secret_key[count], vrf_secret_key, crypto_vrf_SECRETKEYBYTES);
+          memcpy(VRF_data.block_verifiers_vrf_public_key_data[count], vrf_public_key_data, VRF_PUBLIC_KEY_LENGTH);
+          memcpy(VRF_data.block_verifiers_vrf_public_key[count], vrf_public_key, crypto_vrf_PUBLICKEYBYTES);
+          memcpy(VRF_data.block_verifiers_random_data[count], random_data, RANDOM_STRING_LENGTH);
+      }
   }
   return;
-  
-  #undef SERVER_RECEIVE_DATA_SOCKET_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA_ERROR
+
+#undef SERVER_RECEIVE_DATA_SOCKET_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA_ERROR
 }
 
 

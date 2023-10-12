@@ -28,15 +28,21 @@ bool get_node_sync_info(xcash_node_sync_info_t* sync_info) {
     char db_collection_name[DB_COLLECTION_NAME_SIZE];
     char prev_block_height_str[DB_COLLECTION_NAME_SIZE];
 
+    memset(sync_info, 0, sizeof(xcash_node_sync_info_t));
+
+
+    if (!(get_db_max_block_height(database_name, &block_height, &reserve_bytes_db_index) >0)) {
+        ERROR_PRINT("can't get DB block height");
+        return false;
+    }
+
+    sync_info->block_height = block_height;
+
     // fill the identifier of node
     strcpy(sync_info->public_address, xcash_wallet_public_address);
 
-    //fill block height
-    sscanf(current_block_height,"%zu", &block_height);
-    sync_info->block_height = block_height;
-
     // check latest blocks in database
-    get_reserve_bytes_database(reserve_bytes_db_index,1);
+    // get_reserve_bytes_database(reserve_bytes_db_index,1);
 
     sprintf(db_collection_name, "reserve_bytes_%zu", reserve_bytes_db_index);
     sprintf(prev_block_height_str, "%zu", block_height-1);
@@ -161,12 +167,12 @@ bool send_db_sync_request_to_all_seeds(xcash_dbs_t db_type, size_t start_db_inde
     // TODO process start_db_index correctly for multi db sync
     // prepare parameters for sync update request
     // +3 it's +1 for reserve bytes setting param, +1 for overall hash, +1 NULL terminate parameter
-    char **param_list = calloc(dbs_count + 3, sizeof(char *) * 2);
+    const char **param_list = calloc(dbs_count + 3, sizeof(char *) * 2);
     char(*hashes)[DB_HASH_SIZE + 1] = calloc(dbs_count + 1, DB_HASH_SIZE + 1);
     char(*collection_prefixes)[DB_COLLECTION_NAME_SIZE] = calloc(dbs_count + 1, DB_COLLECTION_NAME_SIZE);
 
     bool all_set = true;
-    char **current_parameter = param_list;
+    const char **current_parameter = param_list;
 
     const char *reserve_bytes_settings_str = "reserve_bytes_settings";
     const char *reserve_bytes_settings_param_str = "0";
@@ -230,12 +236,12 @@ bool send_db_sync_request_from_host(const char* sync_source_host, xcash_dbs_t db
 
     // prepare parameters for sync update request
     // +3 it's +1 for reserve bytes setting param, +1 for overall hash, +1 NULL terminate parameter
-    char **param_list = calloc(dbs_count + 3, sizeof(char *) * 2);
+    const char **param_list = calloc(dbs_count + 3, sizeof(char *) * 2);
     char(*hashes)[DB_HASH_SIZE + 1] = calloc(dbs_count + 1, DB_HASH_SIZE + 1);
     char(*collection_prefixes)[DB_COLLECTION_NAME_SIZE] = calloc(dbs_count + 1, DB_COLLECTION_NAME_SIZE);
 
     bool all_set = true;
-    char **current_parameter = param_list;
+    const char **current_parameter = param_list;
 
     const char *reserve_bytes_settings_str = "reserve_bytes_settings";
     const char *reserve_bytes_settings_param_str = "0";
@@ -311,21 +317,21 @@ bool check_multi_db_hashes_from_host(const char* sync_source_host, xcash_dbs_t d
 
 
 // TODO obsolete
-bool check_multi_db_hashes_from_seeds(xcash_dbs_t db_type, xcash_db_sync_obj_t ***sync_objs_result) {
-    bool result = false;
-    *sync_objs_result = NULL;
+// bool check_multi_db_hashes_from_seeds(xcash_dbs_t db_type, xcash_db_sync_obj_t ***sync_objs_result) {
+//     bool result = false;
+//     *sync_objs_result = NULL;
 
-    response_t **replies;
-    bool send_result = send_db_sync_request_to_all_seeds(db_type, 0, &replies);
+//     response_t **replies;
+//     bool send_result = send_db_sync_request_to_all_seeds(db_type, 0, &replies);
 
-    // now prepare sync statuses
-    if (send_result) {
-        result = parse_nodes_sync_reply(replies, db_type, sync_objs_result);
-    }
-    cleanup_responses(replies);
+//     // now prepare sync statuses
+//     if (send_result) {
+//         result = parse_nodes_sync_reply(replies, db_type, sync_objs_result);
+//     }
+//     cleanup_responses(replies);
 
-    return result;
-}
+//     return result;
+// }
 
 size_t get_replies_count(response_t** const replies) {
     size_t i = 0;
@@ -456,164 +462,164 @@ bool check_db_has_majority(xcash_dbs_t db_type, xcash_db_sync_obj_t **sync_objs)
 
 
 // TODO now it's obsolete
-bool sync_multi_db_from_node(const char* public_address, xcash_dbs_t db_type) {
-    xcash_db_sync_obj_t **sync_objs = NULL;
-    bool result = false;
-    // FIXME convert public_address to index
-    xcash_seed_idx_t sync_source_node_index;
+// bool sync_multi_db_from_node(const char* public_address, xcash_dbs_t db_type) {
+//     xcash_db_sync_obj_t **sync_objs = NULL;
+//     bool result = false;
+//     // FIXME convert public_address to index
+//     xcash_seed_idx_t sync_source_node_index;
 
-    if (!check_multi_db_hashes_from_seeds(db_type, &sync_objs)) {
-        WARNING_PRINT("Can't find source for %s db sync", collection_names[db_type]);
+//     if (!check_multi_db_hashes_from_seeds(db_type, &sync_objs)) {
+//         WARNING_PRINT("Can't find source for %s db sync", collection_names[db_type]);
 
-        cleanup_db_sync_results(sync_objs);
-        return false;
-    }
+//         cleanup_db_sync_results(sync_objs);
+//         return false;
+//     }
 
-    if (check_db_has_majority(db_type, sync_objs)) {
-        cleanup_db_sync_results(sync_objs);
-        return true;
-    } else {
-        // TODO check majority by comparing all checked statuses from all nodes
+//     if (check_db_has_majority(db_type, sync_objs)) {
+//         cleanup_db_sync_results(sync_objs);
+//         return true;
+//     } else {
+//         // TODO check majority by comparing all checked statuses from all nodes
 
-        size_t dbs_count = get_db_sub_count(db_type);
-        bool *dbs_to_update = (bool *)calloc(dbs_count + 1, sizeof(bool));
+//         size_t dbs_count = get_db_sub_count(db_type);
+//         bool *dbs_to_update = (bool *)calloc(dbs_count + 1, sizeof(bool));
 
-        size_t total_answers = 0;
-        size_t synced_answers = 0;
+//         size_t total_answers = 0;
+//         size_t synced_answers = 0;
 
-        for (size_t i = 0; sync_objs[i] != NULL; i++) {
-            xcash_dbs_check_status_t *sync_records = sync_objs[i]->sync_records;
-            total_answers++;
-            if (sync_objs[i]->db_synced) synced_answers++;
+//         for (size_t i = 0; sync_objs[i] != NULL; i++) {
+//             xcash_dbs_check_status_t *sync_records = sync_objs[i]->sync_records;
+//             total_answers++;
+//             if (sync_objs[i]->db_synced) synced_answers++;
 
-            INFO_PRINT("Comparing node %s ",
-                       network_data_nodes_list.network_data_nodes_IP_address[sync_objs[i]->db_node_index]);
-            for (size_t rec_index = 0; rec_index < sync_objs[i]->records_count; rec_index++) {
-                if (!sync_records[rec_index].db_rec_synced) {
-                    if (sync_records[rec_index].db_rec_index != 0) {
-                        INFO_PRINT(HOST_FALSE_STATUS("%s_%ld", "hash NOT matched"), collection_names[db_type],
-                                   sync_records[rec_index].db_rec_index);
-                        dbs_to_update[sync_records[rec_index].db_rec_index] = true;
-                    } else {
-                        // anyway the zero index always wrong
-                        // INFO_PRINT(HOST_FALSE_STATUS("%s", "hash NOT matched"), collection_names[db_type]);
-                    }
-                }
-            }
-        }
+//             INFO_PRINT("Comparing node %s ",
+//                        network_data_nodes_list.network_data_nodes_IP_address[sync_objs[i]->db_node_index]);
+//             for (size_t rec_index = 0; rec_index < sync_objs[i]->records_count; rec_index++) {
+//                 if (!sync_records[rec_index].db_rec_synced) {
+//                     if (sync_records[rec_index].db_rec_index != 0) {
+//                         INFO_PRINT(HOST_FALSE_STATUS("%s_%ld", "hash NOT matched"), collection_names[db_type],
+//                                    sync_records[rec_index].db_rec_index);
+//                         dbs_to_update[sync_records[rec_index].db_rec_index] = true;
+//                     } else {
+//                         // anyway the zero index always wrong
+//                         // INFO_PRINT(HOST_FALSE_STATUS("%s", "hash NOT matched"), collection_names[db_type]);
+//                     }
+//                 }
+//             }
+//         }
 
-        if (total_answers == synced_answers) {
-            WARNING_PRINT("%s database has no majority, but we have no choice", collection_names[db_type]);
-            result = true;
+//         if (total_answers == synced_answers) {
+//             WARNING_PRINT("%s database has no majority, but we have no choice", collection_names[db_type]);
+//             result = true;
 
-            free(dbs_to_update);
-            cleanup_db_sync_results(sync_objs);
-        } else {
-            char *db_data_buf = (char *)calloc(MAXIMUM_BUFFER_SIZE,1);
-            if (db_data_buf == NULL) {
-                FATAL_ERROR_EXIT("Memory allocation failed");
-            }
+//             free(dbs_to_update);
+//             cleanup_db_sync_results(sync_objs);
+//         } else {
+//             char *db_data_buf = (char *)calloc(MAXIMUM_BUFFER_SIZE,1);
+//             if (db_data_buf == NULL) {
+//                 FATAL_ERROR_EXIT("Memory allocation failed");
+//             }
 
-            bool updated_applied = true;
-            for (size_t db_file_index = 0; db_file_index <= dbs_count; db_file_index++) {
-                if (dbs_to_update[db_file_index] == true) {
-                    INFO_PRINT("Updating %s_%ld database from %s ", collection_names[db_type], db_file_index,
-                               network_data_nodes_list.network_data_nodes_IP_address[sync_source_node_index]);
+//             bool updated_applied = true;
+//             for (size_t db_file_index = 0; db_file_index <= dbs_count; db_file_index++) {
+//                 if (dbs_to_update[db_file_index] == true) {
+//                     INFO_PRINT("Updating %s_%ld database from %s ", collection_names[db_type], db_file_index,
+//                                network_data_nodes_list.network_data_nodes_IP_address[sync_source_node_index]);
 
-                    if (!download_db_from_node(
-                            network_data_nodes_list.network_data_nodes_IP_address[sync_source_node_index], db_type,
-                            db_file_index, db_data_buf, MAXIMUM_BUFFER_SIZE)) {
-                        ERROR_PRINT("Can't download %s database", collection_names[db_type]);
-                        updated_applied = false;
-                        break;
-                    }
-                    // TODO add db index for multi dbs
-                    // TODO remove dependencies of global variables
-                    if (upsert_json_to_db(database_name, db_type, db_file_index, db_data_buf, false) == XCASH_ERROR) {
-                        ERROR_PRINT("Can't upsert %s database", collection_names[db_type]);
-                        updated_applied = false;
-                        break;
-                    }
-                }
-            }
+//                     if (!download_db_from_node(
+//                             network_data_nodes_list.network_data_nodes_IP_address[sync_source_node_index], db_type,
+//                             db_file_index, db_data_buf, MAXIMUM_BUFFER_SIZE)) {
+//                         ERROR_PRINT("Can't download %s database", collection_names[db_type]);
+//                         updated_applied = false;
+//                         break;
+//                     }
+//                     // TODO add db index for multi dbs
+//                     // TODO remove dependencies of global variables
+//                     if (upsert_json_to_db(database_name, db_type, db_file_index, db_data_buf, false) == XCASH_ERROR) {
+//                         ERROR_PRINT("Can't upsert %s database", collection_names[db_type]);
+//                         updated_applied = false;
+//                         break;
+//                     }
+//                 }
+//             }
 
-            free(db_data_buf);
-            free(dbs_to_update);
+//             free(db_data_buf);
+//             free(dbs_to_update);
 
-            // update needed databases
-            cleanup_db_sync_results(sync_objs);
+//             // update needed databases
+//             cleanup_db_sync_results(sync_objs);
 
-            result = updated_applied;
-        }
-    }
+//             result = updated_applied;
+//         }
+//     }
 
-    return result;
-}
+//     return result;
+// }
 
-// TODO now it's obsolete
-bool sync_mono_db_from_node(const char* public_address, xcash_dbs_t db_type) {
-    xcash_db_sync_obj_t **sync_objs = NULL;
-    bool result = false;
-    //FIXME: convert public address to index
-    xcash_seed_idx_t sync_source_node_index;
+// // TODO now it's obsolete
+// bool sync_mono_db_from_node(const char* public_address, xcash_dbs_t db_type) {
+//     xcash_db_sync_obj_t **sync_objs = NULL;
+//     bool result = false;
+//     //FIXME: convert public address to index
+//     xcash_seed_idx_t sync_source_node_index;
 
-    if (!check_db_hashes_from_seeds(db_type, &sync_objs)) {
-        WARNING_PRINT("Can't find source for %s db sync", collection_names[db_type]);
-        cleanup_db_sync_results(sync_objs);
-        return false;
-    }
+//     if (!check_db_hashes_from_seeds(db_type, &sync_objs)) {
+//         WARNING_PRINT("Can't find source for %s db sync", collection_names[db_type]);
+//         cleanup_db_sync_results(sync_objs);
+//         return false;
+//     }
 
-    if (check_db_has_majority(db_type, sync_objs)) {
-        cleanup_db_sync_results(sync_objs);
-        result = true;
-    } else {
-        // if synced answers == total answers, then we have sync status.
-        // it's just not to sync each time then most nodes are offline
+//     if (check_db_has_majority(db_type, sync_objs)) {
+//         cleanup_db_sync_results(sync_objs);
+//         result = true;
+//     } else {
+//         // if synced answers == total answers, then we have sync status.
+//         // it's just not to sync each time then most nodes are offline
 
-        size_t total_answers = 0;
-        size_t synced_answers = 0;
+//         size_t total_answers = 0;
+//         size_t synced_answers = 0;
 
-        for (size_t i = 0; sync_objs[i] != NULL; i++) {
-            total_answers++;
-            if (sync_objs[i]->db_synced) synced_answers++;
-        }
+//         for (size_t i = 0; sync_objs[i] != NULL; i++) {
+//             total_answers++;
+//             if (sync_objs[i]->db_synced) synced_answers++;
+//         }
 
-        // we don't need that structure anymore
-        cleanup_db_sync_results(sync_objs);
+//         // we don't need that structure anymore
+//         cleanup_db_sync_results(sync_objs);
 
-        if (total_answers == synced_answers) {
-            WARNING_PRINT("%s database has no majority, but we have no choice", collection_names[db_type]);
-            result = true;
-        } else {
-            char *db_data_buf = (char *)calloc(MAXIMUM_BUFFER_SIZE,1);
-            if (db_data_buf == NULL) {
-                FATAL_ERROR_EXIT("Memory allocation failed");
-            }
+//         if (total_answers == synced_answers) {
+//             WARNING_PRINT("%s database has no majority, but we have no choice", collection_names[db_type]);
+//             result = true;
+//         } else {
+//             char *db_data_buf = (char *)calloc(MAXIMUM_BUFFER_SIZE,1);
+//             if (db_data_buf == NULL) {
+//                 FATAL_ERROR_EXIT("Memory allocation failed");
+//             }
 
-            INFO_PRINT("Updating %s database from %s ", collection_names[db_type],
-                       network_data_nodes_list.network_data_nodes_IP_address[sync_source_node_index]);
+//             INFO_PRINT("Updating %s database from %s ", collection_names[db_type],
+//                        network_data_nodes_list.network_data_nodes_IP_address[sync_source_node_index]);
 
-            if (!download_db_from_node(network_data_nodes_list.network_data_nodes_IP_address[sync_source_node_index],
-                                       db_type, 0, db_data_buf, sizeof(db_data_buf))) {
-                ERROR_PRINT("Can't download %s database", collection_names[db_type]);
-                free(db_data_buf);
-                return false;
-            }
+//             if (!download_db_from_node(network_data_nodes_list.network_data_nodes_IP_address[sync_source_node_index],
+//                                        db_type, 0, db_data_buf, sizeof(db_data_buf))) {
+//                 ERROR_PRINT("Can't download %s database", collection_names[db_type]);
+//                 free(db_data_buf);
+//                 return false;
+//             }
 
-            // TODO remove dependencies of global variables
-            if (upsert_json_to_db(database_name, db_type, 0, db_data_buf, false) == XCASH_ERROR) {
-                ERROR_PRINT("Can't upsert %s database", collection_names[db_type]);
-                free(db_data_buf);
-                return false;
-            }
+//             // TODO remove dependencies of global variables
+//             if (upsert_json_to_db(database_name, db_type, 0, db_data_buf, false) == XCASH_ERROR) {
+//                 ERROR_PRINT("Can't upsert %s database", collection_names[db_type]);
+//                 free(db_data_buf);
+//                 return false;
+//             }
 
-            free(db_data_buf);
-            result = true;
-        }
-    }
+//             free(db_data_buf);
+//             result = true;
+//         }
+//     }
 
-    return result;
-}
+//     return result;
+// }
 
 bool update_multi_db_from_node(const char* public_address, xcash_dbs_t db_type) {
     bool result = false;
@@ -719,26 +725,26 @@ bool update_db_from_node(const char* public_address, xcash_dbs_t db_type) {
 
 
 // TODO obsolete
-bool sync_update_db_from_node(const char* public_address, xcash_dbs_t db_type) {
-    bool result = false;
+// bool sync_update_db_from_node(const char* public_address, xcash_dbs_t db_type) {
+//     bool result = false;
 
-    INFO_STAGE_PRINT("Syncing %s db", collection_names[db_type]);
+//     INFO_STAGE_PRINT("Syncing %s db", collection_names[db_type]);
 
-    switch (db_type) {
-        case XCASH_DB_DELEGATES:
-        case XCASH_DB_STATISTICS:
-            result = sync_mono_db_from_node(public_address, db_type);
-            break;
-        case XCASH_DB_RESERVE_PROOFS:
-        case XCASH_DB_RESERVE_BYTES:
-            result = sync_multi_db_from_node(public_address, db_type);
-            break;
-        default:
-            break;
-    }
+//     switch (db_type) {
+//         case XCASH_DB_DELEGATES:
+//         case XCASH_DB_STATISTICS:
+//             result = sync_mono_db_from_node(public_address, db_type);
+//             break;
+//         case XCASH_DB_RESERVE_PROOFS:
+//         case XCASH_DB_RESERVE_BYTES:
+//             result = sync_multi_db_from_node(public_address, db_type);
+//             break;
+//         default:
+//             break;
+//     }
 
-    return result;
-}
+//     return result;
+// }
 
 
 bool initial_sync_node(xcash_node_sync_info_t* majority_source) {
@@ -753,9 +759,11 @@ bool initial_sync_node(xcash_node_sync_info_t* majority_source) {
     }
 
 
+
+    // FIXME this mean we definitely need to sync the node
     if (sync_info.block_height != majority_source->block_height) {
-        WARNING_PRINT("Something is wrong. The local node has a block height of %ld, which differs from the majority", sync_info.block_height);
-        return false;
+        WARNING_PRINT("The local node has a block height %ld vs majority %ld, which differs from the majority", sync_info.block_height, majority_source->block_height);
+        // return false;
     }
 
     for (size_t i = 0; i < DATABASE_TOTAL; i++)
@@ -1080,7 +1088,7 @@ xcash_node_sync_info_t** make_nodes_majority_list(xcash_node_sync_info_t* sync_s
 
 
 void show_majority_statistics(xcash_node_sync_info_t* majority_list, size_t items_count) {
-    if (items_count > 0) {
+    if (majority_list && items_count > 0) {
         INFO_STAGE_PRINT("Nodes majority status");
         for (size_t i = 0; i< items_count; i++)
         {
@@ -1135,7 +1143,7 @@ bool get_sync_nodes_majority_list(xcash_node_sync_info_t** majority_list_result,
         return false;
     }
 
-    xcash_node_sync_info_t** majority_list;
+    xcash_node_sync_info_t* majority_list;
     size_t majority_count = 0;
     if (check_sync_nodes_majority_list(replies, &majority_list, &majority_count)) {
         result = true;
@@ -1293,32 +1301,52 @@ bool initial_db_sync_check(size_t* majority_count, xcash_node_sync_info_t** majo
 
     show_majority_statistics(nodes_majority_list, nodes_majority_count);
 
-    if (is_seed_node) {
-        if (seeds_majority_count < NETWORK_DATA_NODES_VALID_AMOUNT) {
-            INFO_PRINT_STATUS_FAIL("Not enough data majority. [%ld/%d]", seeds_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT);
-            result = false;
-        } else {
-            INFO_PRINT_STATUS_OK("Seed nodes data majority found. %ld nodes available to sync", seeds_majority_count);
 
-            // FIXME Originally we need to sync only from seeds. But why? This is already decentralized behavior
-            int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
-
-            result = initial_sync_node(&nodes_majority_list[sync_source_index]);
-    
-            *majority_count = nodes_majority_count;
-        }
+    if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT)) {
+        INFO_PRINT_STATUS_FAIL("Not enough data majority. All Nodes: [%ld/%d]", nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
+        result = false;
     } else {
-        if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT) && (seeds_majority_count < NETWORK_DATA_NODES_VALID_AMOUNT)) {
-            INFO_PRINT_STATUS_FAIL("Not enough data majority. Seeds: [%ld/%d] All Nodes: [%ld/%d]", seeds_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT, nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
-            result = false;
-        } else {
-            INFO_PRINT_STATUS_OK("Data majority reached. Seeds: [%ld/%d] All Nodes: [%ld/%d]", seeds_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT, nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
-            int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
-            result = initial_sync_node(&nodes_majority_list[sync_source_index]);
+        INFO_PRINT_STATUS_OK("Data majority reached. All Nodes: [%ld/%d]",  nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
+        int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
+        result = initial_sync_node(&nodes_majority_list[sync_source_index]);
 
-            *majority_count = nodes_majority_count;
-        }
+        *majority_count = nodes_majority_count;
     }
+
+
+    // if (is_seed_node) {
+    //     if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT)) {
+    //         INFO_PRINT_STATUS_FAIL("Not enough data majority. Seeds: [%ld/%d] All Nodes: [%ld/%d]", seeds_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT, nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
+    //         result = false;
+    //     } else {
+    //         INFO_PRINT_STATUS_OK("Data majority reached. Seeds: [%ld/%d] All Nodes: [%ld/%d]", seeds_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT, nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
+
+    //     // if (seeds_majority_count < NETWORK_DATA_NODES_VALID_AMOUNT) {
+    //     //     INFO_PRINT_STATUS_FAIL("Not enough seeds data majority. [%ld/%d]", seeds_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT);
+    //     //     result = false;
+    //     // } else {
+    //     //     INFO_PRINT_STATUS_OK("Seed nodes data majority found. %ld nodes available to sync", seeds_majority_count);
+
+    //         // FIXME Originally we need to sync only from seeds. But why? This is already decentralized behavior
+    //         int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
+
+    //         result = initial_sync_node(&nodes_majority_list[sync_source_index]);
+    
+    //         *majority_count = nodes_majority_count;
+    //     }
+    // } else {
+    //     // if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT) && (seeds_majority_count < NETWORK_DATA_NODES_VALID_AMOUNT)) {
+    //     if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT)) {
+    //         INFO_PRINT_STATUS_FAIL("Not enough data majority. Seeds: [%ld/%d] All Nodes: [%ld/%d]", seeds_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT, nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
+    //         result = false;
+    //     } else {
+    //         INFO_PRINT_STATUS_OK("Data majority reached. Seeds: [%ld/%d] All Nodes: [%ld/%d]", seeds_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT, nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
+    //         int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
+    //         result = initial_sync_node(&nodes_majority_list[sync_source_index]);
+
+    //         *majority_count = nodes_majority_count;
+    //     }
+    // }
 
     if (!majority_list_result) {
         free(nodes_majority_list);
@@ -1340,24 +1368,28 @@ bool check_time_sync_to_seeds(void) {
         XNET_SEEDS_ALL, XMSG_BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME, &replies);
 
     bool all_nodes_offline = true;
-    for (size_t i = 0; replies && i < NETWORK_DATA_NODES_AMOUNT; i++) {
-        if (replies[i]->status== STATUS_OK) {
-            // FIXME switch to normal json parsing
-            if (parse_json_data(replies[i]->data, "current_time", node_time_buf, sizeof(node_time_buf)) == 0 ||
-                strncmp(node_time_buf, "", 1) == 0) {
-                DEBUG_PRINT("Can't parse 'current_time' reply from %s", replies[i]->host);
-                continue;
-            }
 
-            sscanf(node_time_buf, "%lld", &node_time);
-            long time_diff = labs(replies[i]->req_time_start - node_time);
+    if (send_result && replies) {
 
-            if (time_diff <= BLOCK_VERIFIERS_SETTINGS) {
-                INFO_PRINT(HOST_OK_STATUS("%s", "time shift is %lds"), replies[i]->host, time_diff);
-                result = true;
-                all_nodes_offline =  false;
-            } else {
-                INFO_PRINT(HOST_FALSE_STATUS("%s", "time shift is %lds"), replies[i]->host, time_diff);
+        for (size_t i = 0; replies && i < NETWORK_DATA_NODES_AMOUNT; i++) {
+            if (replies[i]->status== STATUS_OK) {
+                // FIXME switch to normal json parsing
+                if (parse_json_data(replies[i]->data, "current_time", node_time_buf, sizeof(node_time_buf)) == 0 ||
+                    strncmp(node_time_buf, "", 1) == 0) {
+                    DEBUG_PRINT("Can't parse 'current_time' reply from %s", replies[i]->host);
+                    continue;
+                }
+
+                sscanf(node_time_buf, "%lld", &node_time);
+                long time_diff = labs(replies[i]->req_time_start - node_time);
+
+                if (time_diff <= BLOCK_VERIFIERS_SETTINGS) {
+                    INFO_PRINT(HOST_OK_STATUS("%s", "time shift is %lds"), replies[i]->host, time_diff);
+                    result = true;
+                    all_nodes_offline =  false;
+                } else {
+                    INFO_PRINT(HOST_FALSE_STATUS("%s", "time shift is %lds"), replies[i]->host, time_diff);
+                }
             }
         }
     }
@@ -1376,34 +1408,34 @@ bool check_time_sync_to_seeds(void) {
     return result;
 };
 
-bool synchronize_database_from_network_data_node(void) {
-    get_node_data();
-    color_print("Syncing the block verifiers list", "yellow");
-    sync_all_block_verifiers_list(1, 1);
-    color_print("Syncing the reserve bytes database", "yellow");
-    sync_reserve_bytes_database(2, 0, "");
-    color_print("Syncing the reserve proofs database", "yellow");
-    sync_reserve_proofs_database(2, "");
-    color_print("Syncing the delegates database", "yellow");
-    sync_delegates_database(2, "");
-    color_print("Syncing the statistics database", "yellow");
-    sync_statistics_database(2, "");
-    color_print("Successfully synced all databases", "yellow");
-    return true;
-}
+// bool synchronize_database_from_network_data_node(void) {
+//     get_node_data();
+//     color_print("Syncing the block verifiers list", "yellow");
+//     sync_all_block_verifiers_list(1, 1);
+//     color_print("Syncing the reserve bytes database", "yellow");
+//     sync_reserve_bytes_database(2, 0, "");
+//     color_print("Syncing the reserve proofs database", "yellow");
+//     sync_reserve_proofs_database(2, "");
+//     color_print("Syncing the delegates database", "yellow");
+//     sync_delegates_database(2, "");
+//     color_print("Syncing the statistics database", "yellow");
+//     sync_statistics_database(2, "");
+//     color_print("Successfully synced all databases", "yellow");
+//     return true;
+// }
 
-bool synchronize_database_from_specific_delegate(const char *delegate_ip) {
-    get_node_data();
-    color_print("Syncing the block verifiers list", "yellow");
-    sync_all_block_verifiers_list(1, 1);
-    color_print("Syncing the reserve bytes database", "yellow");
-    sync_reserve_bytes_database(0, 0, delegate_ip);
-    color_print("Syncing the reserve proofs database", "yellow");
-    sync_reserve_proofs_database(0, delegate_ip);
-    color_print("Syncing the delegates database", "yellow");
-    sync_delegates_database(0, delegate_ip);
-    color_print("Syncing the statistics database", "yellow");
-    sync_statistics_database(0, delegate_ip);
-    color_print("Successfully synced all databases", "yellow");
-    return true;
-}
+// bool synchronize_database_from_specific_delegate(const char *delegate_ip) {
+//     get_node_data();
+//     color_print("Syncing the block verifiers list", "yellow");
+//     sync_all_block_verifiers_list(1, 1);
+//     color_print("Syncing the reserve bytes database", "yellow");
+//     sync_reserve_bytes_database(0, 0, delegate_ip);
+//     color_print("Syncing the reserve proofs database", "yellow");
+//     sync_reserve_proofs_database(0, delegate_ip);
+//     color_print("Syncing the delegates database", "yellow");
+//     sync_delegates_database(0, delegate_ip);
+//     color_print("Syncing the statistics database", "yellow");
+//     sync_statistics_database(0, delegate_ip);
+//     color_print("Successfully synced all databases", "yellow");
+//     return true;
+// }

@@ -16,6 +16,8 @@
 #include "server_functions.h"
 #include "string_functions.h"
 
+#include "log.h"
+
 /*
 -----------------------------------------------------------------------------------------------------------
 Functions
@@ -246,6 +248,8 @@ Return: 0 if an error has occured, 1 if successfull
 
 int submit_block_template(const char* DATA)
 {
+  log_info("Block template: %s", DATA);
+
   // Constants
   const char* HTTP_HEADERS[] = {"Content-Type: application/json","Accept: application/json"}; 
   const size_t HTTP_HEADERS_LENGTH = sizeof(HTTP_HEADERS)/sizeof(HTTP_HEADERS[0]);
@@ -353,13 +357,6 @@ int get_current_block_height(char *result)
   // Variables
   char data[SMALL_BUFFER_SIZE];
 
-  // define macros
-  #define GET_CURRENT_BLOCK_HEIGHT_ERROR(settings) \
-  memcpy(error_message.function[error_message.total],"get_current_block_height",24); \
-  memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
-  error_message.total++; \
-  return 0;
-
   memset(data,0,sizeof(data));
 
   if (send_http_request(data,XCASH_daemon_IP_address,"/json_rpc",XCASH_DAEMON_PORT,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,"{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_block_count\"}",SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0 || parse_json_data(data,"count",result, BUFFER_SIZE) == 0)
@@ -370,12 +367,12 @@ int get_current_block_height(char *result)
 
     if (send_http_request(data,XCASH_daemon_IP_address,"/json_rpc",XCASH_DAEMON_PORT,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,"{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_block_count\"}",SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0 || parse_json_data(data,"count",result, BUFFER_SIZE) == 0)
     {
-      GET_CURRENT_BLOCK_HEIGHT_ERROR("Could not get the current block height");
+      ERROR_PRINT("Could not get the current block height");
+      return XCASH_ERROR;
     }
   }
-  return 1;
+  return XCASH_OK;
 
-  #undef GET_CURRENT_BLOCK_HEIGHT_ERROR
 }
 
 
@@ -399,13 +396,6 @@ int get_previous_block_hash(char *result)
   // Variables
   char data[SMALL_BUFFER_SIZE];
 
-  // define macros
-  #define GET_PREVIOUS_BLOCK_HASH_ERROR(settings) \
-  memcpy(error_message.function[error_message.total],"get_previous_block_hash",23); \
-  memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
-  error_message.total++; \
-  return 0;
-
   memset(data,0,sizeof(data));
   memset(result,0,strlen(result));
 
@@ -417,12 +407,13 @@ int get_previous_block_hash(char *result)
 
     if (send_http_request(data,XCASH_daemon_IP_address,"/json_rpc",XCASH_DAEMON_PORT,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,"{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_last_block_header\"}",SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0 || parse_json_data(data,"hash",result, BUFFER_SIZE) == 0)
     {
-      GET_PREVIOUS_BLOCK_HASH_ERROR("Could not get the previous block hash");
+      ERROR_PRINT("Could not get the previous block hash");
+      return XCASH_ERROR;
+
     }
   }
-  return 1;
+  return XCASH_OK;
 
-  #undef GET_PREVIOUS_BLOCK_HASH_ERROR
 }
 
 

@@ -13,4 +13,6 @@ int count_db_reserve_bytes(void);
 
 int count_recs(const bson_t *recs);
 
+int get_db_max_block_height(const char *dbname, size_t *max_block_heigh, size_t *max_reserve_bytes);
+
 #endif

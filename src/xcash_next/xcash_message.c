@@ -52,6 +52,7 @@ const char* xcash_net_messages[] = {
     "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_UPDATE",
     "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_DOWNLOAD",
     "XCASH_GET_SYNC_INFO",
+    "XCASH_GET_BLOCK_PRODUCERS",
 };
 
 const xcash_msg_t WALLET_SIGN_MESSAGES[] = {
@@ -61,7 +62,7 @@ const xcash_msg_t WALLET_SIGN_MESSAGES[] = {
 const size_t WALLET_SIGN_MESSAGES_COUNT = ARRAY_SIZE(WALLET_SIGN_MESSAGES) - 1;
 
 const xcash_msg_t UNSIGNED_MESSAGES[] = {XMSG_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS,
-                                         XMSG_GET_CURRENT_BLOCK_HEIGHT, XMSG_NONE};
+                                         XMSG_GET_CURRENT_BLOCK_HEIGHT, XMSG_XCASH_GET_SYNC_INFO, XMSG_NONE};
 const size_t UNSIGNED_MESSAGES_COUNT = ARRAY_SIZE(UNSIGNED_MESSAGES) - 1;
 
 const xcash_msg_t NONRETURN_MESSAGES[] = {XMSG_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS,
@@ -119,12 +120,14 @@ bool is_nonreturn_type(xcash_msg_t msg) {
 }
 
 bool sign_message(char* message_buf, size_t message_buf_size) {
+    (void)message_buf_size;
     // TODO: rewrite old sign code
     int result = sign_data(message_buf);
     return result == 1 ? true : false;
 }
 
 bool sign_message_by_wallet(char* message_buf, size_t message_buf_size) {
+    (void)message_buf_size;
     // TODO: rewrite old sign code
     int result = sign_data(message_buf);
     return result == 1 ? true : false;
@@ -138,10 +141,10 @@ bool sign_message_by_wallet(char* message_buf, size_t message_buf_size) {
  * @return const char*
  */
 
-char* create_message_param_list(xcash_msg_t msg, char** pair_params) {
+char* create_message_param_list(xcash_msg_t msg, const char** pair_params) {
     char message_buf[BUFFER_SIZE];
-    char* param_key = NULL;
-    char* param_value = NULL;
+    const char* param_key = NULL;
+    const char* param_value = NULL;
     int message_offset = 0;
     // TODO: autodetect message json or | separated
 
@@ -228,7 +231,7 @@ char* create_message_args(xcash_msg_t msg, va_list args) {
     param_count++;
     // va_end(args);
 
-    char** param_list = (char**)calloc(param_count, sizeof(char*));
+    const char** param_list = calloc(param_count, sizeof(char*));
 
     param_count = 0;
     // va_start(args2, msg);

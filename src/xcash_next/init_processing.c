@@ -40,7 +40,7 @@ bool init_data_by_config(const arg_config_t *config) {
   minimum_amount = config->minimum_amount? config->minimum_amount: 0;
 
   // set delegate fee
-  fee = (int)config->fee == 0? config->fee: 0;
+  fee = (int)config->fee == 0? 0: config->fee;
 
   // set inactivity count
   if (config->voter_inactivity_count) {
@@ -72,7 +72,7 @@ bool init_data_by_config(const arg_config_t *config) {
   }
 
   if (config->server_log_file) {
-    FILE* server_log_fp = fopen(config->server_log_file, "wt+");
+    server_log_fp = fopen(config->server_log_file, "a");
     if (!server_log_fp) {
       ERROR_PRINT("Can't create server log file %s",config->server_log_file);
       return false;
@@ -94,6 +94,23 @@ bool init_data_by_config(const arg_config_t *config) {
       return false;
     } 
   }
+
+    // TODO move website processing to other service
+    // get the website path
+
+    char data[SMALL_BUFFER_SIZE];
+    memset(website_path, 0, sizeof(website_path));
+    memset(data, 0, sizeof(data));
+    if (readlink("/proc/self/exe", data, sizeof(data)) == -1) {
+        ERROR_PRINT("Could not get the websites path");
+        return false;
+    }
+    memcpy(website_path, data, strnlen(data, sizeof(website_path)) - 17);
+    delegates_website == 1
+        ? memcpy(website_path + strlen(website_path), DELEGATES_WEBSITE_PATH, sizeof(DELEGATES_WEBSITE_PATH) - 1)
+        : memcpy(website_path + strlen(website_path), SHARED_DELEGATES_WEBSITE_PATH,
+                 sizeof(SHARED_DELEGATES_WEBSITE_PATH) - 1);
+
 
   return true;
 }
@@ -501,15 +518,18 @@ Description: Prints the delegates settings
 -----------------------------------------------------------------------------------------------------------
 */
 
+
+
+
 static char xcash_tech_header[] = "\n"
-" /$$   /$$  /$$$$$$   /$$$$$$   /$$$$$$  /$$   /$$  /$$$$$$$$ /$$$$$$$$  /$$$$$$  /$$   /$$\n"
-"| $$  / $$ /$$__  $$ /$$__  $$ /$$__  $$| $$  | $$ |__  $$__/| $$_____/ /$$__  $$| $$  | $$\n"
-"|  $$/ $$/| $$  \\__/| $$  \\ $$| $$  \\__/| $$  | $$    | $$   | $$      | $$  \\__/| $$  | $$\n"
-" \\  $$$$/ | $$      | $$$$$$$$|  $$$$$$ | $$$$$$$$    | $$   | $$$$$   | $$      | $$$$$$$$\n"
-"  >$$  $$ | $$      | $$__  $$ \\____  $$| $$__  $$    | $$   | $$__/   | $$      | $$__  $$\n"
-" /$$/\\  $$| $$    $$| $$  | $$ /$$  \\ $$| $$  | $$    | $$   | $$      | $$    $$| $$  | $$\n"
-"| $$  \\ $$|  $$$$$$/| $$  | $$|  $$$$$$/| $$  | $$ /$$| $$   | $$$$$$$$|  $$$$$$/| $$  | $$\n"
-"|__/  |__/ \\______/ |__/  |__/ \\______/ |__/  |__/|__/|__/   |________/ \\______/ |__/  |__/\n"
+" /$$   /$$                           /$$      /$$$$$$$$               /$$      \n"
+"| $$  / $$                          | $$     |__  $$__/              | $$      \n"
+"|  $$/ $$/ /$$$$$$$ /$$$$$$  /$$$$$$| $$$$$$$   | $$ /$$$$$$  /$$$$$$| $$$$$$$ \n"
+" \\  $$$$/ /$$_____/|____  $$/$$_____| $$__  $$  | $$/$$__  $$/$$_____| $$__  $$\n"
+"  /$$  $$| $$       /$$$$$$|  $$$$$$| $$  \\ $$  | $| $$$$$$$| $$     | $$  \\ $$\n"
+" /$$/\\  $| $$      /$$__  $$\\____  $| $$  | $$  | $| $$_____| $$     | $$  | $$\n"
+"| $$  \\ $|  $$$$$$|  $$$$$$$/$$$$$$$| $$  | $$/$| $|  $$$$$$|  $$$$$$| $$  | $$\n"
+"|__/  |__/\\_______/\\_______|_______/|__/  |__|__|__/\\_______/\\_______|__/  |__/\n"
 "\n";
 
 #define xcash_tech_status_fmt "ver.(%s) %s\n\n"\
@@ -541,26 +561,24 @@ void print_starter_state(void)
 bool timer_threads_init(void) {
     // Variables
     char data[BUFFER_SIZE_NETWORK_BLOCK_DATA];
-    time_t current_date_and_time;
-    struct tm current_UTC_date_and_time;
+    // time_t current_date_and_time;
+    // struct tm current_UTC_date_and_time;
 
     // threads
     pthread_t thread_id[5];
 
     memset(data, 0, sizeof(data));
 
-    print_start_message(current_date_and_time, current_UTC_date_and_time, "Starting all of the threads", data);
+    // print_start_message(current_date_and_time, current_UTC_date_and_time, "Starting all of the threads", data);
 
-    // start the current block height timer thread
-    if (pthread_create(&thread_id[0], NULL, &current_block_height_timer_thread, NULL) != 0 &&
-        pthread_detach(thread_id[0]) != 0) {
-        ERROR_PRINT("Could not start the current_block_height_timer_thread");
-        return false;
-    }
+    // // start the current block height timer thread
+    // if (pthread_create(&thread_id[0], NULL, &current_block_height_timer_thread, NULL) != 0 &&
+    //     pthread_detach(thread_id[0]) != 0) {
+    //     ERROR_PRINT("Could not start the current_block_height_timer_thread");
+    //     return false;
+    // }
 
     if (!is_seed_node) {
-        color_print("Started the current block height timer thread", "green");
-
         // start the block height timer thread
         if (shared_delegates_website == 1) {
             if (pthread_create(&thread_id[3], NULL, &block_height_timer_thread, NULL) != 0 &&
@@ -599,6 +617,7 @@ void check_for_dpops_block_height(void) {
 }
 
 
+
 bool processing(const arg_config_t *arg_config) {
     initialize_data_structures();
 
@@ -608,9 +627,9 @@ bool processing(const arg_config_t *arg_config) {
         return false;
     };
 
-    if (arg_config->sync_dbs_from_node) return synchronize_database_from_network_data_node();
+    // if (arg_config->sync_dbs_from_node) return synchronize_database_from_network_data_node();
 
-    if (arg_config->sync_dbs_from_delegate_ip) return synchronize_database_from_network_data_node();
+    // if (arg_config->sync_dbs_from_delegate_ip) return synchronize_database_from_network_data_node();
 
     // brief check if database is empty
     if (count_db_delegates() <= 0 || count_db_statistics() <= 0) {
@@ -619,14 +638,20 @@ bool processing(const arg_config_t *arg_config) {
         return false;
     }
 
-    // get public address, current block height, previous hash and detect if it is the seed node. for current node
+    // get public address, and detect if it is the seed node
     if (!get_node_data()) {
-        DEBUG_PRINT("Can't get node initial data");
+        DEBUG_PRINT("Can't get node initial information");
         cleanup_data_structures();
         return false;
     }
 
+
+
     print_starter_state();
+
+    if (!get_daemon_data()) {
+        DEBUG_PRINT("Can't get daemon data");
+    }
 
     // just in case of the daemon did't synced well before
     check_for_dpops_block_height();
@@ -646,10 +671,11 @@ bool processing(const arg_config_t *arg_config) {
 
     INFO_STAGE_PRINT("Checking that the node has actual db hashes");
 
+    // do it here because initial calculation could take a long time
     xcash_node_sync_info_t sync_info;
     if (!get_node_sync_info(&sync_info)) {
-      ERROR_PRINT("Can't get local sync info");
-      return false;
+        ERROR_PRINT("Can't get local sync info");
+        return false;
     }
 
     INFO_PRINT_STATUS_OK("Hashes checked");
@@ -663,15 +689,21 @@ bool processing(const arg_config_t *arg_config) {
     // do the synchronization until the network reach majority
     do
     {
-      if (network_recovery_state) {
-        INFO_STAGE_PRINT("Waiting 20s for Network Recovery before continuing...");
-        sleep(20);
 
-        if (!get_node_data()) {
-            WARNING_PRINT("Can't get node initial data");
-            continue;
-        }
+      if (network_recovery_state) {
+        INFO_STAGE_PRINT("Waiting 10s for Network Recovery before continuing...");
+        sleep(10);
+
       }
+
+      // FIXME possible dead end if node has not synced blockchain. it will not return right data to
+      // to other nodes. and if there is not enough working nodes we could loop
+      // but we need to start server anyway
+      if (!get_daemon_data()) {
+          network_recovery_state =  true;
+          WARNING_PRINT("Can't get node daemon data");
+      }
+
 
       // check if are online of no
       bool is_seeds_offline = (get_network_data_nodes_online_status() == 0);
@@ -710,10 +742,10 @@ bool processing(const arg_config_t *arg_config) {
     
       
     // start all other services
-    // if (!timer_threads_init()) {
-    //     cleanup_data_structures();
-    //     return false;
-    // }
+    if (!timer_threads_init()) {
+        cleanup_data_structures();
+        return false;
+    }
 
     return true;
 }

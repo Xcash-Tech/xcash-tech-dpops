@@ -122,6 +122,7 @@ int insert_document_into_collection_json(const char* DATABASE, const char* COLLE
   }
 
   // add the data hash to the _id field 
+  // FIXME _id should be really unique not the possible changed
   memcpy(data2,",",sizeof(char));
   memcpy(data3,"{\"_id\":\"",8);
   memcpy(data3+strlen(data3),data_hash,DATA_HASH_LENGTH);

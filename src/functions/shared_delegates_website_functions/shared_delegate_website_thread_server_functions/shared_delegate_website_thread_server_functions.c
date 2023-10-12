@@ -480,6 +480,9 @@ Description: Checks if the block verifier has found a block
 
 void* block_height_timer_thread(void* parameters)
 {
+
+  threads_running++;
+
   // Variables
   char data[1024];
   time_t current_date_and_time;
@@ -500,6 +503,11 @@ void* block_height_timer_thread(void* parameters)
 
   for (;;)
   {   
+
+    if (is_shutdown_state) {
+        break;
+    }
+
     get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
 
     // check if you found the previous block in the network
@@ -532,6 +540,9 @@ void* block_height_timer_thread(void* parameters)
     }
     nanosleep((const struct timespec[]){{0, 200000000L}}, NULL);
   }
+
+  threads_running--;
+
   pthread_exit((void *)(intptr_t)1);
 
   #undef BLOCK_HEIGHT_TIMER_THREAD_ERROR
@@ -828,6 +839,9 @@ Description: Sends all of the delegates payments once a day at a random time, or
 
 void* payment_timer_thread(void* parameters)
 {
+
+  threads_running++;
+
   // Variables
   char data[BUFFER_SIZE];
   char data2[SMALL_BUFFER_SIZE];
@@ -875,6 +889,11 @@ void* payment_timer_thread(void* parameters)
   for (;;)
   {
     start:
+
+    if (is_shutdown_state) {
+        break;
+    }
+
     // check if it is time to send the payments
     get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
     if (current_UTC_date_and_time.tm_min == (BLOCK_TIME-1))
@@ -1130,6 +1149,9 @@ void* payment_timer_thread(void* parameters)
   {
     pointer_reset(transaction_list_data[count]);
   }
+
+  threads_running--;
+
 
   pthread_exit((void *)(intptr_t)1);
   
