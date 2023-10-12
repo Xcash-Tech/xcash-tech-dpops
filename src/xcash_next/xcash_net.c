@@ -5,7 +5,6 @@
 #include "network_functions.h"
 
 #include "uv_net.h"
- #include <bsd/string.h>
 
 // FIXME: add support for NONRETURN messages to not mark them as INCOMPLETE
 // TODO fix message format
@@ -20,17 +19,23 @@ void remove_enders(response_t **responses) {
                 // FIXME wtf is this
                 DEBUG_PRINT("Returned data from host '%s' is empty. Marked it as STATUS_INCOMPLETE", responses[i]->host);
             }else{
-                char* ender_position = strnstr(responses[i]->data, SOCKET_END_STRING, responses[i]->size);
-                if (ender_position) {
-                    *ender_position = '\0';
-                    responses[i]->size = strlen(responses[i]->data);
-                }else {
-                    char* tmp =  calloc(responses[i]->size+1,1);
-                    memcpy(tmp,responses[i]->data, responses[i]->size);
+                bool ender_found = false;
+                char* tmp =  calloc(responses[i]->size+1,1);
+                memcpy(tmp,responses[i]->data, responses[i]->size);
+                if (responses[i]->size >=sizeof(SOCKET_END_STRING)-1) {
+                    char* ender_position = strstr(tmp,SOCKET_END_STRING);
+                    if (ender_position) {
+                        ender_found = true;
+                        int ender_pos = ender_position - tmp;
 
-                    WARNING_PRINT("Returned data has no |END| data size %ld, message:  %s",responses[i]->size, tmp);
-                    free(tmp);
+                        responses[i]->data[ender_pos] = '\0';
+                        responses[i]->size = strlen(responses[i]->data);
+                    }
                 }
+                if (!ender_found) {
+                    WARNING_PRINT("Returned data has no |END| data size %ld, message:  %s",responses[i]->size, tmp);
+                }
+                free(tmp);
             }
         }
         i++;
