@@ -564,25 +564,11 @@ void server_receive_data_socket_node_to_block_verifiers_get_reserve_bytes_databa
   }
 
   size_t reserve_bytes_index = 0;
-  // calculate how many blocks to send
-  // if (test_settings == 0)
-  // {
     if (!(get_db_max_block_height(database_name, &count2,&reserve_bytes_index)>0)) {
       DEBUG_PRINT("Can't get block height from database");
       send_data(CLIENT_SOCKET,(unsigned char*)"Could not get the network blocks reserve bytes database hash}",0,0,""); \
       return;
     }
-    // // FIXME rewrite that server request
-    // if (sscanf(current_block_height,"%zu",&count2)!=1){
-    //   DEBUG_PRINT("Current block height if wrong. Possible node is syncing");
-    //   send_data(CLIENT_SOCKET,(unsigned char*)"Could not get the network blocks reserve bytes database hash}",0,0,""); \
-    //   return;
-    // }
-  // }
-  // else
-  // {
-  //   count2 = 760005;
-  // }
   sscanf(data,"%zu",&current_block_height_reserve_bytes);
   current_block_height_reserve_bytes_copy = current_block_height_reserve_bytes;
 

@@ -1286,7 +1286,7 @@ bool initial_db_sync_check(size_t* majority_count, xcash_node_sync_info_t** majo
     bool result = false;
     *majority_count = 0;
 
-    size_t seeds_majority_count = 0;
+    // size_t seeds_majority_count = 0;
 
     xcash_node_sync_info_t* nodes_majority_list = NULL;
     size_t nodes_majority_count = 0;
@@ -1296,7 +1296,7 @@ bool initial_db_sync_check(size_t* majority_count, xcash_node_sync_info_t** majo
     if (!get_sync_nodes_majority_list(&nodes_majority_list, &nodes_majority_count)) {
         WARNING_PRINT("Could not get data majority nodes sync list");
     }else{
-        seeds_majority_count = count_seeds_in_majority_list(nodes_majority_list, nodes_majority_count);
+        // seeds_majority_count = count_seeds_in_majority_list(nodes_majority_list, nodes_majority_count);
     }
 
     show_majority_statistics(nodes_majority_list, nodes_majority_count);
@@ -1451,6 +1451,17 @@ bool init_db_from_seeds(void) {
         xcash_node_sync_info_t* nodes_majority_list = NULL;
     
         INFO_STAGE_PRINT("Checking the network data majority");
+
+        if (!get_daemon_data()) {
+            WARNING_PRINT("Can't get daemon data. You need to start xcash daemon service before");
+            return false;
+        }
+
+        if (!get_node_data()) {
+            WARNING_PRINT("Can't get wallet data. You need to start xcash rpc wallet service before");
+            return false;
+        }
+
 
         if (!get_sync_seeds_majority_list(&nodes_majority_list, &nodes_majority_count)) {
             WARNING_PRINT("Could not get data majority nodes sync list");

@@ -129,5 +129,5 @@ extern int threads_running;
 extern int sig_requests;
 extern FILE* server_log_fp;
 extern bool is_block_creation_stage;
-
+extern bool cleanup_db_before_upsert;
 #endif

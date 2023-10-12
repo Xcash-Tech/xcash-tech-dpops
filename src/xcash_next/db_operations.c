@@ -236,6 +236,39 @@ bool db_delete_doc(const char *db_name, const char *collection_name, const bson_
     return true;
 }
 
+
+bool db_drop(const char *db_name, const char *collection_name, bson_error_t *error) {
+    mongoc_client_t *client;
+    mongoc_collection_t *collection;
+    bool result;
+
+    // Pop a client from the pool
+    client = mongoc_client_pool_pop(database_client_thread_pool);
+    if (!client) {
+        DEBUG_PRINT("Failed to pop client from pool");
+        return false;
+    }
+
+    // Get the collection
+    collection = mongoc_client_get_collection(client, db_name, collection_name);
+    if (!collection) {
+        DEBUG_PRINT("Failed to get collection: %s", collection_name);
+        mongoc_client_pool_push(database_client_thread_pool, client);
+        return false;
+    }
+
+    result = mongoc_collection_drop(collection, error);
+    if (!result) {
+        DEBUG_PRINT("Can't drop %s, error: %s", collection_name, error->message);
+    }
+
+    mongoc_collection_destroy(collection);
+    mongoc_client_pool_push(database_client_thread_pool, client);
+
+    return result;
+}
+
+
 bool db_count_doc(const char *db_name, const char *collection_name, int64_t *result_count, bson_error_t *error) {
     mongoc_client_t *client;
     mongoc_collection_t *collection;

@@ -53,6 +53,7 @@ int threads_running = 0;
 FILE* server_log_fp =  NULL;
 int sig_requests = 0;
 bool is_block_creation_stage = false;
+bool cleanup_db_before_upsert = false; // delete db before put content. make sure we have exact copy during initial db syncing
 
 delegates_t delegates_all[BLOCK_VERIFIERS_TOTAL_AMOUNT];
 

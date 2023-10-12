@@ -95,6 +95,10 @@ bool init_data_by_config(const arg_config_t *config) {
     } 
   }
 
+  // make sure we have exact copy during initial db syncing
+  cleanup_db_before_upsert = config->init_db_from_seeds? true: false;
+
+
     // TODO move website processing to other service
     // get the website path
 
