@@ -66,7 +66,7 @@ int check_if_blockchain_is_fully_synced(void)
     }
   }
   pthread_mutex_unlock(&update_current_block_height_lock);
-
+  // FIXME very strange behavior . we should be synced only if block_height equals count > BLOCK_VERIFIERS_VALID_AMOUNT
   return count2 >= BLOCK_VERIFIERS_VALID_AMOUNT ? 0 : 1;
 }
 

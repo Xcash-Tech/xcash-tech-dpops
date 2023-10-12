@@ -57,30 +57,12 @@ Return: 0 if an error has occured, 1 if successfull
 -----------------------------------------------------------------------------------------------------------
 */
 
-int create_server(const int MESSAGE_SETTINGS)
+bool create_server(void)
 {
-  // Variables
-  char buffer[MAXIMUM_NUMBER_SIZE];
-  char data[SMALL_BUFFER_SIZE];
   struct epoll_event events;
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
   struct sockaddr_in addr; 
-  int count;
 
-  #define SERVER_ERROR(message) \
-  memcpy(error_message.function[error_message.total],"create_server",13); \
-  memcpy(error_message.data[error_message.total],message,strnlen(message,BUFFER_SIZE)); \
-  error_message.total++; \
-  exit(0); 
-  
-  memset(buffer,0,sizeof(buffer));
-  memset(data,0,sizeof(data));
-
-  if (MESSAGE_SETTINGS == 1)
-  {
-    print_start_message(current_date_and_time,current_UTC_date_and_time,"Creating the server",data);
-  }
+  INFO_STAGE_PRINT("Creating the server");
   
   /* Create the socket  
   AF_INET = IPV4 support
@@ -89,7 +71,8 @@ int create_server(const int MESSAGE_SETTINGS)
   */
   if ((server_socket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) == -1)
   {
-    SERVER_ERROR("Error creating the socket");
+    ERROR_PRINT("Can't create the socket");
+    return false;
   }
 
   /* Set the socket options
@@ -99,57 +82,44 @@ int create_server(const int MESSAGE_SETTINGS)
   */
   if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &(int){1},sizeof(int)) != 0)
   {
-    SERVER_ERROR("Error setting socket options");
+    ERROR_PRINT("Can't set the socket options");
+    return false;
   } 
-
-  if (MESSAGE_SETTINGS == 1)
-  {   
-    color_print("Socket created","green");
-  }
  
-  // convert the port to a string
-  snprintf(buffer,sizeof(buffer)-1,"%d",SEND_DATA_PORT);  
- 
+  
   memset(&addr, 0, sizeof(addr));
   /* setup the connection
   AF_INET = IPV4
   INADDR_ANY = connect to 0.0.0.0
   use htons to convert the port from host byte order to network byte order short
   */
+
+//  FIXME do we really need to listen on all interfaces?
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = memcmp(XCASH_DPOPS_delegates_IP_address,"127.0.0.1",9) == 0 ? INADDR_ANY : inet_addr(XCASH_DPOPS_delegates_IP_address);
-  addr.sin_port = htons(SEND_DATA_PORT);
+  addr.sin_port = htons(XCASH_DPOPS_PORT);
  
   // connect to 0.0.0.0
   if (bind(server_socket, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != 0)
-  {    
-    memcpy(error_message.function[error_message.total],"create_server",13);
-    memcpy(error_message.data[error_message.total],"Error connecting to port ",25);
-    memcpy(error_message.data[error_message.total]+25,buffer,strnlen(buffer,sizeof(buffer)));
-    error_message.total++;
-    print_error_message(current_date_and_time,current_UTC_date_and_time,data);
-    exit(0);
+  { 
+    ERROR_PRINT("Can't bind to server socket on port %d",XCASH_DPOPS_PORT);
+    return false;
   } 
 
   // set the maximum simultaneous connections
   if (listen(server_socket, MAXIMUM_CONNECTIONS) != 0)
   {
-    SERVER_ERROR("Error creating the server");
+    ERROR_PRINT("Can't start listening");
+    return false;
   }
 
-  if (MESSAGE_SETTINGS == 1)
-  {
-    memcpy(data,"Connected to port ",18);
-    memcpy(data+18,buffer,strnlen(buffer,sizeof(buffer)));
-    memcpy(data+strlen(data),"\nWaiting for a connection...\n",29);
-    color_print(data,"green");
-    memset(data,0,sizeof(data));
-  }
-
+  INFO_PRINT_STATUS_OK("Started service on port "BLUE_TEXT("%d"), XCASH_DPOPS_PORT);
+  
   // create the epoll file descriptor
   if ((epoll_fd = epoll_create1(0)) == -1)
   {
-    SERVER_ERROR("Error creating the server");
+    ERROR_PRINT("Can't start epoll");
+    return false;
   }
 
   /* create the epoll_event struct
@@ -161,20 +131,37 @@ int create_server(const int MESSAGE_SETTINGS)
 
   if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_socket, &events) == -1)
   {
-    SERVER_ERROR("Error creating the server");
+    ERROR_PRINT("Can't control epoll");
+    return false;
   }
 
-  for (count = 0; count < total_threads-1; count++)
+  for (int count = 0; count < total_threads-1; count++)
   {
     if (pthread_create(&server_threads[count], NULL, socket_receive_data_thread, NULL) < 0 || pthread_detach(server_threads[count]) != 0)
     {
-      SERVER_ERROR("Error creating the server");
+      ERROR_PRINT("Can't start server thread");
+      return false;
     }
   }
 
-  return 1;
+  return true;
+}
 
-  #undef SERVER_ERROR
+void print_sockaddr(struct sockaddr *addr) {
+    char ipstr[INET6_ADDRSTRLEN];
+    int port;
+
+    if (addr->sa_family == AF_INET) { // IPv4
+        struct sockaddr_in *s = (struct sockaddr_in *) addr;
+        port = ntohs(s->sin_port);
+        inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+    } else { // IPv6
+        struct sockaddr_in6 *s = (struct sockaddr_in6 *) addr;
+        port = ntohs(s->sin6_port);
+        inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
+    }
+
+    fprintf(stderr, "IP address: %s, port: %d\n", ipstr, port);
 }
 
 
@@ -186,6 +173,54 @@ Description: new socket thread
 -----------------------------------------------------------------------------------------------------------
 */
 
+
+
+void new_socket_thread(void)
+{
+    // Variables
+    int client_socket;
+    struct epoll_event events;
+    struct sockaddr_in addr;
+    socklen_t addrlen = sizeof(struct sockaddr_in);
+    time_t start_time = time(NULL);
+    int has_accepted_connection = 0;
+
+    while (1) 
+    {
+        client_socket = accept(server_socket, (struct sockaddr *) &addr, &addrlen);
+
+        // If a valid client socket is accepted
+        if (client_socket != -1) 
+        {
+            // Set up epoll_event struct
+            events.events = EPOLLIN | EPOLLET | EPOLLONESHOT; // Event types
+            events.data.fd = client_socket; // Associated file descriptor
+
+            // Add the client socket to the epoll instance
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &events) == -1) 
+            {
+                close(client_socket);
+                return;
+            }
+            has_accepted_connection = 1;
+        } 
+        else if (errno == EAGAIN || errno == EWOULDBLOCK) 
+        {
+            // If no connections are immediately present to be accepted and we haven't accepted any connection in this loop iteration
+            if (!has_accepted_connection && (time(NULL) - start_time > BLOCK_VERIFIERS_SETTINGS)) 
+            {
+                return;
+            }
+            has_accepted_connection = 0; // Reset for the next loop iteration
+        } 
+        else 
+        {
+            // Some other error occurred
+            return;
+        }
+    }
+}
+/**
 void new_socket_thread(void)
 {
   // Variables
@@ -200,11 +235,13 @@ void new_socket_thread(void)
 
   while ((client_socket = accept(server_socket, (struct sockaddr *) &addr, &addrlen)) != -1)
   {
-    /* create the epoll_event struct
-    EPOLLIN = signal when the file descriptor is ready to read
-    EPOLLET = use edge triggered mode, this will only signal that a file descriptor is ready when that file descriptor changes states
-    EPOLLONESHOT = set the socket to only signal its ready once, since were using multiple threads
-    */
+
+    // print_sockaddr(&addr);
+    // create the epoll_event struct
+    // EPOLLIN = signal when the file descriptor is ready to read
+    // EPOLLET = use edge triggered mode, this will only signal that a file descriptor is ready when that file descriptor changes states
+    // EPOLLONESHOT = set the socket to only signal its ready once, since were using multiple threads
+    // 
     events.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
     events.data.fd = client_socket;
 
@@ -230,7 +267,7 @@ void new_socket_thread(void)
   }
   return;
 }
-
+**/
 
 
 /*
@@ -246,6 +283,7 @@ Parameters:
 
 int server_limit_public_addresses(const int SETTINGS, const char* MESSAGE)
 {
+  
   if (test_settings == 1)
   {
     return 1;
@@ -496,28 +534,57 @@ void socket_thread(const int CLIENT_SOCKET)
       pointer_reset(buffer);
       return;
     }
-    memcpy(data2,&buffer[25],strlen(buffer) - strlen(strstr(buffer,"\",\r\n")) - 25);
-    if ((strncmp(data2,"XCASH_PROOF_OF_STAKE_TEST_DATA",BUFFER_SIZE) == 0 || strncmp(data2,"NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST",BUFFER_SIZE) == 0 || strncmp(data2,"NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST",BUFFER_SIZE) == 0 || strncmp(data2,"NODES_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_UPDATE",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_UPDATE",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_UPDATE",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_UPDATE",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_UPDATE",BUFFER_SIZE) == 0 || strncmp(data2,"NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_INVALID_RESERVE_PROOFS",BUFFER_SIZE) == 0 || strncmp(data2,"NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE",BUFFER_SIZE) == 0 || strncmp(data2,"NODES_TO_BLOCK_VERIFIERS_RECOVER_DELEGATE",BUFFER_SIZE) == 0 || strncmp(data2,"NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE",BUFFER_SIZE) == 0 || strncmp(data2,"MAIN_NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_CREATE_NEW_BLOCK",BUFFER_SIZE) == 0 || strncmp(data2,"MAIN_NODES_TO_NODES_PART_4_OF_ROUND_CREATE_NEW_BLOCK",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA",BUFFER_SIZE) == 0 || strncmp(data2,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_BLOCK_BLOB_SIGNATURE",BUFFER_SIZE) == 0 || strncmp(data2,"NODES_TO_NODES_VOTE_RESULTS",BUFFER_SIZE) == 0) && (strlen(buffer) >= MAXIMUM_BUFFER_SIZE))
-    {
+    memcpy(data2, &buffer[25], strlen(buffer) - strlen(strstr(buffer, "\",\r\n")) - 25);
+    if ((strncmp(data2, "XCASH_PROOF_OF_STAKE_TEST_DATA", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST", BUFFER_SIZE) ==
+             0 ||
+         strncmp(data2, "NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "NODES_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_UPDATE",
+                 BUFFER_SIZE) == 0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_UPDATE", BUFFER_SIZE) ==
+             0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE",
+                 BUFFER_SIZE) == 0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_UPDATE", BUFFER_SIZE) ==
+             0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_UPDATE", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_UPDATE", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_INVALID_RESERVE_PROOFS", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "NODES_TO_BLOCK_VERIFIERS_RECOVER_DELEGATE", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "MAIN_NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_CREATE_NEW_BLOCK", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "MAIN_NODES_TO_NODES_PART_4_OF_ROUND_CREATE_NEW_BLOCK", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_BLOCK_BLOB_SIGNATURE", BUFFER_SIZE) == 0 ||
+         strncmp(data2, "NODES_TO_NODES_VOTE_RESULTS", BUFFER_SIZE) == 0) &&
+        (strlen(buffer) >= MAXIMUM_BUFFER_SIZE)) {
+        pointer_reset(buffer);
+        return;
+    }
+  } else if (strstr(buffer, "|") != NULL) {
+      memcpy(data2, buffer, strnlen(buffer, sizeof(data2)) - strnlen(strstr(buffer, "|"), sizeof(data2)));
+      if (strncmp(data2, "NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST", BUFFER_SIZE) !=
+              0 &&
+          strncmp(data2, "NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST", BUFFER_SIZE) != 0 &&
+          strncmp(data2, "NODE_TO_BLOCK_VERIFIERS_GET_RESERVE_BYTES_DATABASE_HASH", BUFFER_SIZE) != 0 &&
+          strncmp(data2, "NODES_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE", BUFFER_SIZE) != 0 &&
+          strncmp(data2, "XCASH_PROOF_OF_STAKE_TEST_DATA", BUFFER_SIZE) != 0 &&
+          strncmp(data2, "NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF", BUFFER_SIZE) != 0 &&
+          strncmp(data2, "NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE", BUFFER_SIZE) != 0 &&
+          strncmp(data2, "NODES_TO_BLOCK_VERIFIERS_RECOVER_DELEGATE", BUFFER_SIZE) != 0 &&
+          strncmp(data2, "NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE", BUFFER_SIZE) != 0 &&
+          strncmp(data2, "NODE_TO_NETWORK_DATA_NODES_CHECK_VOTE_STATUS", BUFFER_SIZE) != 0) {
+          pointer_reset(buffer);
+          return;
+      }
+  } else {
       pointer_reset(buffer);
       return;
-    }
   }
-  else if (strstr(buffer,"|") != NULL)
-  {
-    memcpy(data2,buffer,strnlen(buffer,sizeof(data2)) - strnlen(strstr(buffer,"|"),sizeof(data2)));
-    if (strncmp(data2,"NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST",BUFFER_SIZE) != 0 && strncmp(data2,"NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST",BUFFER_SIZE) != 0 && strncmp(data2,"NODE_TO_BLOCK_VERIFIERS_GET_RESERVE_BYTES_DATABASE_HASH",BUFFER_SIZE) != 0 && strncmp(data2,"NODES_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE",BUFFER_SIZE) != 0 && strncmp(data2,"XCASH_PROOF_OF_STAKE_TEST_DATA",BUFFER_SIZE) != 0 && strncmp(data2,"NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF",BUFFER_SIZE) != 0 && strncmp(data2,"NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE",BUFFER_SIZE) != 0 && strncmp(data2,"NODES_TO_BLOCK_VERIFIERS_RECOVER_DELEGATE",BUFFER_SIZE) != 0 && strncmp(data2,"NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE",BUFFER_SIZE) != 0 && strncmp(data2,"NODE_TO_NETWORK_DATA_NODES_CHECK_VOTE_STATUS",BUFFER_SIZE) != 0)
-    {
-      pointer_reset(buffer);
-      return;
-    }
-  }
-  else
-  {
-    pointer_reset(buffer);
-    return;
-  }
-    
+
   // get the IP address
   pthread_mutex_lock(&lock);
   if (getpeername(CLIENT_SOCKET, (struct sockaddr *) &addr, &addrlength) != 0 || getnameinfo((struct sockaddr *)&addr, addrlength, client_IP_address, sizeof(client_IP_address), NULL, 0, NI_NUMERICHOST) != 0)
@@ -528,6 +595,16 @@ void socket_thread(const int CLIENT_SOCKET)
   pthread_mutex_unlock(&lock); 
 
  // check if a certain type of message has been received 
+
+ // check if a certain type of message has been received 
+ if (strstr(buffer,"\"message_settings\": \"XCASH_GET_SYNC_INFO\"") != NULL)
+ {
+   if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
+   {
+     server_received_msg_get_sync_info(CLIENT_SOCKET,buffer);
+     server_limit_IP_addresses(0,(const char*)client_IP_address);
+   }
+ } else
  if (strstr(buffer,"\"message_settings\": \"XCASH_PROOF_OF_STAKE_TEST_DATA\"") != NULL)
  {
    if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
@@ -556,7 +633,7 @@ void socket_thread(const int CLIENT_SOCKET)
  {
    if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
    {
-     server_receive_data_socket_get_delegates_statistics(CLIENT_SOCKET,(const char*)buffer);
+     server_receive_data_socket_get_delegates_ttatistics(CLIENT_SOCKET,(const char*)buffer);
      server_limit_IP_addresses(0,(const char*)client_IP_address);
    }
  } 

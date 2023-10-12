@@ -33,7 +33,7 @@
 #include "network_security_functions.h"
 #include "network_wallet_functions.h"
 #include "server_functions.h"
-#include "organize_functions.h"
+// #include "organize_functions.h"
 #include "string_functions.h"
 #include "thread_functions.h"
 #include "convert.h"
@@ -89,10 +89,18 @@ Functions
 -----------------------------------------------------------------------------------------------------------
 Name: check_if_databases_are_synced
 Description: Checks if the databases are synced, and if not syncs the databases
-Paramters:
-  SETTINGS - 1 to sync from a random block verifier, 2 to sync from a random network data node, 3 to sync from a random network data node and not check the majority, 4 to sync from the main network data node and not check the majority
-  RESERVE_BYTES_START_SETTINGS - 0 to sync all of the reserve bytes databases, 1 to only sync the current reserve bytes database
-Return: 0 if an error has occured, 1 if successfull
+Parameters:
+SETTINGS - 
+  1 to sync from a random block verifier, 
+  2 to sync from a random network data node, 
+  3 to sync from a random network data node and not check the majority, 
+  4 to sync from the main network data node and not check the majority
+
+RESERVE_BYTES_START_SETTINGS - 
+  0 to sync all of the reserve bytes databases, 
+  1 to only sync the current reserve bytes database
+
+Return: 0 if an error has occurred, 1 if successful
 -----------------------------------------------------------------------------------------------------------
 */
 

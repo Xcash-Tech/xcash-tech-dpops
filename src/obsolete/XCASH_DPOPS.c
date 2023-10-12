@@ -38,117 +38,12 @@
 #include "XCASH_DPOPS_test.h"
 #include "XCASH_DPOPS.h"
 
-/*
------------------------------------------------------------------------------------------------------------
-Global Variables
------------------------------------------------------------------------------------------------------------
-*/
+#include "xcash_db_helpers.h"
 
-mongoc_client_pool_t* database_client_thread_pool;
-
-// network data nodes
-int network_data_node_settings; // 1 if a network data node, 0 if not a network data node 
-char xcash_wallet_public_address[XCASH_WALLET_LENGTH+1]; // Holds your wallets public address
-unsigned char secret_key_data[crypto_vrf_SECRETKEYBYTES+1]; // Holds the secret key for signing block verifier messages
-char secret_key[VRF_SECRET_KEY_LENGTH+1]; // Holds the secret key text for signing block verifier messages
-struct previous_block_verifiers_list previous_block_verifiers_list; // The list of block verifiers name, public address and IP address for the previous round
-struct current_block_verifiers_list current_block_verifiers_list; // The list of block verifiers name, public address and IP address for the current round
-struct next_block_verifiers_list next_block_verifiers_list; // The list of block verifiers name, public address and IP address for the next round
-struct synced_block_verifiers synced_block_verifiers; // The list of block verifiers for syncing the databases
-struct main_nodes_list main_nodes_list; // The list of main nodes public address and IP address
-struct network_data_nodes_list network_data_nodes_list; // The network data nodes
-struct current_round_part_vote_data current_round_part_vote_data; // The vote data for the current part of the round
-struct current_block_verifiers_majority_vote current_block_verifiers_majority_vote; // The vote majority data for the current part of the round
-struct VRF_data VRF_data; // The list of all of the VRF data to send to the block producer.
-struct blockchain_data blockchain_data; // The data for a new block to be added to the network.
-struct error_message error_message; // holds all of the error messages and the functions for an error.
-struct invalid_reserve_proofs invalid_reserve_proofs; // The invalid reserve proofs that the block verifier finds every round
-struct network_data_nodes_sync_database_list network_data_nodes_sync_database_list; // Holds the network data nodes data and database hash for syncing network data nodes
-struct block_verifiers_sync_database_list block_verifiers_sync_database_list; // Holds the block verifiers data and database hash for syncing the block verifiers
-struct delegates_online_status delegates_online_status[MAXIMUM_AMOUNT_OF_DELEGATES]; // Holds the delegates online status
-struct block_height_start_time block_height_start_time; // Holds the block height start time data
-struct private_group private_group; // Holds the private group data
-char current_round_part[2]; // The current round part (1-4)
-char current_round_part_backup_node[2]; // The current main node in the current round part (0-5)
-pthread_rwlock_t rwlock;
-pthread_rwlock_t rwlock_reserve_proofs;
-pthread_mutex_t lock;
-pthread_mutex_t database_lock;
-pthread_mutex_t verify_network_block_lock;
-pthread_mutex_t vote_lock;
-pthread_mutex_t add_reserve_proof_lock;
-pthread_mutex_t invalid_reserve_proof_lock;
-pthread_mutex_t database_data_IP_address_lock;
-pthread_mutex_t update_current_block_height_lock;
-
-pthread_t server_threads[100];
-int epoll_fd;
-int server_socket;
-
-char current_block_height[BUFFER_SIZE_NETWORK_BLOCK_DATA]; // The current block height
-char previous_block_hash[BLOCK_HASH_LENGTH+1]; // The current block height
-int error_message_count; // The error message count
-int main_network_data_node_create_block; // 1 if the main network data node can create a block, 0 if not
-int main_network_data_node_receive_block; // 1 if you have received the block from the main network data node, 0 if not
-int network_data_node_valid_amount; // The amount of network data nodes that were valid
-int log_file_settings; // 0 to use the terminal, 1 to use a log file, 2 to use a log file with color output
-char log_file[BUFFER_SIZE_NETWORK_BLOCK_DATA]; // The log file
-char XCASH_DPOPS_delegates_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The  block verifiers IP address to run the server on
+#include "test_related.h"
 
 
-char XCASH_daemon_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The  block verifiers IP address to run the server on
-char MongoDB_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // MongoDB IP
-
-char XCASH_wallet_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The  wallet IP address
-
-int xcash_wallet_port; // The xcash wallet port
-char database_name[BUFFER_SIZE_NETWORK_BLOCK_DATA];
-char shared_delegates_database_name[BUFFER_SIZE_NETWORK_BLOCK_DATA];
-char database_path_write[1024]; // holds the database write path
-char database_path_write_before_majority[1024]; // holds the database write path before the majority sync
-char database_path_read[1024]; // holds the database read path
-int network_functions_test_settings;
-int network_functions_test_error_settings; // 1 to display errors, 0 to not display errors when running the reset variables allocated on the heap test
-int network_functions_test_server_messages_settings; // 1 to display server messages, 0 to not display server messages when running the test
-int test_settings; // 1 when the test are running, 0 if not
-int debug_settings; // 1 to show all incoming and outgoing message from the server
-int registration_settings; // 1 when the registration mode is running, 0 when it is not
-int synced_network_data_nodes[BLOCK_VERIFIERS_AMOUNT]; // the synced network data nodes
-int synced_block_verifiers_nodes[DATABASE_TOTAL][BLOCK_VERIFIERS_AMOUNT]; // the synced block verifiers nodes
-size_t block_verifiers_current_block_height[BLOCK_VERIFIERS_AMOUNT]; // holds the block verifiers current block heights
-int production_settings; // 0 for production, 1 for test
-int production_settings_database_data_settings; // The initialize the database settings
-char website_path[1024]; // holds the path to the website if running a delegates explorer or shared delegates pool
-int sync_previous_current_next_block_verifiers_settings; // sync the previous, current and next block verifiers if you had to restart
-int database_data_socket_settings; // 1 to allow database data up to 50MB to be received in the server, 0 to only allow message up to BUFFER_SIZE
-char* server_limit_IP_address_list; // holds all of the IP addresses that are currently running on the server. This can hold up to 1 million IP addresses
-char* server_limit_public_address_list; // holds all of the public addresses that are currently running on the server. This can hold up to 1 million public addresses
-int invalid_block_verifiers_count; // counts how many times your node did not receive the block from the main network backup node, to indicate if your node is not syncing
-int backup_network_data_node_settings; // The network data node that will attempt to create the block if the block producer and backup block producer fail
-int replayed_round_settings; // 1 if the round is a replayed round, 0 if not
-char delegates_error_list[(MAXIMUM_BUFFER_SIZE_DELEGATES_NAME * 100) + 5000]; // Holds the list of delegates that did not complete a part of the round
-int delegates_error_list_settings; // 1 if showing the delegates that error, 0 if not
-
-int delegates_website; // 1 if the running the delegates websites, 0 if not
-int shared_delegates_website; // 1 if the running the shared delegates websites, 0 if not
-int total_threads; // The total threads
-double fee; // the fee
-long long int minimum_amount; // the minimum amount to send a payment
-char voter_inactivity_count[10]; // the number of days to wait to remove an inactive delegates information from the database
-
-
-
-/*
------------------------------------------------------------------------------------------------------------
-Global Variables for this file
------------------------------------------------------------------------------------------------------------
-*/
-
-mongoc_uri_t* uri_thread_pool;
-bson_error_t error;
-
-
-
+#include "xcash_db.h"
 /*
 -----------------------------------------------------------------------------------------------------------
 Name: initialize_data
@@ -455,6 +350,9 @@ void initialize_data(int parameters_count, char* parameters[])
 
 
 
+
+
+
 /*
 -----------------------------------------------------------------------------------------------------------
 Name: create_overall_database_connection
@@ -502,84 +400,6 @@ void create_overall_database_connection(void)
 }
 
 
-
-/*
------------------------------------------------------------------------------------------------------------
-Name: get_delegates_data
-Description: Gets the delegates data
------------------------------------------------------------------------------------------------------------
-*/
-
-void get_delegates_data(void)
-{
-  // Variables
-  // FILE* file;
-  char data[SMALL_BUFFER_SIZE];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-
-  // define macros
-  #define GET_DELEGATES_DATA_ERROR(settings) \
-  memcpy(error_message.function[error_message.total],"get_delegates_data",18); \
-  memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
-  error_message.total++; \
-  print_error_message(current_date_and_time,current_UTC_date_and_time,data); \
-  return;
-
-  memset(data,0,sizeof(data));
-
-  // get the wallets public address
-  if (get_public_address() == 0)
-  { 
-    GET_DELEGATES_DATA_ERROR("Could not get the wallets public address");
-  }
-
-  // get the current block height
-  if (get_current_block_height(current_block_height) == 0)
-  {
-    GET_DELEGATES_DATA_ERROR("Could not get the current block height");
-  }
-
-  // FIXME: maybe it's really better to go offline if there is no previous block hash , it causes error later
-  // get the previous block hash
-  if (get_previous_block_hash(previous_block_hash) == 0) 
-  {
-    GET_DELEGATES_DATA_ERROR("Could not get the previous block hash");
-  }
-
-  // check if the block verifier is a network data node
-  CHECK_IF_BLOCK_VERIFIERS_IS_NETWORK_DATA_NODE;
-
-  // get the database paths
-  // if (production_settings == 1 && strncmp(xcash_wallet_public_address,OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,BUFFER_SIZE) == 0)
-  // {
-  //   // get the database path
-  //   file = popen("sudo find / -path /sys -prune -o -path /proc -prune -o -path /dev -prune -o -path /var -prune -o -type d -name 'mongodb-linux-x86_64-ubuntu1804-*' -print", "r");
-
-  //   if (fgets(database_path_write,(int)(sizeof(database_path_write)),file) == NULL)
-  //   {
-  //     GET_DELEGATES_DATA_ERROR("Could not get the mongo database path");
-  //   }
-  //   memcpy(database_path_read,database_path_write,strnlen(database_path_write,sizeof(database_path_read)));
-  //   memcpy(database_path_write_before_majority,database_path_write,strnlen(database_path_write,sizeof(database_path_write_before_majority)));
-  //   memcpy(database_path_write+strlen(database_path_write)-1,"/bin/mongodump --quiet --out /root/database_backup/",51);
-  //   memcpy(database_path_write_before_majority+strlen(database_path_write_before_majority)-1,"/bin/mongodump --quiet --out /root/database_backup_before_majority/",67);
-  //   memcpy(database_path_read+strlen(database_path_read)-1,"/bin/mongorestore --quiet --dir /root/database_backup/",54);
-  // }
-
-  // get the website path
-  memset(website_path,0,sizeof(website_path));
-  memset(data,0,sizeof(data));
-  if (readlink("/proc/self/exe", data, sizeof(data)) == -1)
-  {
-    GET_DELEGATES_DATA_ERROR("Could not get the websites path");
-  }
-  memcpy(website_path,data,strnlen(data,sizeof(website_path))-17);
-  delegates_website == 1 ? memcpy(website_path+strlen(website_path),DELEGATES_WEBSITE_PATH,sizeof(DELEGATES_WEBSITE_PATH)-1) : memcpy(website_path+strlen(website_path),SHARED_DELEGATES_WEBSITE_PATH,sizeof(SHARED_DELEGATES_WEBSITE_PATH)-1);
-  return;
-
-  #undef GET_DELEGATES_DATA_ERROR
-}
 
 
 
@@ -686,21 +506,21 @@ int set_parameters(int parameters_count, char* parameters[])
     }
     if (strncmp(parameters[count],"--test",BUFFER_SIZE) == 0)
     {
-      get_delegates_data();
+      get_node_data();
       test(0);
       database_reset;
       exit(0);
     }
     if (strncmp(parameters[count],"--quick-test",BUFFER_SIZE) == 0)
     {
-      get_delegates_data();
+      get_node_data();
       test(1);
       database_reset;
       exit(0);
     }
     if (strncmp(parameters[count],"--optimization-test",BUFFER_SIZE) == 0)
     {
-      get_delegates_data();
+      get_node_data();
       test(2);
       database_reset;
       exit(0);
@@ -769,7 +589,7 @@ int set_parameters(int parameters_count, char* parameters[])
     }
     if (strncmp(parameters[count],"--synchronize-database-from-network-data-node",BUFFER_SIZE) == 0)
     {
-      get_delegates_data();
+      get_node_data();
       color_print("Syncing the block verifiers list","yellow");
       sync_all_block_verifiers_list(1,1);
       color_print("Syncing the reserve bytes database","yellow");
@@ -786,7 +606,7 @@ int set_parameters(int parameters_count, char* parameters[])
     }
     if (strncmp(parameters[count],"--synchronize-database-from-specific-delegate",BUFFER_SIZE) == 0 && count != (size_t)parameters_count)
     {
-      get_delegates_data();
+      get_node_data();
       color_print("Syncing the block verifiers list","yellow");
       sync_all_block_verifiers_list(1,1);
       color_print("Syncing the reserve bytes database","yellow");
@@ -959,126 +779,6 @@ void print_settings(void)
   color_print(buffer, "yellow");
 }
 
-/*
------------------------------------------------------------------------------------------------------------
-Name: database_sync_check
-Description: Sync check the databases
------------------------------------------------------------------------------------------------------------
-*/
-
-void database_sync_check(void)
-{
-  // Variables
-  char data[BUFFER_SIZE];
-  char data2[BUFFER_SIZE];
-  size_t count = 0;
-  long long int current_time;
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-
-  memset(data,0,sizeof(data));
-  memset(data2,0,sizeof(data2));
-
-  // define macros
-  #define DATABASE_SYNC_CHECK_ERROR(settings) \
-  memcpy(error_message.function[error_message.total],"database_sync_check",19); \
-  memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
-  error_message.total++; \
-  print_error_message(current_date_and_time,current_UTC_date_and_time,data); \
-  mongoc_client_pool_destroy(database_client_thread_pool); \
-  mongoc_uri_destroy(uri_thread_pool); \
-  mongoc_cleanup(); \
-  exit(0);
-
-  // check if all network data nodes are offline
-  if (get_network_data_nodes_online_status() == 0)
-  {
-    color_print("All seed nodes offline. Starting first seed node...","green");
-
-    // this is the first network data node on the network, or none of the network data nodes are on the network. load the current block verifiers from your database and skip the database syncing and skip the check the block verifiers current time
-    if (sync_all_block_verifiers_list(1,0) == 0)
-    {
-      DATABASE_SYNC_CHECK_ERROR("Could not sync the previous, current and next block verifiers list");
-    }
-    color_print("Started the sync all block verifiers list timer thread","green");
-    return;
-  }
-
-  // sync the block verifiers list
-  if (sync_all_block_verifiers_list(1,1) == 0)
-  {
-    DATABASE_SYNC_CHECK_ERROR("Could not sync the previous, current and next block verifiers list");
-  }
-
-  // check if all of the databases are synced
-  sscanf(current_block_height,"%zu", &count);
-
-  // special blocks where we had to restart the code
-  if (count == BLOCK_HEIGHT_RESTART)
-  {
-    if (check_if_databases_are_synced(2,0) == 0)
-    {
-      DATABASE_SYNC_CHECK_ERROR("Could not check if the databases are synced");
-    }
-    goto new_start_times;
-  }
-
-  if (((count <= XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT || strncmp(network_data_nodes_list.network_data_nodes_public_address[0],xcash_wallet_public_address,sizeof(xcash_wallet_public_address)) == 0) && check_if_databases_are_synced(2,0) == 0) || (count > XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT && check_if_databases_are_synced(1,0) == 0))
-  {
-    DATABASE_SYNC_CHECK_ERROR("Could not check if the databases are synced");
-  }
-
-  new_start_times:
-  
-  // check the block verifiers current time, if it is not a network data node
-  if (network_data_node_settings == 0)
-  {
-    color_print("Checking if the current time is synchronized with the network","green");
-    for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
-    {
-      // create the message
-      memset(data,0,sizeof(data));
-      memcpy(data,"{\r\n \"message_settings\": \"BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME\",\r\n}",95);
-
-      // sign_data
-      if (sign_data(data) == 0)
-      { 
-        DATABASE_SYNC_CHECK_ERROR("Could not sign the data");
-      }
-
-      if (send_and_receive_data_socket(data2,sizeof(data2),network_data_nodes_list.network_data_nodes_IP_address[count],SEND_DATA_PORT,data,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) == 0)
-      {
-        continue;
-      }
-
-      if (verify_data(data2,0) == 0)
-      {
-        continue;
-      }
-
-      // parse the message
-      memset(data,0,sizeof(data));
-      if (parse_json_data(data2,"current_time",data,sizeof(data)) == 0 || strncmp(data,"",1) == 0)
-      {
-        continue;
-      }
-
-      sscanf(data,"%lld", &current_time);
-
-      if (labs(time(NULL) - current_time) > BLOCK_VERIFIERS_SETTINGS)
-      {
-        DATABASE_SYNC_CHECK_ERROR("Invalid current time");
-      }
-    }
-  }
-
-  color_print("Started the sync all block verifiers list timer thread","green");
-  return;
-
-  #undef DATABASE_SYNC_CHECK_ERROR
-}
-
-
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -1158,16 +858,16 @@ Return: 0 if an error has occured, 1 if successfull
 
 int main(int parameters_count, char* parameters[])
 {
+    char data[SMALL_BUFFER_SIZE];
+    memset(data,0,sizeof(data));
+
   // iniltize the random number generator
   srand((unsigned int)time(NULL));
 
   // Variables
-  char data[SMALL_BUFFER_SIZE];
   time_t current_date_and_time;
   struct tm current_UTC_date_and_time;
   int settings;
-  int count;
-  int count2;
   
   // define macros
   #define MESSAGE "{\"username\":\"XCASH\"}"
@@ -1186,8 +886,6 @@ int main(int parameters_count, char* parameters[])
   mongoc_uri_destroy(uri_thread_pool); \
   mongoc_cleanup(); \
   exit(0);
-
-  memset(data,0,sizeof(data));
 
   initialize_data(parameters_count, parameters);
 
@@ -1220,114 +918,40 @@ int main(int parameters_count, char* parameters[])
 
   create_overall_database_connection();
 
+  // brief check if database is empty
+  if (count_db_delegates() <=0 || count_db_statistics() <=0) {
+    MAIN_ERROR("'delegates' or 'statistics' DB not initialized. Do it manually");
+  }
+
   settings = set_parameters(parameters_count, parameters);
 
-  get_delegates_data();
+
+  // get public address, current block height, previous hash and detect if it is the seed node. for current node
+  get_node_data();
 
   // check if the test are running to change the VRF secret key
+  
+  memset(data, 0, sizeof(data));
   if (production_settings == 0)
-  {
-    memset(secret_key,0,sizeof(secret_key));
-    memset(secret_key_data,0,sizeof(secret_key_data));
-    if (strncmp(xcash_wallet_public_address,TEST_WALLET_1,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_1,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_2,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_2,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_3,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_3,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_4,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_4,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_5,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_5,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_6,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_6,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_7,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_7,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_8,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_8,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_9,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_9,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_10,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_10,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_11,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_11,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_12,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_12,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_13,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_13,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_14,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_14,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_15,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_15,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_16,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_16,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_17,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_17,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_18,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_18,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_19,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_19,VRF_SECRET_KEY_LENGTH);
-    }
-    else if (strncmp(xcash_wallet_public_address,TEST_WALLET_20,XCASH_WALLET_LENGTH) == 0)
-    {
-      memcpy(secret_key,TEST_WALLET_SECRET_KEY_20,VRF_SECRET_KEY_LENGTH);
-    }
-    // convert the hexadecimal string to a string
-    for (count = 0, count2 = 0; count < VRF_SECRET_KEY_LENGTH; count2++, count += 2)
-    {
-      memset(data,0,sizeof(data));
-      memcpy(data,&secret_key[count],2);
-      secret_key_data[count2] = (unsigned char)strtol(data, NULL, 16);
-    }
-  }
+    test_generate_secret_key();
+    
 
+
+
+  
   // check if it should create the default database data
-  memset(data,0,sizeof(data));
-  if ((read_document_field_from_collection(database_name,"statistics",MESSAGE,"username",data) == 0) || (read_document_field_from_collection(database_name,"statistics",MESSAGE,"username",data) == 1 && count_all_documents_in_collection(database_name,"delegates") < NETWORK_DATA_NODES_AMOUNT))
-  {
-    delete_collection_from_database(database_name,"reserve_proofs_1");
-    delete_collection_from_database(database_name,"delegates");
-    delete_collection_from_database(database_name,"statistics");
-    RESET_ERROR_MESSAGES;
-    INITIALIZE_DATABASE_DATA(production_settings_database_data_settings);
-  }
+
+  // FIXME: possible that is THE case when it deletes delegates DB. if some error happens
+  // memset(data, 0, sizeof(data));
+  // if ((read_document_field_from_collection(database_name, "statistics", MESSAGE, "username", data) == 0) ||
+  //     (read_document_field_from_collection(database_name, "statistics", MESSAGE, "username", data) == 1 &&
+  //      count_all_documents_in_collection(database_name, "delegates") < NETWORK_DATA_NODES_AMOUNT)) {
+  //     delete_collection_from_database(database_name, "reserve_proofs_1");
+  //     delete_collection_from_database(database_name, "delegates");
+  //     delete_collection_from_database(database_name, "statistics");
+  //     RESET_ERROR_MESSAGES;
+  //     INITIALIZE_DATABASE_DATA(production_settings_database_data_settings);
+  // }
 
   print_settings();
 
@@ -1345,7 +969,7 @@ int main(int parameters_count, char* parameters[])
  
   if (settings != 2)
   {
-    database_sync_check();
+    initial_db_sync_check();
     RESET_ERROR_MESSAGES;
   }
   

@@ -42,19 +42,21 @@ int parse_json_data(const char* DATA, const char* FIELD_NAME, char *result, cons
   char* str2;
   size_t start; 
 
+  
+  // many sequential errors cause crash because of memory overflow in debug mode
   // define macros
   #define PARSE_JSON_DATA_ERROR \
   if (debug_settings == 1) \
   { \
   memcpy(error_message.function[error_message.total],"parse_json_data",15); \
   memcpy(error_message.data[error_message.total],"Could not parse the message",27); \
-  error_message.total++; \
   } \
   pointer_reset(message); \
   return 0;
 
   // reset the variables
-  memset(result,0,strlen(result));
+  // FIXME that's fucking wrong! We don't know buffer size
+  // memset(result,0,strlen(result));
   memset(str,0,sizeof(str));
 
   memcpy(str,"\"",sizeof(char));
@@ -116,7 +118,12 @@ int parse_json_data(const char* DATA, const char* FIELD_NAME, char *result, cons
     {
       string_replace(message,MAXIMUM_AMOUNT,"\"{\"","{\"");
     }
-    memcpy(result,message,strnlen(message,RESULT_TOTAL_LENGTH));
+    // FIXME here is overflow error impossible to catch
+    strcpy(result,message);
+    // size_t result_len = strlen(message);
+    // as the input buffer size  may be wrong, we can't set \0
+    // result[RESULT_TOTAL_LENGTH-1] = '\0'; // in case of the buffer is equal of string size we're fucked
+    
   }
   else
   {
@@ -266,7 +273,7 @@ Return: 0 if an error has occured, 1 if successfull
 -----------------------------------------------------------------------------------------------------------
 */
 
-int create_json_data_from_delegates_array(const struct delegates* delegates, char *result, const char* DOCUMENT_FIELDS)
+int create_json_data_from_delegates_array(delegates_t* delegates, char *result, const char* DOCUMENT_FIELDS)
 {
   // Variables
   int count = 0;

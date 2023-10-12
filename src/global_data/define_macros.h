@@ -20,6 +20,8 @@ Using define statements instead of constants for increased efficiency
 #define XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT 800000 // The start block height for X-CASH proof of stake
 #define XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT_DATA "800000" // The start block height for X-CASH proof of stake
 #define BLOCK_TIME 5 // The block time in minutes
+#define BLOCK_TIME_SEC BLOCK_TIME*60 // The block time in seconds
+
 #define BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME 288 // The blocks per day with a 5 minute block time
 #define UNLOCK_BLOCK_AMOUNT 60 // The default unlock block amount for a block reward transaction
 #define MAXIMUM_TRANSACATIONS_PER_BLOCK 500 // The maximum amount of transaction per block
@@ -94,6 +96,8 @@ Using define statements instead of constants for increased efficiency
 // Network
 #define XCASH_DAEMON_PORT 18281 // The X-CASH Daemon RPC port
 #define XCASH_WALLET_PORT 18285 // The X-CASH Wallet RPC port
+// TODO migrate to new name
+#define XCASH_DPOPS_PORT 18283 // The X-CASH Dpops service
 #define SEND_DATA_PORT 18283 // The port that is used by all nodes to send and receive data
 #define MAXIMUM_CONNECTIONS 1000 // The maximum connections a node can have at one time
 #define MAXIMUM_CONNECTIONS_IP_ADDRESS_OR_PUBLIC_ADDRESS 20 // The maximum connections a specific IP address or specific public address can have at one time
@@ -764,4 +768,79 @@ sleep(BLOCK_VERIFIERS_SETTINGS);
 "--disable-synchronizing-databases-and-starting-timers - Disables synchronizing the databases and starting the timers. Used for testing. Parameter needs to be passed last.\n" \
 "--registration-mode <year> <month> <day> <hour> <minute> - Runs the registration mode for network data nodes. Used to keep a majority for the database before the block producing starts <year> is how many years since 1900, <month> is the month of the year (0-11), <day> is the day of the month (1-31), <hour> is the hour in UTC (1-23), <minute> is the minute (31-59). Parameter needs to be passed last.\n" \
 "--start-time <year> <month> <day> <hour> <minute> - Starts the current block height timer at a specific time. <year> is how many years since 1900, <month> is the month of the year (0-11), <day> is the day of the month (1-31), <hour> is the hour in UTC (1-23), <minute> is the minute (31-59). Parameter needs to be passed last.\n"
+
+//xcash-next
+
+#define RED_TEXT(text) "\033[31m"text"\033[0m"
+#define ORANGE_TEXT(text) "\033[38;5;208m"text"\033[0m"
+#define YELLOW_TEXT(text) "\033[1;33m"text"\033[0m"
+#define GREEN_TEXT(text) "\x1b[32m"text"\x1b[0m"
+#define BLUE_TEXT(text) "\033[34m"text"\033[0m"
+#define LIGHT_BLUE_TEXT(text) "\033[94m"text"\033[0m"
+#define PURPLE_TEXT(text) "\033[35m"text"\033[0m"
+#define LIGHT_PURPLE_TEXT(text) "\033[95m"text"\033[0m"
+#define WHITE_TEXT(text)  "\033[97m"text"\033[0m"
+#define BRIGHT_WHITE_TEXT(text) "\033[1;97m"text"\033[0m"
+
+extern int debug_settings; // 1 to show all incoming and outgoing message from the server
+
+// helper to trace calling origin during debug
+#define __DEBUG_PRINT_FUNC_CALLER if (debug_settings)fprintf(stderr, "  --> TRACE: %s:%d, %s()\n", __FILE__, __LINE__, __func__);
+
+
+#define INFO_STAGE_PRINT(fmt, ...) fprintf(stderr, BRIGHT_WHITE_TEXT("\n\nINFO: ")LIGHT_BLUE_TEXT(fmt)"\n\n", ##__VA_ARGS__); __DEBUG_PRINT_FUNC_CALLER
+
+#define INFO_STATUS_OK "\t["GREEN_TEXT("OK")"]"
+#define INFO_STATUS_FAIL "\t["RED_TEXT("X")"]"
+
+
+#define HOST_OK_STATUS(host, fmt, ...) BLUE_TEXT(host)" "fmt"\t["GREEN_TEXT("OK")"]"
+#define HOST_FALSE_STATUS(host, fmt, ...) BLUE_TEXT(host)" "fmt"\t["RED_TEXT("X")"]"
+
+
+#define INFO_PRINT(fmt, ...) fprintf(stderr, BRIGHT_WHITE_TEXT("INFO: ")fmt"\n", ##__VA_ARGS__); __DEBUG_PRINT_FUNC_CALLER
+#define WARNING_PRINT(fmt, ...) fprintf(stderr, ORANGE_TEXT("WARNING: ")fmt"\n", ##__VA_ARGS__); __DEBUG_PRINT_FUNC_CALLER
+#define ERROR_PRINT(fmt, ...) fprintf(stderr, RED_TEXT("ERROR: ")fmt"\n", ##__VA_ARGS__); __DEBUG_PRINT_FUNC_CALLER
+#define DEBUG_PRINT(fmt, ...) if (debug_settings)fprintf(stderr, PURPLE_TEXT("DEBUG: ")fmt"\n", ##__VA_ARGS__); __DEBUG_PRINT_FUNC_CALLER
+#define FATAL_ERROR_EXIT(fmt, ...) fprintf(stderr, RED_TEXT("FATAL: ")fmt"\n", ##__VA_ARGS__); __DEBUG_PRINT_FUNC_CALLER; exit(1)
+
+#define INFO_PRINT_STATUS_OK(fmt, ...) fprintf(stderr, BRIGHT_WHITE_TEXT("INFO: ")fmt INFO_STATUS_OK"\n", ##__VA_ARGS__); __DEBUG_PRINT_FUNC_CALLER
+#define INFO_PRINT_STATUS_FAIL(fmt, ...) fprintf(stderr, BRIGHT_WHITE_TEXT("INFO: ")fmt INFO_STATUS_FAIL"\n", ##__VA_ARGS__); __DEBUG_PRINT_FUNC_CALLER
+
+#define MD5_HASH_SIZE 32
+
+#define XCASH_OK 1
+#define XCASH_ERROR 0
+#define ID_MAX_SIZE 256 //VRF_PUBLIC_KEY_LENGTH + 64*'0' + \0 + align just in case
+#define NUM_FIELDS 18
+#define DB_HASH_SIZE 128
+#define DB_COLLECTION_NAME_SIZE 256
+
+#define DPOPS_DB "XCASH_PROOF_OF_STAKE"
+
+// uv_net 
+#define CONNECTION_TIMEOUT 2000  // 2 second
+#define RESPONSE_TIMEOUT 3000    // 3 seconds. the time allowed for the each data block response
+#define TRANSFER_BUFFER_SIZE 1024*1024*1; // 1Mb. data block size
+
+
+typedef enum XCASH_DBS {
+    XCASH_DB_DELEGATES = 0,
+    XCASH_DB_STATISTICS = 1,
+    XCASH_DB_RESERVE_PROOFS = 2,
+    XCASH_DB_RESERVE_BYTES = 3,
+    XCASH_DB_COUNT
+} xcash_dbs_t;
+
+
+
+typedef enum {
+    XCASH_SEED_NODE_1 = 0,
+    XCASH_SEED_NODE_2,
+    XCASH_SEED_NODE_3,
+    XCASH_SEED_NODE_4,
+    XCASH_SEED_NODE_5
+} xcash_seed_idx_t;
+
+
 #endif

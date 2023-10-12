@@ -12,7 +12,7 @@
 
 #include "read_database_functions.h"
 #include "count_database_functions.h"
-#include "organize_functions.h"
+// #include "organize_functions.h"
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -36,12 +36,12 @@ int organize_invalid_reserve_proofs_settings(const void* STRING1, const void* ST
 
 /*
 -----------------------------------------------------------------------------------------------------------
-Name: organize_delegates_settings
+Name: organize_delegates_tettings
 Description: organize delegates
 -----------------------------------------------------------------------------------------------------------
 */
 
-int organize_delegates_settings(const void* DELEGATES1, const void* DELEGATES2)
+int organize_delegates_tettings(const void* DELEGATES1, const void* DELEGATES2)
 {
   // Variables
   long long int count;
@@ -203,7 +203,7 @@ int organize_delegates(struct delegates* delegates)
   }
   
   // organize the delegates
-  qsort(delegates,database_multiple_documents_fields.document_count,sizeof(struct delegates),organize_delegates_settings);
+  qsort(delegates,database_multiple_documents_fields.document_count,sizeof(struct delegates),organize_delegates_tettings);
 
   POINTER_RESET_DATABASE_MULTIPLE_DOCUMENTS_FIELDS_STRUCT(count,count2,TOTAL_DELEGATES_DATABASE_FIELDS+1);
 

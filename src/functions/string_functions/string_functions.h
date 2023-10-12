@@ -1,6 +1,6 @@
 #ifndef STRING_FUNCTIONS_H_   /* Include guard */
 #define STRING_FUNCTIONS_H_
-
+#include "structures.h"
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -11,7 +11,7 @@ Function prototypes
 int parse_json_data(const char* DATA, const char* FIELD_NAME, char *result, const size_t RESULT_TOTAL_LENGTH);
 int create_json_data_from_database_document_array(const struct database_document_fields* database_data, char *result, const char* DOCUMENT_FIELDS);
 int create_json_data_from_database_multiple_documents_array(const struct database_multiple_documents_fields* database_data, char *result, const char* DOCUMENT_FIELDS);
-int create_json_data_from_delegates_array(const struct delegates* delegates, char *result, const char* DOCUMENT_FIELDS);
+int create_json_data_from_delegates_array(delegates_t* delegates, char *result, const char* DOCUMENT_FIELDS);
 int create_json_data_from_votes_array(const struct votes* votes, char *result, const char* DOCUMENT_FIELDS);
 size_t string_count(const char* DATA, const char* STRING);
 int parse_http_response(char *result);

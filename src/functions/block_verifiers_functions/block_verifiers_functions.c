@@ -37,7 +37,7 @@
 #include "network_functions.h"
 #include "network_security_functions.h"
 #include "network_wallet_functions.h"
-#include "organize_functions.h"
+// #include "organize_functions.h"
 #include "string_functions.h"
 #include "thread_functions.h"
 #include "convert.h"
@@ -45,6 +45,14 @@
 #include "crypto_vrf.h"
 #include "VRF_functions.h"
 #include "sha512EL.h"
+
+
+#include "xcash_message.h"
+#include "xcash_net.h"
+
+#include "uv_net.h"
+#include "xcash_db_sync.h"
+
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -112,7 +120,8 @@ int start_new_round(void)
   if (registration_settings == 0)
   {
     color_print("Getting the delegates online status","blue");
-    get_delegates_online_status();
+    // FIXME check if the delegates online status used somewhere else
+    // get_delegates_online_status();
   }  
 
   // wait so everyone has got the online status
@@ -144,48 +153,48 @@ int start_new_round(void)
   }
 
   // check if it is running in registration mode only
-  if (registration_settings == 1)
-  {
-    color_print("Registration mode is on, checking to make sure all network data nodes databases are synced","yellow");
-    sync_network_data_nodes_database();
+  // if (registration_settings == 1)
+  // {
+  //   color_print("Registration mode is on, checking to make sure all network data nodes databases are synced","yellow");
+  // sync_network_data_nodes_database();
 
-    // update the previous, current and next block verifiers after syncing the database
-    if (update_block_verifiers_list() == 0)
-    {
-      START_NEW_ROUND_ERROR("Could not update the previous, current and next block verifiers list");
-    }
+  // // update the previous, current and next block verifiers after syncing the database
+  // if (update_block_verifiers_list() == 0)
+  // {
+  //     START_NEW_ROUND_ERROR("Could not update the previous, current and next block verifiers list");
+  // }
     
-    // start the reserve proofs timer
-    pthread_create(&thread_id, NULL, &check_reserve_proofs_timer_thread, NULL);
-    pthread_detach(thread_id);
-    sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-1),SUBMIT_NETWORK_BLOCK_TIME_SECONDS); 
+  // // start the reserve proofs timer
+  // pthread_create(&thread_id, NULL, &check_reserve_proofs_timer_thread, NULL);
+  // pthread_detach(thread_id);
+  // sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-1),SUBMIT_NETWORK_BLOCK_TIME_SECONDS); 
 
-    // check if the start time is 1 hour away
-    get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
-    if (current_UTC_date_and_time.tm_year == block_height_start_time.block_height_start_time_year && current_UTC_date_and_time.tm_mon == block_height_start_time.block_height_start_time_month && current_UTC_date_and_time.tm_mday == block_height_start_time.block_height_start_time_day && current_UTC_date_and_time.tm_hour == block_height_start_time.block_height_start_time_hour-1 && abs(current_UTC_date_and_time.tm_min - block_height_start_time.block_height_start_time_minute) <= 5)
-    {
-      color_print("Stoping registration mode","green");
-      registration_settings = 0;
-      return 10;
-    }
-    return 2;
-  }
+  // // check if the start time is 1 hour away
+  // get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
+  // if (current_UTC_date_and_time.tm_year == block_height_start_time.block_height_start_time_year && current_UTC_date_and_time.tm_mon == block_height_start_time.block_height_start_time_month && current_UTC_date_and_time.tm_mday == block_height_start_time.block_height_start_time_day && current_UTC_date_and_time.tm_hour == block_height_start_time.block_height_start_time_hour-1 && abs(current_UTC_date_and_time.tm_min - block_height_start_time.block_height_start_time_minute) <= 5)
+  // {
+  //     color_print("Stoping registration mode","green");
+  // registration_settings = 0;
+  // return 10;
+  // }
+  //   return 2;
+  // }
 
   
 
   if (count == XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT)
   {
     // this is the first block of the network
-    color_print("The current block is the first block on the network, meaning that the main network node will create this block","yellow");
+  color_print("The current block is the first block on the network, meaning that the main network node will create this block","yellow");
 
-    RESET_VARIABLES;
+  RESET_VARIABLES;
     
-    // set the main_network_data_node_create_block so the main network data node can create the block
-    main_network_data_node_create_block = 1;
-    if (start_current_round_start_blocks() == 0)
-    {      
+  // set the main_network_data_node_create_block so the main network data node can create the block
+  main_network_data_node_create_block = 1;
+  if (start_current_round_start_blocks() == 0)
+  {      
       START_NEW_ROUND_ERROR("start_current_round_start_blocks error");
-    } 
+  } 
   }
   else
   {
@@ -215,7 +224,9 @@ int start_new_round(void)
 
     // all block verifiers will sync and make sure they have the same database
     color_print("\nChecking to make sure all block verifiers databases are synced\n","blue");
-    sync_block_verifiers_database();
+
+    // replace to current db sync function
+    // sync_block_verifiers_database();
 
     // wait for all block verifiers to sync
     sync_block_verifiers_minutes_and_seconds(1,40);
@@ -255,10 +266,12 @@ int start_new_round(void)
     }
 
     // check if your delegate is a current block verifier, and sit out the round if not since you have already synced the database
+    bool is_current_block_verifier = false;
     for (count2 = 0; count2 < BLOCK_VERIFIERS_AMOUNT; count2++)
     {
       if (strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0)
       {
+        is_current_block_verifier = true;
         break;
       }
     }
@@ -753,7 +766,7 @@ int block_verifiers_create_VRF_data(void)
       // check if the block verifier created the data
       if (strncmp(VRF_data.block_verifiers_vrf_secret_key_data[counter],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA,sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA)-1) != 0 && strncmp(VRF_data.block_verifiers_vrf_public_key_data[counter],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA,sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA)-1) != 0 && strncmp(VRF_data.block_verifiers_random_data[counter],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING,sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING)-1) != 0)
       {
-        break;
+          break;
       }
     }
   }
@@ -1378,7 +1391,9 @@ int block_verifiers_create_block_and_update_database(void)
   memcpy(data2+strlen(data2),"\"}",2);
   if (count_documents_in_collection(database_name,data,data2) >= 1)
   { 
-    delete_document_from_collection(database_name,data,data2);
+    // FIXME we don't need to delete data because we using new data hashing
+    //! probably there was a problem then network produced block but not stored it in mongo db
+    // delete_document_from_collection(database_name,data,data2);
   }
 
   memset(data,0,sizeof(data));
@@ -1477,6 +1492,7 @@ int block_verifiers_create_block_and_update_database(void)
   // add the network block string to the database
   memcpy(data3,"reserve_bytes_",14);
   snprintf(data3+14,MAXIMUM_NUMBER_SIZE,"%zu",count);
+  // FIXME replace to upsert function
   if (insert_document_into_collection_json(database_name,data3,data2) == 0)
   {
     BLOCK_VERIFIERS_CREATE_BLOCK_AND_UPDATE_DATABASES_ERROR("Could not add the reserve bytes to the database");
@@ -1509,10 +1525,13 @@ int block_verifiers_create_block_and_update_database(void)
   // let the block producer try to submit the block first, then loop through all of the network data nodes to make sure it was submitted
   if ((strncmp(current_round_part_backup_node,"0",1) == 0 && strncmp(main_nodes_list.block_producer_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"1",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_1_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"2",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_2_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"3",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_3_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"4",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_4_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"5",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_5_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0))
   {
-    submit_block_template(data);
+      submit_block_template(data);
   }
   sleep(BLOCK_VERIFIERS_SETTINGS);
 
+  // TODO there is a place where we're related on SEED nodes to store created block
+
+  // if we're the seed node, we store block on our side
   for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
   {
     if (strncmp(network_data_nodes_list.network_data_nodes_public_address[count],xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0)
@@ -1733,6 +1752,10 @@ int block_verifiers_create_block(void)
     
     color_print("Part 1 - Create VRF data","yellow");
 
+    //! 1. exchange VRF keys between nodes
+    //! fix. get_vrf_keys set block_height and round_number so the server distribute the same keys
+    //!!!! THINK!!! there can be concurrency problem if server receives key request before we make it
+    //! maybe better not to send, but just get. generate keys on server side and control by mutex
     // create a random VRF public key and secret key
     if (block_verifiers_create_VRF_secret_key_and_VRF_public_key(data) == 0)
     {
@@ -1763,7 +1786,8 @@ int block_verifiers_create_block(void)
 
 
 
-
+    //! At this point we're collected all VRF keys from all block verifiers
+    //! now send all VRF keys to each delegates in 'active' (top 50) list
 
     // create each individual majority VRF data
     color_print("Part 4 - Create each individual majority VRF data","yellow");
@@ -1794,38 +1818,49 @@ int block_verifiers_create_block(void)
 
 
 
-
+    //! wtf??? why not checking majority here
 
     // check each specific block verifier to see if they have a majority
     color_print("Part 7 - Check each specific block verifier to see if they have a majority for the VRF data","yellow");
 
     //count = (size_t)block_verifiers_calculate_vote_majority_results(0);
 
-// temporary fix
-for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
-{
-if (strlen(VRF_data.block_verifiers_vrf_secret_key_data[count]) == 0 || strlen((char*)VRF_data.block_verifiers_vrf_secret_key[count]) == 0 || strlen(VRF_data.block_verifiers_vrf_public_key_data[count]) == 0 || strlen((char*)VRF_data.block_verifiers_vrf_public_key[count]) == 0 || strlen(VRF_data.block_verifiers_random_data[count]) == 0)
-{
-// The majority is the empty response, so put the default empty responses for each VRF data  
-            memcpy(VRF_data.block_verifiers_vrf_secret_key_data[count],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA,sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA)-1);
-            memcpy(VRF_data.block_verifiers_vrf_secret_key[count],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY,sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY)-1);
-            memcpy(VRF_data.block_verifiers_vrf_public_key_data[count],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA,sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA)-1);
-            memcpy(VRF_data.block_verifiers_vrf_public_key[count],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY,sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY)-1);
-            memcpy(VRF_data.block_verifiers_random_data[count],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING,sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING)-1);
-} 
-}
-count = BLOCK_VERIFIERS_AMOUNT;
-// temporary fix
+    // temporary fix
+    for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++) {
+        if (strlen(VRF_data.block_verifiers_vrf_secret_key_data[count]) == 0 ||
+            strlen((char*)VRF_data.block_verifiers_vrf_secret_key[count]) == 0 ||
+            strlen(VRF_data.block_verifiers_vrf_public_key_data[count]) == 0 ||
+            strlen((char*)VRF_data.block_verifiers_vrf_public_key[count]) == 0 ||
+            strlen(VRF_data.block_verifiers_random_data[count]) == 0) 
+        {
+            // The majority is the empty response, so put the default empty responses for each VRF data
+            memcpy(VRF_data.block_verifiers_vrf_secret_key_data[count],
+                   GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA,
+                   sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA) - 1);
+            memcpy(VRF_data.block_verifiers_vrf_secret_key[count], GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY,
+                   sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY) - 1);
+            memcpy(VRF_data.block_verifiers_vrf_public_key_data[count],
+                   GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA,
+                   sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA) - 1);
+            memcpy(VRF_data.block_verifiers_vrf_public_key[count], GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY,
+                   sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY) - 1);
+            memcpy(VRF_data.block_verifiers_random_data[count], GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING,
+                   sizeof(GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING) - 1);
+        }
+    }
+    count = BLOCK_VERIFIERS_AMOUNT;
+    // temporary fix
 
     color_print("Checked each specific block verifier to see if they have a majority for the VRF data\n","green");
 
     color_print("Part 8 - Check if there was enough specific block verifier majorities for the VRF data","yellow");
-
+    //! this always be true because of cheating above with count = BLOCK_VERIFIERS_AMOUNT wft???
     if (count >= BLOCK_VERIFIERS_VALID_AMOUNT)
     {
       fprintf(stderr,"\033[1;32m%zu / %d block verifiers have a specific majority for the VRF data\n\033[0m\n",count,BLOCK_VERIFIERS_VALID_AMOUNT); 
     }
     else
+    // !this will never executed because of shit above
     {
       if (count == 0 || count == 1)
       {
@@ -1857,17 +1892,20 @@ count = BLOCK_VERIFIERS_AMOUNT;
     RESET_DELEGATE_ERROR_MESSAGE;
 
     // process the data
-    for (count = 0, count2 = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
-    {
-      if (strncmp(VRF_data.block_verifiers_vrf_secret_key_data[count],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA,BUFFER_SIZE) != 0 && strncmp(VRF_data.block_verifiers_vrf_public_key_data[count],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA,BUFFER_SIZE) != 0 && strncmp(VRF_data.block_verifiers_random_data[count],GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING,BUFFER_SIZE) != 0)
-      {
-        count2++;
-      }
-      else
-      {
-        memcpy(delegates_error_list+strlen(delegates_error_list),current_block_verifiers_list.block_verifiers_name[count],strlen(current_block_verifiers_list.block_verifiers_name[count]));
-        memcpy(delegates_error_list+strlen(delegates_error_list),"|",1);
-      }
+    for (count = 0, count2 = 0; count < BLOCK_VERIFIERS_AMOUNT; count++) {
+        if (strncmp(VRF_data.block_verifiers_vrf_secret_key_data[count],
+                    GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA, BUFFER_SIZE) != 0 &&
+            strncmp(VRF_data.block_verifiers_vrf_public_key_data[count],
+                    GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA, BUFFER_SIZE) != 0 &&
+            strncmp(VRF_data.block_verifiers_random_data[count], GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING,
+                    BUFFER_SIZE) != 0) {
+            count2++;
+        } else {
+            memcpy(delegates_error_list + strlen(delegates_error_list),
+                   current_block_verifiers_list.block_verifiers_name[count],
+                   strlen(current_block_verifiers_list.block_verifiers_name[count]));
+            memcpy(delegates_error_list + strlen(delegates_error_list), "|", 1);
+        }
     }
 
     // check for what delegates did not send any response for this round
@@ -1927,32 +1965,48 @@ count = BLOCK_VERIFIERS_AMOUNT;
     memset(VRF_data.block_blob,0,strlen(VRF_data.block_blob));
 
     // create the block template and send it to all block verifiers if the block verifier is the block producer
-    if ((strncmp(current_round_part_backup_node,"0",1) == 0 && strncmp(main_nodes_list.block_producer_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"1",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_1_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"2",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_2_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"3",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_3_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"4",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_4_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0) || (strncmp(current_round_part_backup_node,"5",1) == 0 && strncmp(main_nodes_list.block_producer_backup_block_verifier_5_public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0))
-    {
-      color_print("Part 11 - Create the block template and send it to all block verifiers","yellow");
+    if ((strncmp(current_round_part_backup_node, "0", 1) == 0 &&
+         strncmp(main_nodes_list.block_producer_public_address, xcash_wallet_public_address, XCASH_WALLET_LENGTH) ==
+             0) ||
+        (strncmp(current_round_part_backup_node, "1", 1) == 0 &&
+         strncmp(main_nodes_list.block_producer_backup_block_verifier_1_public_address, xcash_wallet_public_address,
+                 XCASH_WALLET_LENGTH) == 0) ||
+        (strncmp(current_round_part_backup_node, "2", 1) == 0 &&
+         strncmp(main_nodes_list.block_producer_backup_block_verifier_2_public_address, xcash_wallet_public_address,
+                 XCASH_WALLET_LENGTH) == 0) ||
+        (strncmp(current_round_part_backup_node, "3", 1) == 0 &&
+         strncmp(main_nodes_list.block_producer_backup_block_verifier_3_public_address, xcash_wallet_public_address,
+                 XCASH_WALLET_LENGTH) == 0) ||
+        (strncmp(current_round_part_backup_node, "4", 1) == 0 &&
+         strncmp(main_nodes_list.block_producer_backup_block_verifier_4_public_address, xcash_wallet_public_address,
+                 XCASH_WALLET_LENGTH) == 0) ||
+        (strncmp(current_round_part_backup_node, "5", 1) == 0 &&
+         strncmp(main_nodes_list.block_producer_backup_block_verifier_5_public_address, xcash_wallet_public_address,
+                 XCASH_WALLET_LENGTH) == 0)) {
+        color_print("Part 11 - Create the block template and send it to all block verifiers", "yellow");
 
-      if (get_block_template(VRF_data.block_blob) == 0)
-      {
-        RESTART_ROUND("Could not create the block template");
-      }  
+        if (get_block_template(VRF_data.block_blob) == 0) {
+            RESTART_ROUND("Could not create the block template");
+        }
 
-      // create the message
-      memset(data,0,sizeof(data));
-      memcpy(data,"{\r\n \"message_settings\": \"MAIN_NODES_TO_NODES_PART_4_OF_ROUND_CREATE_NEW_BLOCK\",\r\n \"block_blob\": \"",97);
-      memcpy(data+97,VRF_data.block_blob,strnlen(VRF_data.block_blob,BUFFER_SIZE));
-      memcpy(data+strlen(data),"\",\r\n}",5);
+        // create the message
+        memset(data, 0, sizeof(data));
+        memcpy(data,
+               "{\r\n \"message_settings\": \"MAIN_NODES_TO_NODES_PART_4_OF_ROUND_CREATE_NEW_BLOCK\",\r\n "
+               "\"block_blob\": \"",
+               97);
+        memcpy(data + 97, VRF_data.block_blob, strnlen(VRF_data.block_blob, BUFFER_SIZE));
+        memcpy(data + strlen(data), "\",\r\n}", 5);
 
-      // sign_data
-      if (sign_data(data) == 0 || block_verifiers_send_data_socket((const char*)data) == 0)
-      { 
-        RESTART_ROUND("Could not create the block template");
-      }
+        // sign_data
+        if (sign_data(data) == 0 || block_verifiers_send_data_socket((const char*)data) == 0) {
+            RESTART_ROUND("Could not create the block template");
+        }
+    } else {
+        color_print("Part 11 - Wait for all block verifiers to receive the block template from the block producer",
+                    "yellow");
     }
-    else
-    {
-      color_print("Part 11 - Wait for all block verifiers to receive the block template from the block producer","yellow");
-    }    
-    
+
     // wait for the block verifiers to receive the block template from the block producer
     strncmp(current_round_part_backup_node,"0",1) == 0 ? sync_block_verifiers_minutes_and_seconds(2,20) : sync_block_verifiers_minutes_and_seconds(3,35);    
     
@@ -2070,6 +2124,7 @@ count = BLOCK_VERIFIERS_AMOUNT;
         {
           // your delegate is a current block verifier, restart the delegate as it could only verify its own message and not anyone elses message
           color_print("Restarting, could not process any other block verifiers data","red");
+          //! wtf??
           exit(0);
         }
       }
@@ -2128,6 +2183,7 @@ count = BLOCK_VERIFIERS_AMOUNT;
         {
           // your delegate is a current block verifier, restart the delegate as it could only verify its own message and not anyone elses message
           color_print("Restarting, could not process any other block verifiers data","red");
+          //! wtf?
           exit(0);
         }
       }
@@ -2246,35 +2302,34 @@ Return: 0 if no network data nodes are online, 1 if there is at least one networ
 -----------------------------------------------------------------------------------------------------------
 */
 
-int get_network_data_nodes_online_status(void)
-{
-  // Variables
-  char data[SMALL_BUFFER_SIZE];
-  char data2[SMALL_BUFFER_SIZE];
-  int count;
+int get_network_data_nodes_online_status(void) {
+    response_t** replies = NULL;
+    int result = XCASH_ERROR;
 
-  memset(data,0,sizeof(data));
-  memset(data2,0,sizeof(data2));
-  
-  // create the message
-  memcpy(data,"{\r\n \"message_settings\": \"BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME\",\r\n}",95);
+    INFO_STAGE_PRINT("Checking seed nodes online status");
 
-  // sign_data
-  if (sign_data(data) == 0)
-  { 
-    return 0;
-  }
+    bool send_result =
+        send_message(XNET_SEEDS_ALL, XMSG_BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME, &replies);
 
-  for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
-  {
-    if (send_and_receive_data_socket(data2,sizeof(data2),network_data_nodes_list.network_data_nodes_IP_address[count],SEND_DATA_PORT,data,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) == 1)
-    {
-      return 1;
+    if (send_result) {
+        int i = 0;
+        while (replies[i]) {
+            if (replies[i]->status == STATUS_OK) {
+                network_data_nodes_list.online_status[i] = 1;
+                INFO_PRINT(HOST_OK_STATUS("%s", "is online"), replies[i]->host);
+                result = XCASH_OK;
+            } else {
+                network_data_nodes_list.online_status[i] = 0;
+                INFO_PRINT(HOST_FALSE_STATUS("%s", "is offline"), replies[i]->host);
+            }
+            i++;
+        }
     }
-  }
-  return 0;
-}
+    // we need to cleanup always
+    cleanup_responses(replies);
 
+    return result;
+}
 
 
 /*

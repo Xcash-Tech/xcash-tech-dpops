@@ -1,15 +1,13 @@
-#include <bson/bson.h>
-#include <mongoc/mongoc.h>
+#include "cached_hashes.h"
+
 #include <stdio.h>
-#include "md5.h"
-#include "define_macro_functions.h"
 #include <time.h>
 
+#include "define_macro_functions.h"
+#include "define_macros.h"
 
-#define PRINT_ERROR(fmt, args...) fprintf(stderr, "\033[1;31m" fmt "\033[0m", ##args)
-#define PRINT_DEBUG(fmt, args...) if (debug_settings == 1) fprintf(stderr, "\033[1;33m" fmt "\033[0m", ##args)
-
-
+// TODO move all db operations to lates functions from xcash_db_operations
+// TODO don't forget to add indexes to hashes2 by 'hash'
 int get_data(mongoc_client_t *client, const char *db_name, const char *field_name, char *data)
 {
     bson_t *query;
@@ -23,8 +21,7 @@ int get_data(mongoc_client_t *client, const char *db_name, const char *field_nam
     int result = -1;
     uint32_t len = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes");
-
+    collection = mongoc_client_get_collection(client, database_name, "hashes2");
     query = BCON_NEW("db_name", db_name);
 
     opts = BCON_NEW("projection", "{",
@@ -64,7 +61,7 @@ int get_db_hashes(mongoc_client_t *client, const char *db_name, char *hash, char
     int result = -1;
     uint32_t len = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes");
+    collection = mongoc_client_get_collection(client, database_name, "hashes2");
 
     query = BCON_NEW("db_name", db_name);
 
@@ -86,10 +83,7 @@ int get_db_hashes(mongoc_client_t *client, const char *db_name, char *hash, char
         else
         {
             result = -2;
-            if (test_settings == 0)
-            {
-              PRINT_ERROR("Failed to parse hash for %s\n", db_name);
-            }
+            ERROR_PRINT("Failed to parse hash for %s", db_name);
         }
 
         if (result == 0 && bson_iter_init(&iter, doc) && bson_iter_find_descendant(&iter, "db_hash", &field) && BSON_ITER_HOLDS_UTF8(&field))
@@ -99,10 +93,7 @@ int get_db_hashes(mongoc_client_t *client, const char *db_name, char *hash, char
         else
         {
             result = -3;
-            if (test_settings == 0)
-            {
-              PRINT_ERROR("Failed to parse db_hash for %s\n", db_name);
-            }
+            ERROR_PRINT("Failed to parse db_hash for %s", db_name);
         }
     }
 
@@ -114,79 +105,62 @@ int get_db_hashes(mongoc_client_t *client, const char *db_name, char *hash, char
     return result;
 }
 
+/// @brief Calculate the md5 hash of the given db
+/// @param client 
+/// @param db_name 
+/// @param hash pointer to 128 bytes zero padded md5 hash
+/// @param db_hash pointer to 32 bytes short md5 hash
+/// @return 0 if successful <0 error code otherwise
 int calc_db_hashes(mongoc_client_t *client, const char *db_name, char *hash, char *db_hash)
 {
-    bson_t *command;
-    bson_error_t error;
     mongoc_collection_t *collection;
-    bson_t reply;
+    mongoc_cursor_t *cursor;
 
-    bson_iter_t iter;
-    bson_iter_t field;
-    uint32_t len = 0;
+    bson_t *query;
+    const bson_t *doc = NULL;
 
-    char param[512];
+    MD5_CTX md5;
+    unsigned char md5_bin[16];
 
     int result = 0;
 
     collection = mongoc_client_get_collection(client, database_name, db_name);
 
-    command = BCON_NEW("dbHash",
-                       BCON_INT32(1),
-                       "collections",
-                       "[",
-                       BCON_UTF8(db_name),
-                       "]");
+    query = bson_new ();
+    // suppress '_id' output to result data and sort by _id
+    bson_t *opts = BCON_NEW("projection", "{", "_id", BCON_BOOL(false), "}","sort", "{", "_id", BCON_INT32 (1), "}");
 
-    if (mongoc_collection_command_simple(
-            collection, command, NULL, &reply, &error))
-    {
-        if (bson_iter_init(&iter, &reply) && bson_iter_find_descendant(&iter, "md5", &field) && BSON_ITER_HOLDS_UTF8(&field))
-        {
-            // padding with zeroes
-            memset(hash, '0', 96);
-            // copy md5 hash including \0
-            strcpy(hash + 96, bson_iter_utf8(&field, &len));
-        }
-        else
-        {
-            result = -2;
-            if (test_settings == 0)
-            {
-              PRINT_ERROR("Failed to parse md5 for %s\n", db_name);
-            }
-        }
+    // Find documents
+    cursor = mongoc_collection_find_with_opts(collection, query, opts, NULL);
+    // clean it immediately
+    bson_destroy(opts);
 
-        snprintf(param, sizeof(param), "collections.%s", db_name);
-        if (result == 0 && bson_iter_init(&iter, &reply) && bson_iter_find_descendant(&iter, param, &field) && BSON_ITER_HOLDS_UTF8(&field))
-        {
-            // copy db hash hash including \0
-            strcpy(db_hash, bson_iter_utf8(&field, &len));
-        }
-        else
-        {
-            // for empty collection there is no db_hash, so, make it empty
-            memset(db_hash, 0, 32);
+    MD5_Init(&md5);
 
-            // result = -3;
-            // fprintf(stderr, "Failed to parse db_hash for %s\n", db_name);
-        }
+    while (mongoc_cursor_next(cursor, &doc)) {
+            char *str = bson_as_canonical_extended_json(doc, NULL);
+            MD5_Update(&md5, str, strlen(str));
+            bson_free(str);
     }
-    else
-    {
-        result = -1;
-        if (test_settings == 0)
-        {
-          PRINT_ERROR("Failed to run command dbHash for %s: %s\n", db_name, error.message);
-        }
-    }
+    MD5_Final(md5_bin, &md5);
 
-    bson_destroy(command);
-    bson_destroy(&reply);
+    // make md5 hex string
+    bin_to_hex(md5_bin, sizeof(md5_bin), db_hash); 
+
+    // padding with zeroes
+    memset(hash, '0', 96);
+    // copy md5 hash including \0
+    strcpy(hash + 96, db_hash);
+
+    // cleanup
+    bson_destroy(query);
+    mongoc_cursor_destroy(cursor);
     mongoc_collection_destroy(collection);
     return result;
 }
 
+
+// FIXME don't store hash of empty collection. this could be potentially dangerous
 int update_hashes(mongoc_client_t *client, const char *db_name, const char *hash, const char *db_hash)
 {
     bson_t *filter;
@@ -197,7 +171,12 @@ int update_hashes(mongoc_client_t *client, const char *db_name, const char *hash
     bson_error_t error;
     int result = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes");
+    // don't store hashes for empty collection
+    if (strcmp(db_hash, "d41d8cd98f00b204e9800998ecf8427e") == 0) {
+        return 0;
+    }
+
+    collection = mongoc_client_get_collection(client, database_name, "hashes2");
 
     filter = BCON_NEW("db_name", db_name);
 
@@ -213,10 +192,7 @@ int update_hashes(mongoc_client_t *client, const char *db_name, const char *hash
 
     if (!mongoc_collection_update_one(collection, filter, update, opts, NULL, &error))
     {
-        if (test_settings == 0)
-        {
-          PRINT_ERROR("Update hashes %s failed %s\n", db_name, error.message);
-        }
+        ERROR_PRINT("Update hashes %s failed %s", db_name, error.message);
         result = -1;
     }
 
@@ -239,26 +215,30 @@ int get_hash(mongoc_client_t *client, const char *db_name, char *hash)
     // start measuring
     gettimeofday(&start_time, NULL);
 
+
+    pthread_mutex_lock(&hash_mutex);
+
     result = get_data(client, db_name, "hash", hash);
     if (result != 0)
     {
-        // PRINT_ERROR("Missed hash for %s recalculating...\n", db_name);
+        DEBUG_PRINT("Missed hash for %s recalculating...", db_name);
         // recalculate hashes
         result = calc_db_hashes(client, db_name, l_hash, l_db_hash);
-        if (result != 0)
+        if (result != 0) {
+            pthread_mutex_unlock(&hash_mutex);
             return -1;
+        }
 
         // and now update hashes
         result = update_hashes(client, db_name, l_hash, l_db_hash);
-        if (result != 0)
+        if (result != 0) {
+            pthread_mutex_unlock(&hash_mutex);
             return -2;
+        }
 
         gettimeofday(&current_time, NULL);
         timersub(&current_time, &start_time, &result_time);
-        if (test_settings == 0 && debug_settings == 1)
-        {
-          PRINT_DEBUG("Missed hash for %s recalculation takes %ld.%06ld sec\n", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
-        }
+        DEBUG_PRINT("Missed hash for %s recalculation takes %ld.%06ld sec", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
 
         strcpy(hash, l_hash);
     }
@@ -266,6 +246,8 @@ int get_hash(mongoc_client_t *client, const char *db_name, char *hash)
     {
         //     PRINT_DEBUG("Hash hit cache for %s\n", db_name);
     }
+
+    pthread_mutex_unlock(&hash_mutex);
 
     return result;
 }
@@ -281,6 +263,8 @@ int get_dbhash(mongoc_client_t *client, const char *db_name, char *db_hash)
     // start measuring
     gettimeofday(&start_time, NULL);
 
+    pthread_mutex_lock(&hash_mutex);
+
     result = get_data(client, db_name, "db_hash", db_hash);
     if (result != 0)
     {
@@ -288,20 +272,21 @@ int get_dbhash(mongoc_client_t *client, const char *db_name, char *db_hash)
 
         // recalculate hashes
         result = calc_db_hashes(client, db_name, l_hash, l_db_hash);
-        if (result != 0)
+        if (result != 0) {
+            pthread_mutex_unlock(&hash_mutex);
             return -1;
+        }
 
         // and now update hashes
         result = update_hashes(client, db_name, l_hash, l_db_hash);
-        if (result != 0)
+        if (result != 0) {
+            pthread_mutex_unlock(&hash_mutex);
             return -2;
+        }
 
         gettimeofday(&current_time, NULL);
         timersub(&current_time, &start_time, &result_time);
-        if (test_settings == 0 && debug_settings == 1)
-        {
-          PRINT_DEBUG("Missed hash for %s recalculation takes %ld.%06ld sec\n", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
-        }
+        DEBUG_PRINT("Missed hash for %s recalculation takes %ld.%06ld sec", db_name, (long int)result_time.tv_sec, (long int)result_time.tv_usec);
 
         strcpy(db_hash, l_db_hash);
     }
@@ -309,6 +294,8 @@ int get_dbhash(mongoc_client_t *client, const char *db_name, char *db_hash)
     {
         //     PRINT_DEBUG("Hash hit cache for %s\n", db_name);
     }
+
+    pthread_mutex_unlock(&hash_mutex);
 
     return result;
 }
@@ -320,17 +307,14 @@ int del_hash(mongoc_client_t *client, const char *db_name)
     bson_t *filter;
     int result = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes");
+    collection = mongoc_client_get_collection(client, database_name, "hashes2");
 
     filter = BCON_NEW("db_name", db_name);
 
     if (!mongoc_collection_delete_one(
             collection, filter, NULL, NULL, &error))
     {
-        if (test_settings == 0)
-        {
-          PRINT_ERROR("Delete hashes %s failed: %s\n", db_name, error.message);
-        }
+        ERROR_PRINT("Delete hashes %s failed: %s", db_name, error.message);
         result = -1;
     }
 
@@ -350,23 +334,18 @@ int drop_all_hashes(mongoc_client_t *client)
     bson_error_t error;
     int result = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes");
+    collection = mongoc_client_get_collection(client, database_name, "hashes2");
 
     if (!mongoc_collection_drop_with_opts(
             collection, NULL, &error))
     {
-        if (test_settings == 0)
-        {
-          PRINT_ERROR("Drop hashes failed: %s\n", error.message);
-        }
+        ERROR_PRINT("Drop hashes failed: %s", error.message);
         result = -1;
     }
 
     mongoc_collection_destroy(collection);
-    if (test_settings == 0 && debug_settings == 1)
-    {
-      PRINT_DEBUG("All hashes are been dropped\n");
-    }
+    DEBUG_PRINT("All hashes are been dropped\n");
+
     return result;
 }
 
@@ -407,6 +386,7 @@ int cmpfunc(const void *a, const void *b)
 int calc_multi_hash(mongoc_client_t *client, const char *db_prefix, int max_index, char *hash)
 {
     MD5_CTX md5;
+    struct timeval start_time, last_time, current_time, tmp_time;
 
     char l_db_hash[33];
     unsigned char md5_bin[16];
@@ -417,6 +397,11 @@ int calc_multi_hash(mongoc_client_t *client, const char *db_prefix, int max_inde
 
     // this is more than enough for name+index
     char db_name[64];
+
+    // start measuring
+    gettimeofday(&start_time, NULL);
+    last_time = start_time;
+
 
     names_array = calloc(max_index, MAXIMUM_NUMBER_SIZE);
     for (int i = 0; i < max_index; i++)
@@ -431,13 +416,18 @@ int calc_multi_hash(mongoc_client_t *client, const char *db_prefix, int max_inde
     MD5_Init(&md5);
     for (int i = 0; i < max_index; i++)
     {
+        gettimeofday(&current_time, NULL);
+        timersub(&current_time, &last_time, &tmp_time);
+        if (tmp_time.tv_sec > 2) {
+            INFO_PRINT("Looks like the recalculation of hashes is taking some time [%d/%d]", i, max_index);
+            last_time = current_time;
+        }
+
+
         snprintf(db_name, sizeof(db_name), "%s_%s", db_prefix, names_array[i]);
         if (get_dbhash(client, db_name, l_db_hash) != 0)
         {
-            if (test_settings == 0)
-            {
-              PRINT_ERROR("Error getting hash for %s", db_name);
-            }
+            ERROR_PRINT("Error getting hash for %s", db_name);
             result = -1;
             break;
         }

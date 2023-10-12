@@ -30,7 +30,7 @@
 #include "network_functions.h"
 #include "network_security_functions.h"
 #include "network_wallet_functions.h"
-#include "organize_functions.h"
+// #include "organize_functions.h"
 #include "string_functions.h"
 #include "thread_functions.h"
 #include "convert.h"
@@ -39,6 +39,7 @@
 #include "VRF_functions.h"
 #include "sha512EL.h"
 
+#include "log.h"
 /*
 -----------------------------------------------------------------------------------------------------------
 Functions
@@ -99,6 +100,8 @@ void server_receive_data_socket_block_verifiers_to_block_verifiers_invalid_reser
   size_t count3;
   int count;
   int settings = 1;
+
+  log_info("received %s, %s", __func__, MESSAGE);
 
   // define macros
   #define SERVER_RECEIVE_DATA_SOCKET_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_INVALID_RESERVE_PROOFS_ERROR(settings) \
@@ -178,6 +181,8 @@ void server_receive_data_socket_block_verifiers_to_network_data_nodes_block_veri
   // Variables
   char data[SMALL_BUFFER_SIZE];
 
+  log_info("received %s, %s", __func__, "BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME");
+
   // define macros
   #define SERVER_RECEIVE_DATA_SOCKET_BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME_ERROR(settings) \
   if (debug_settings == 1) \
@@ -224,6 +229,8 @@ void server_receive_data_socket_main_network_data_node_to_block_verifier_start_b
   char data[BUFFER_SIZE];
   char data2[BUFFER_SIZE];
   size_t count;
+
+  log_info("received %s, %s", __func__, MESSAGE);
 
   // define macros
   #define SERVER_RECEIVE_DATA_SOCKET_MAIN_NETWORK_DATA_NODE_TO_BLOCK_VERIFIER_START_BLOCK(settings) \
@@ -283,6 +290,8 @@ void server_receive_data_socket_main_node_to_node_message_part_4(const char* MES
   char data[BUFFER_SIZE];
   char data2[XCASH_WALLET_LENGTH+1];
 
+  log_info("received %s, %s", __func__, MESSAGE);
+
   // define macros
   #define SERVER_RECEIVE_DATA_SOCKET_MAIN_NODE_TO_NODE_MESSAGE_PART_4_ERROR(settings) \
   if (debug_settings == 1) \
@@ -336,6 +345,8 @@ void server_receive_data_socket_node_to_node_majority(const char* MESSAGE)
   char public_address[XCASH_WALLET_LENGTH+1];
   int count;
   int count2;
+
+  log_info("received %s, %s", __func__, MESSAGE);
 
   // define macros
   #define SERVER_RECEIVE_DATA_SOCKET_NODE_TO_NODE_MAJORITY_ERROR(settings) \
@@ -398,6 +409,8 @@ void server_receive_data_socket_node_to_node(const char* MESSAGE)
   char data2[DATA_HASH_LENGTH+1];
   char public_address[XCASH_WALLET_LENGTH+1];
 
+  log_info("received %s, %s", __func__, MESSAGE);
+
   // define macros
   #define SERVER_RECEIVE_DATA_SOCKET_NODE_TO_NODE_ERROR(settings) \
   if (debug_settings == 1) \
@@ -456,6 +469,8 @@ void server_receive_data_socket_block_verifiers_to_block_verifiers_vrf_data(cons
   unsigned char vrf_secret_key[crypto_vrf_SECRETKEYBYTES];
   int count;
   int counter;
+
+  log_info("received %s, %s", __func__, MESSAGE);
 
   // define macros
   #define SERVER_RECEIVE_DATA_SOCKET_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA_ERROR(settings) \
@@ -531,6 +546,8 @@ void server_receive_data_socket_block_verifiers_to_block_verifiers_block_blob_si
   char data[VRF_PROOF_LENGTH+VRF_BETA_LENGTH+1]; 
   char data2[XCASH_WALLET_LENGTH+1];
   int count;
+
+  log_info("received %s, %s", __func__, MESSAGE);
 
   // define macros
   #define SERVER_RECEIVE_DATA_SOCKET_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_BLOCK_BLOB_SIGNATURE_ERROR(settings) \

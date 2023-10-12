@@ -35,7 +35,7 @@
 #include "network_security_functions.h"
 #include "network_wallet_functions.h"
 #include "server_functions.h"
-#include "organize_functions.h"
+// #include "organize_functions.h"
 #include "string_functions.h"
 #include "thread_functions.h"
 #include "convert.h"
@@ -44,7 +44,10 @@
 #include "VRF_functions.h"
 #include "sha512EL.h"
 
-#include "upsert_db.h"
+#include "db_operations.h"
+#include "xcash_delegates.h"
+#include "xcash_db_helpers.h"
+#include "xcash_message.h"
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -59,189 +62,189 @@ Description: Sync all of the network data nodes to the same database data
 -----------------------------------------------------------------------------------------------------------
 */
 
-void sync_network_data_nodes_database(void)
-{
-  // Variables
-  char data[SMALL_BUFFER_SIZE];
-  char data2[SMALL_BUFFER_SIZE];
-  char database_data_hash_majority[DATA_HASH_LENGTH+1];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-  int count;
-  int count3;
-  size_t count2;
-  double network_data_nodes_valid_count;
+// void sync_network_data_nodes_database(void)
+// {
+//   // Variables
+//   char data[SMALL_BUFFER_SIZE];
+//   char data2[SMALL_BUFFER_SIZE];
+//   char database_data_hash_majority[DATA_HASH_LENGTH+1];
+//   time_t current_date_and_time;
+//   struct tm current_UTC_date_and_time;
+//   int count;
+//   int count3;
+//   size_t count2;
+//   double network_data_nodes_valid_count;
 
-  // define macros
-  #define SYNC_NETWORK_DATA_NODES(NETWORK_DATA_NODE); \
-  sleep(BLOCK_VERIFIERS_SETTINGS); \
-  color_print("Syncing the reserve proofs database","yellow"); \
-  sync_reserve_proofs_database(0,NETWORK_DATA_NODE); \
-  color_print("Syncing the reserve bytes database","yellow"); \
-  sync_reserve_bytes_database(0,1,NETWORK_DATA_NODE); \
-  color_print("Syncing the delegates database","yellow"); \
-  sync_delegates_database(0,NETWORK_DATA_NODE); \
-  color_print("Syncing the statistics database","yellow"); \
-  sync_statistics_database(0,NETWORK_DATA_NODE); \
-  color_print("Successfully synced all databases","yellow"); \
-  return;
+//   // define macros
+//   #define SYNC_NETWORK_DATA_NODES(NETWORK_DATA_NODE); \
+//   sleep(BLOCK_VERIFIERS_SETTINGS); \
+//   color_print("Syncing the reserve proofs database","yellow"); \
+//   sync_reserve_proofs_database(0,NETWORK_DATA_NODE); \
+//   color_print("Syncing the reserve bytes database","yellow"); \
+//   sync_reserve_bytes_database(0,1,NETWORK_DATA_NODE); \
+//   color_print("Syncing the delegates database","yellow"); \
+//   sync_delegates_database(0,NETWORK_DATA_NODE); \
+//   color_print("Syncing the statistics database","yellow"); \
+//   sync_statistics_database(0,NETWORK_DATA_NODE); \
+//   color_print("Successfully synced all databases","yellow"); \
+//   return;
 
-  memset(data,0,sizeof(data));
-  memset(data2,0,sizeof(data2));
-  memset(database_data_hash_majority,0,sizeof(database_data_hash_majority));
+//   memset(data,0,sizeof(data));
+//   memset(data2,0,sizeof(data2));
+//   memset(database_data_hash_majority,0,sizeof(database_data_hash_majority));
 
-  // reset the synced_network_data_nodes nad the struct network_data_nodes_sync_database_list
-  for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
-  {
-    synced_network_data_nodes[count] = -1;
-    memset(network_data_nodes_sync_database_list.network_data_node_public_address[count],0,sizeof(network_data_nodes_sync_database_list.network_data_node_public_address[count]));
-    memset(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count],0,sizeof(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count]));
-    memset(network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count],0,sizeof(network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count]));
-    memcpy(network_data_nodes_sync_database_list.network_data_node_public_address[count],network_data_nodes_list.network_data_nodes_public_address[count],strnlen(network_data_nodes_list.network_data_nodes_public_address[count],sizeof(network_data_nodes_sync_database_list.network_data_node_public_address[count])));
-    memcpy(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count],network_data_nodes_list.network_data_nodes_IP_address[count],strnlen(network_data_nodes_list.network_data_nodes_IP_address[count],sizeof(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count])));
-    network_data_nodes_sync_database_list.network_data_nodes_previous_block_settings[count] = 0;  
-  }
+//   // reset the synced_network_data_nodes nad the struct network_data_nodes_sync_database_list
+//   for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
+//   {
+//     synced_network_data_nodes[count] = -1;
+//     memset(network_data_nodes_sync_database_list.network_data_node_public_address[count],0,sizeof(network_data_nodes_sync_database_list.network_data_node_public_address[count]));
+//     memset(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count],0,sizeof(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count]));
+//     memset(network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count],0,sizeof(network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count]));
+//     memcpy(network_data_nodes_sync_database_list.network_data_node_public_address[count],network_data_nodes_list.network_data_nodes_public_address[count],strnlen(network_data_nodes_list.network_data_nodes_public_address[count],sizeof(network_data_nodes_sync_database_list.network_data_node_public_address[count])));
+//     memcpy(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count],network_data_nodes_list.network_data_nodes_IP_address[count],strnlen(network_data_nodes_list.network_data_nodes_IP_address[count],sizeof(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count])));
+//     network_data_nodes_sync_database_list.network_data_nodes_previous_block_settings[count] = 0;  
+//   }
   
-  print_start_message(current_date_and_time,current_UTC_date_and_time,"Network data nodes are now checking if all network data nodes databases are synced",data);
+//   print_start_message(current_date_and_time,current_UTC_date_and_time,"Network data nodes are now checking if all network data nodes databases are synced",data);
 
-  // wait so all network data nodes start at the same time, this way one is not reseting the variables as another one is sending them data
-  sync_block_verifiers_minutes_and_seconds(0,40);
+//   // wait so all network data nodes start at the same time, this way one is not reseting the variables as another one is sending them data
+//   sync_block_verifiers_minutes_and_seconds(0,40);
 
-  memset(data2,0,sizeof(data2));
-  memcpy(data2,"true",4);
-  memset(data,0,sizeof(data));
+//   memset(data2,0,sizeof(data2));
+//   memcpy(data2,"true",4);
+//   memset(data,0,sizeof(data));
 
-  // get the data and send it to the other network data nodes
-  for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
-  {
-    if (strncmp(network_data_nodes_sync_database_list.network_data_node_public_address[count],xcash_wallet_public_address,BUFFER_SIZE) == 0)
-    {
-      // set your own network_data_nodes_sync_database_list.network_data_nodes_previous_block_settings
-      network_data_nodes_sync_database_list.network_data_nodes_previous_block_settings[count] = strncmp(data2,"true",BUFFER_SIZE) == 0 ? 1 : 0;
+//   // get the data and send it to the other network data nodes
+//   for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
+//   {
+//     if (strncmp(network_data_nodes_sync_database_list.network_data_node_public_address[count],xcash_wallet_public_address,BUFFER_SIZE) == 0)
+//     {
+//       // set your own network_data_nodes_sync_database_list.network_data_nodes_previous_block_settings
+//       network_data_nodes_sync_database_list.network_data_nodes_previous_block_settings[count] = strncmp(data2,"true",BUFFER_SIZE) == 0 ? 1 : 0;
 
-      // get the database data hash and send it to all other network data nodes
-      if (get_database_data_hash(network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count],database_name,"ALL") == 0)
-      {
-        return;
-      }
+//       // get the database data hash and send it to all other network data nodes
+//       if (get_database_data_hash(network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count],database_name,"ALL") == 0)
+//       {
+//         return;
+//       }
 
-      // create the message
-      memcpy(data,"{\r\n \"message_settings\": \"NETWORK_DATA_NODES_TO_NETWORK_DATA_NODES_DATABASE_SYNC_CHECK\",\r\n \"data_hash\": \"",104);
-      memcpy(data+strlen(data),network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count],DATA_HASH_LENGTH);
-      memcpy(data+strlen(data),"\",\r\n \"previous_blocks_reserve_bytes\": \"",39);
-      memcpy(data+strlen(data),data2,strnlen(data2,sizeof(data)));
-      memcpy(data+strlen(data),"\",\r\n}",5);
+//       // create the message
+//       memcpy(data,"{\r\n \"message_settings\": \"NETWORK_DATA_NODES_TO_NETWORK_DATA_NODES_DATABASE_SYNC_CHECK\",\r\n \"data_hash\": \"",104);
+//       memcpy(data+strlen(data),network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count],DATA_HASH_LENGTH);
+//       memcpy(data+strlen(data),"\",\r\n \"previous_blocks_reserve_bytes\": \"",39);
+//       memcpy(data+strlen(data),data2,strnlen(data2,sizeof(data)));
+//       memcpy(data+strlen(data),"\",\r\n}",5);
 
-      // sign_data
-      if (sign_data(data) == 0)
-      { 
-        return;
-      }
+//       // sign_data
+//       if (sign_data(data) == 0)
+//       { 
+//         return;
+//       }
 
-      // send the data to the other network data nodes
-      for (count3 = 0; count3 < NETWORK_DATA_NODES_AMOUNT; count3++)
-      {
-        if (strncmp(network_data_nodes_sync_database_list.network_data_node_public_address[count3],xcash_wallet_public_address,sizeof(xcash_wallet_public_address)) != 0)
-        {
-          send_data_socket(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count3],SEND_DATA_PORT,data,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS);
-        }
-      }
-    }
-  }
+//       // send the data to the other network data nodes
+//       for (count3 = 0; count3 < NETWORK_DATA_NODES_AMOUNT; count3++)
+//       {
+//         if (strncmp(network_data_nodes_sync_database_list.network_data_node_public_address[count3],xcash_wallet_public_address,sizeof(xcash_wallet_public_address)) != 0)
+//         {
+//           send_data_socket(network_data_nodes_sync_database_list.network_data_nodes_IP_address[count3],SEND_DATA_PORT,data,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS);
+//         }
+//       }
+//     }
+//   }
 
-  // wait for all of the network data nodes to process the data
-  sync_block_verifiers_minutes_and_seconds(1,15);
+//   // wait for all of the network data nodes to process the data
+//   sync_block_verifiers_minutes_and_seconds(1,15);
 
-  // check if a consensus was reached and get the majority database data hash
-  for (network_data_nodes_valid_count = 0, count2 = 0; count2 < NETWORK_DATA_NODES_AMOUNT; count2++)
-  {
-    for (count = 0, count3 = 0; count3 < NETWORK_DATA_NODES_AMOUNT; count3++)
-    {
-      if (strncmp(network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count2],network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count3],DATA_HASH_LENGTH) == 0)
-      {
-        network_data_nodes_valid_count++;
-        count++;
-      }
-    }
-    if (count >= NETWORK_DATA_NODES_VALID_AMOUNT)
-    {
-      memcpy(database_data_hash_majority,network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count2],DATA_HASH_LENGTH);
-      synced_network_data_nodes[count2] = 0;
-    }
-  }
+//   // check if a consensus was reached and get the majority database data hash
+//   for (network_data_nodes_valid_count = 0, count2 = 0; count2 < NETWORK_DATA_NODES_AMOUNT; count2++)
+//   {
+//     for (count = 0, count3 = 0; count3 < NETWORK_DATA_NODES_AMOUNT; count3++)
+//     {
+//       if (strncmp(network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count2],network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count3],DATA_HASH_LENGTH) == 0)
+//       {
+//         network_data_nodes_valid_count++;
+//         count++;
+//       }
+//     }
+//     if (count >= NETWORK_DATA_NODES_VALID_AMOUNT)
+//     {
+//       memcpy(database_data_hash_majority,network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count2],DATA_HASH_LENGTH);
+//       synced_network_data_nodes[count2] = 0;
+//     }
+//   }
 
-  // if a majority could not be reached, or a majority was reached but the database_data_hash_majority is empty
-  if ((network_data_nodes_valid_count / (NETWORK_DATA_NODES_AMOUNT*(NETWORK_DATA_NODES_AMOUNT-1)) < NETWORK_DATA_NODES_VALID_AMOUNT_PERCENTAGE) || (strncmp(database_data_hash_majority,"",1) == 0))
-  {
-    color_print("A majority could not be reached between network data nodes for the database sync. Syncing the database from the main network data node\n","yellow");
+//   // if a majority could not be reached, or a majority was reached but the database_data_hash_majority is empty
+//   if ((network_data_nodes_valid_count / (NETWORK_DATA_NODES_AMOUNT*(NETWORK_DATA_NODES_AMOUNT-1)) < NETWORK_DATA_NODES_VALID_AMOUNT_PERCENTAGE) || (strncmp(database_data_hash_majority,"",1) == 0))
+//   {
+//     color_print("A majority could not be reached between network data nodes for the database sync. Syncing the database from the main network data node\n","yellow");
 
-    // if all previous block settings are false then sync from the main network data node. This should not happen unless its the first block of the network
-    for (count2 = 0, count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
-    {
-      if (network_data_nodes_sync_database_list.network_data_nodes_previous_block_settings[count] == 1)
-      {
-        count2 = 1;
-        if (strncmp(network_data_nodes_list.network_data_nodes_public_address[count],xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
-        {
-          SYNC_NETWORK_DATA_NODES(network_data_nodes_list.network_data_nodes_IP_address[count]);
-        }
-        else
-        {
-          color_print("Successfully synced all databases","yellow");
-          return;
-        }      
-      }
-    }
+//     // if all previous block settings are false then sync from the main network data node. This should not happen unless its the first block of the network
+//     for (count2 = 0, count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
+//     {
+//       if (network_data_nodes_sync_database_list.network_data_nodes_previous_block_settings[count] == 1)
+//       {
+//         count2 = 1;
+//         if (strncmp(network_data_nodes_list.network_data_nodes_public_address[count],xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
+//         {
+//           SYNC_NETWORK_DATA_NODES(network_data_nodes_list.network_data_nodes_IP_address[count]);
+//         }
+//         else
+//         {
+//           color_print("Successfully synced all databases","yellow");
+//           return;
+//         }      
+//       }
+//     }
 
-    if (count2 == 0)
-    { 
-      if (strncmp(network_data_nodes_list.network_data_nodes_public_address[0],xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
-      {      
-        SYNC_NETWORK_DATA_NODES(network_data_nodes_list.network_data_nodes_IP_address[0]);
-      }
-      else
-      {
-        color_print("Successfully synced all databases","yellow");
-        return;
-      }
-    }
-  }
+//     if (count2 == 0)
+//     { 
+//       if (strncmp(network_data_nodes_list.network_data_nodes_public_address[0],xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
+//       {      
+//         SYNC_NETWORK_DATA_NODES(network_data_nodes_list.network_data_nodes_IP_address[0]);
+//       }
+//       else
+//       {
+//         color_print("Successfully synced all databases","yellow");
+//         return;
+//       }
+//     }
+//   }
 
-  // check if the network data node is in the majority
-  for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
-  {
-    if (strncmp(network_data_nodes_sync_database_list.network_data_node_public_address[count],xcash_wallet_public_address,sizeof(xcash_wallet_public_address)) == 0 && strncmp(database_data_hash_majority,network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count],DATA_HASH_LENGTH) == 0)
-    {
-      // the network data node is in the majority
-      color_print("A majority has been reached and the network data node is already synced with the majority\n","yellow");
-      return;
-    }
-  }
+//   // check if the network data node is in the majority
+//   for (count = 0; count < NETWORK_DATA_NODES_AMOUNT; count++)
+//   {
+//     if (strncmp(network_data_nodes_sync_database_list.network_data_node_public_address[count],xcash_wallet_public_address,sizeof(xcash_wallet_public_address)) == 0 && strncmp(database_data_hash_majority,network_data_nodes_sync_database_list.network_data_nodes_database_data_hash[count],DATA_HASH_LENGTH) == 0)
+//     {
+//       // the network data node is in the majority
+//       color_print("A majority has been reached and the network data node is already synced with the majority\n","yellow");
+//       return;
+//     }
+//   }
 
-  // the network data node is not in the majority, sync the database from a network data node that is in the majority
-  color_print("The database is not synced with the majority of network data nodes, syncing the database from a random network data node that is in the majority","yellow");
-  do
-  {
-    count = ((rand() % NETWORK_DATA_NODES_AMOUNT));
-  } while (strncmp(network_data_nodes_list.network_data_nodes_public_address[count],xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0 || synced_network_data_nodes[count] == -1);
+//   // the network data node is not in the majority, sync the database from a network data node that is in the majority
+//   color_print("The database is not synced with the majority of network data nodes, syncing the database from a random network data node that is in the majority","yellow");
+//   do
+//   {
+//     count = ((rand() % NETWORK_DATA_NODES_AMOUNT));
+//   } while (strncmp(network_data_nodes_list.network_data_nodes_public_address[count],xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0 || synced_network_data_nodes[count] == -1);
   
-  sleep(BLOCK_VERIFIERS_SETTINGS);
+//   sleep(BLOCK_VERIFIERS_SETTINGS);
 
-  // sync the databses from one of the synced network data nodes
-  color_print("Syncing the reserve proofs database","yellow");
-  sync_reserve_proofs_database(0,SYNCED_NETWORK_DATA_NODES_STRING);
-  color_print("Syncing the reserve bytes database","yellow");
-  sync_reserve_bytes_database(0,1,SYNCED_NETWORK_DATA_NODES_STRING);
-  color_print("Syncing the delegates database","yellow");
-  sync_delegates_database(0,SYNCED_NETWORK_DATA_NODES_STRING);
-  color_print("Syncing the statistics database","yellow");
-  sync_statistics_database(0,SYNCED_NETWORK_DATA_NODES_STRING);
-  color_print("Successfully synced all databases","yellow");
+//   // sync the databses from one of the synced network data nodes
+//   color_print("Syncing the reserve proofs database","yellow");
+//   sync_reserve_proofs_database(0,SYNCED_NETWORK_DATA_NODES_STRING);
+//   color_print("Syncing the reserve bytes database","yellow");
+//   sync_reserve_bytes_database(0,1,SYNCED_NETWORK_DATA_NODES_STRING);
+//   color_print("Syncing the delegates database","yellow");
+//   sync_delegates_database(0,SYNCED_NETWORK_DATA_NODES_STRING);
+//   color_print("Syncing the statistics database","yellow");
+//   sync_statistics_database(0,SYNCED_NETWORK_DATA_NODES_STRING);
+//   color_print("Successfully synced all databases","yellow");
 
-  return;
+//   return;
 
-  #undef SYNC_NETWORK_DATA_NODES
-}
+//   #undef SYNC_NETWORK_DATA_NODES
+// }
 
 
 
@@ -252,360 +255,373 @@ Description: Sync all of the block verifiers to the same database data
 -----------------------------------------------------------------------------------------------------------
 */
 
-void sync_block_verifiers_database(void)
-{
-  // Variables
-  char data[SMALL_BUFFER_SIZE];
-  char data2[SMALL_BUFFER_SIZE];
-  char data3[4096];
-  char database_data_hash_majority[DATABASE_TOTAL][DATA_HASH_LENGTH+1];
-  int count;
-  int count3;
-  size_t count2;
-  int database_count;
-  int settings = 0;
-  int reset_count = 1;
+// void sync_block_verifiers_database(void)
+// {
+//   // Variables
+//   char data[SMALL_BUFFER_SIZE];
+//   char data2[SMALL_BUFFER_SIZE];
+//   // char data3[4096];
+//   char database_data_hash_majority[DATABASE_TOTAL][DATA_HASH_LENGTH+1];
+//   int count;
+//   int count3;
+//   size_t count2;
+//   int database_count;
+//   int settings = 0;
+//   int reset_count = 1;
 
-  // define macros
-  #define SYNC_BLOCK_VERIFIERS \
-  if (database_count == 0) \
-  { \
-    color_print("Syncing the reserve proofs database","yellow"); \
-    sync_reserve_proofs_database(0,SYNCED_BLOCK_VERIFIER_STRING); \
-  } \
-  else if (database_count == 1) \
-  { \
-    color_print("Syncing the reserve bytes database","yellow"); \
-    sync_reserve_bytes_database(0,1,SYNCED_BLOCK_VERIFIER_STRING); \
-  } \
-  else if (database_count == 2) \
-  { \
-    color_print("Syncing the delegates database","yellow"); \
-    sync_delegates_database(0,SYNCED_BLOCK_VERIFIER_STRING); \
-  } \
-  else if (database_count == 3) \
-  { \
-    color_print("Syncing the statistics database","yellow"); \
-    sync_statistics_database(0,SYNCED_BLOCK_VERIFIER_STRING); \
-  }
+//   // define macros
+//   #define SYNC_BLOCK_VERIFIERS \
+//   if (database_count == 0) \
+//   { \
+//     color_print("Syncing the reserve proofs database","yellow"); \
+//     sync_reserve_proofs_database(0,SYNCED_BLOCK_VERIFIER_STRING); \
+//   } \
+//   else if (database_count == 1) \
+//   { \
+//     color_print("Syncing the reserve bytes database","yellow"); \
+//     sync_reserve_bytes_database(0,1,SYNCED_BLOCK_VERIFIER_STRING); \
+//   } \
+//   else if (database_count == 2) \
+//   { \
+//     color_print("Syncing the delegates database","yellow"); \
+//     sync_delegates_database(0,SYNCED_BLOCK_VERIFIER_STRING); \
+//   } \
+//   else if (database_count == 3) \
+//   { \
+//     color_print("Syncing the statistics database","yellow"); \
+//     sync_statistics_database(0,SYNCED_BLOCK_VERIFIER_STRING); \
+//   }
 
-  #define SYNC_BLOCK_VERIFIERS_FROM_SPECIFIC_BLOCK_VERIFIER(BLOCK_VERIFIER) \
-  if (database_count == 0) \
-  { \
-    color_print("Syncing the reserve proofs database","yellow"); \
-    sync_reserve_proofs_database(0,BLOCK_VERIFIER); \
-  } \
-  else if (database_count == 1) \
-  { \
-    color_print("Syncing the reserve bytes database","yellow"); \
-    sync_reserve_bytes_database(0,1,BLOCK_VERIFIER); \
-  } \
-  else if (database_count == 2) \
-  { \
-    color_print("Syncing the delegates database","yellow"); \
-    sync_delegates_database(0,BLOCK_VERIFIER); \
-  } \
-  else if (database_count == 3) \
-  { \
-    color_print("Syncing the statistics database","yellow"); \
-    sync_statistics_database(0,BLOCK_VERIFIER); \
-  }
+//   #define SYNC_BLOCK_VERIFIERS_FROM_SPECIFIC_BLOCK_VERIFIER(BLOCK_VERIFIER) \
+//   if (database_count == 0) \
+//   { \
+//     color_print("Syncing the reserve proofs database","yellow"); \
+//     sync_reserve_proofs_database(0,BLOCK_VERIFIER); \
+//   } \
+//   else if (database_count == 1) \
+//   { \
+//     color_print("Syncing the reserve bytes database","yellow"); \
+//     sync_reserve_bytes_database(0,1,BLOCK_VERIFIER); \
+//   } \
+//   else if (database_count == 2) \
+//   { \
+//     color_print("Syncing the delegates database","yellow"); \
+//     sync_delegates_database(0,BLOCK_VERIFIER); \
+//   } \
+//   else if (database_count == 3) \
+//   { \
+//     color_print("Syncing the statistics database","yellow"); \
+//     sync_statistics_database(0,BLOCK_VERIFIER); \
+//   }
 
-  #define SYNC_BLOCK_VERIFIERS_FROM_RANDOM_NETWORK_DATA_NODE \
-  if (database_count == 0) \
-  { \
-    color_print("Syncing the reserve proofs database","yellow"); \
-    sync_reserve_proofs_database(2,""); \
-  } \
-  else if (database_count == 1) \
-  { \
-    color_print("Syncing the reserve bytes database","yellow"); \
-    sync_reserve_bytes_database(2,1,""); \
-  } \
-  else if (database_count == 2) \
-  { \
-    color_print("Syncing the delegates database","yellow"); \
-    sync_delegates_database(2,""); \
-  } \
-  else if (database_count == 3) \
-  { \
-    color_print("Syncing the statistics database","yellow"); \
-    sync_statistics_database(2,""); \
-  }
+//   #define SYNC_BLOCK_VERIFIERS_FROM_RANDOM_NETWORK_DATA_NODE \
+//   if (database_count == 0) \
+//   { \
+//     color_print("Syncing the reserve proofs database","yellow"); \
+//     sync_reserve_proofs_database(2,""); \
+//   } \
+//   else if (database_count == 1) \
+//   { \
+//     color_print("Syncing the reserve bytes database","yellow"); \
+//     sync_reserve_bytes_database(2,1,""); \
+//   } \
+//   else if (database_count == 2) \
+//   { \
+//     color_print("Syncing the delegates database","yellow"); \
+//     sync_delegates_database(2,""); \
+//   } \
+//   else if (database_count == 3) \
+//   { \
+//     color_print("Syncing the statistics database","yellow"); \
+//     sync_statistics_database(2,""); \
+//   }
 
-  #define MAXIMUM_DATABASE_MAJORITY_SYNC_CONNECTIONS_ATTEMPTS 5
+//   #define MAXIMUM_DATABASE_MAJORITY_SYNC_CONNECTIONS_ATTEMPTS 5
 
-  memset(data,0,sizeof(data));
-  memset(data2,0,sizeof(data2));
+//   memset(data,0,sizeof(data));
+//   memset(data2,0,sizeof(data2));
 
-  // reset the variables
-  for (database_count = 0; database_count < DATABASE_TOTAL; database_count++)
-  {
-    memset(database_data_hash_majority[database_count],0,sizeof(database_data_hash_majority[database_count]));
-    for (count3 = 0; count3 < BLOCK_VERIFIERS_AMOUNT; count3++)
-    {
-      synced_block_verifiers_nodes[database_count][count3] = -1;
-      memset(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count3],0,sizeof(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count3]));
-    }
-  }
+//   // reset the variables
+//   for (database_count = 0; database_count < DATABASE_TOTAL; database_count++)
+//   {
+//     memset(database_data_hash_majority[database_count],0,sizeof(database_data_hash_majority[database_count]));
+//     for (count3 = 0; count3 < BLOCK_VERIFIERS_AMOUNT; count3++)
+//     {
+//       synced_block_verifiers_nodes[database_count][count3] = -1;
+//       memset(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count3],0,sizeof(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count3]));
+//     }
+//   }
   
-  for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
-  {    
-    memset(block_verifiers_sync_database_list.block_verifiers_public_address[count],0,sizeof(block_verifiers_sync_database_list.block_verifiers_public_address[count]));
-    memset(block_verifiers_sync_database_list.block_verifiers_IP_address[count],0,sizeof(block_verifiers_sync_database_list.block_verifiers_IP_address[count]));    
-    memcpy(block_verifiers_sync_database_list.block_verifiers_public_address[count],current_block_verifiers_list.block_verifiers_public_address[count],strnlen(current_block_verifiers_list.block_verifiers_public_address[count],sizeof(block_verifiers_sync_database_list.block_verifiers_public_address[count])));
-    memcpy(block_verifiers_sync_database_list.block_verifiers_IP_address[count],current_block_verifiers_list.block_verifiers_IP_address[count],strnlen(current_block_verifiers_list.block_verifiers_IP_address[count],sizeof(block_verifiers_sync_database_list.block_verifiers_IP_address[count])));
-    block_verifiers_sync_database_list.block_verifiers_previous_block_settings[count] = 0;
-  }
+//   for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
+//   {    
+//     memset(block_verifiers_sync_database_list.block_verifiers_public_address[count],0,sizeof(block_verifiers_sync_database_list.block_verifiers_public_address[count]));
+//     memset(block_verifiers_sync_database_list.block_verifiers_IP_address[count],0,sizeof(block_verifiers_sync_database_list.block_verifiers_IP_address[count]));    
+//     memcpy(block_verifiers_sync_database_list.block_verifiers_public_address[count],current_block_verifiers_list.block_verifiers_public_address[count],strnlen(current_block_verifiers_list.block_verifiers_public_address[count],sizeof(block_verifiers_sync_database_list.block_verifiers_public_address[count])));
+//     memcpy(block_verifiers_sync_database_list.block_verifiers_IP_address[count],current_block_verifiers_list.block_verifiers_IP_address[count],strnlen(current_block_verifiers_list.block_verifiers_IP_address[count],sizeof(block_verifiers_sync_database_list.block_verifiers_IP_address[count])));
+//     block_verifiers_sync_database_list.block_verifiers_previous_block_settings[count] = 0;
+//   }
 
-  // wait so all block verifiers start at the same time, this way one is not reseting the variables as another one is sending them data
-  sync_block_verifiers_minutes_and_seconds(0,40);
+//   // wait so all block verifiers start at the same time, this way one is not reseting the variables as another one is sending them data
+//   sync_block_verifiers_minutes_and_seconds(0,40);
 
-  // get if the block verifier has the previous blocks reserve bytes, because if not this block verifier should not be synced from
-  memcpy(data2,"{\"block_height\":\"",17);
-  sscanf(current_block_height, "%zu", &count2);
-  count2--;
-  snprintf(data2+strlen(data2),sizeof(data2)-18,"%zu",count2);
-  memcpy(data2+strlen(data2),"\"}",2);
-  get_reserve_bytes_database(count2,1);
-  memcpy(data,"reserve_bytes_",14);
-  snprintf(data+strlen(data),MAXIMUM_NUMBER_SIZE,"%zu",count2);
-  if (count_documents_in_collection(database_name,data,data2) == 1 && check_if_blockchain_is_fully_synced() == 1)
-  {
-    memset(data2,0,sizeof(data2));
-    memcpy(data2,"true",4);
-  }
-  else
-  {
-    memset(data2,0,sizeof(data2));
-    memcpy(data2,"false",5);
-  }
-  memset(data,0,sizeof(data));
+//   // get if the block verifier has the previous blocks reserve bytes, because if not this block verifier should not be synced from
+//   memcpy(data2,"{\"block_height\":\"",17);
+//   sscanf(current_block_height, "%zu", &count2);
+//   count2--;
+//   snprintf(data2+strlen(data2),sizeof(data2)-18,"%zu",count2);
+//   memcpy(data2+strlen(data2),"\"}",2);
+//   get_reserve_bytes_database(count2,1);
+//   memcpy(data,"reserve_bytes_",14);
+//   snprintf(data+strlen(data),MAXIMUM_NUMBER_SIZE,"%zu",count2);
+//   if (count_documents_in_collection(database_name,data,data2) == 1 && check_if_blockchain_is_fully_synced() == 1)
+//   {
+//     memset(data2,0,sizeof(data2));
+//     memcpy(data2,"true",4);
+//   }
+//   else
+//   {
+//     memset(data2,0,sizeof(data2));
+//     memcpy(data2,"false",5);
+//   }
+//   memset(data,0,sizeof(data));
 
 
-  // get the data and send it to the other block verifiers
-  for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
-  {
-    if (strncmp(block_verifiers_sync_database_list.block_verifiers_public_address[count],xcash_wallet_public_address,BUFFER_SIZE) == 0)
-    {
-      // set your own block_verifiers_sync_database_list.block_verifiers_previous_block_settings
-      block_verifiers_sync_database_list.block_verifiers_previous_block_settings[count] = strncmp(data2,"true",BUFFER_SIZE) == 0 ? 1 : 0;
+//   // get the data and send it to the other block verifiers
+//   for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
+//   {
+//     if (strncmp(block_verifiers_sync_database_list.block_verifiers_public_address[count],xcash_wallet_public_address,BUFFER_SIZE) == 0)
+//     {
+//       // set your own block_verifiers_sync_database_list.block_verifiers_previous_block_settings
+//       block_verifiers_sync_database_list.block_verifiers_previous_block_settings[count] = strncmp(data2,"true",BUFFER_SIZE) == 0 ? 1 : 0;
       
-      // get the database data hash and send it to all other network data nodes
-      if (get_database_data_hash(block_verifiers_sync_database_list.block_verifiers_database_data_hash[0][count],database_name,"reserve_proofs") == 0 || get_database_data_hash(block_verifiers_sync_database_list.block_verifiers_database_data_hash[1][count],database_name,"reserve_bytes") == 0 || get_database_data_hash(block_verifiers_sync_database_list.block_verifiers_database_data_hash[2][count],database_name,"delegates") == 0 || get_database_data_hash(block_verifiers_sync_database_list.block_verifiers_database_data_hash[3][count],database_name,"statistics") == 0)
-      {
-        break;
-      }
+//       // get the database data hash and send it to all other network data nodes
+//       if (get_database_data_hash(block_verifiers_sync_database_list.block_verifiers_database_data_hash[0][count],
+//                                  database_name, "reserve_proofs") == 0 ||
+//           get_database_data_hash(block_verifiers_sync_database_list.block_verifiers_database_data_hash[1][count],
+//                                  database_name, "reserve_bytes") == 0 ||
+//           get_database_data_hash(block_verifiers_sync_database_list.block_verifiers_database_data_hash[2][count],
+//                                  database_name, "delegates") == 0 ||
+//           get_database_data_hash(block_verifiers_sync_database_list.block_verifiers_database_data_hash[3][count],
+//                                  database_name, "statistics") == 0) {
+//           break;
+//       }
 
-      // create the message
-      memcpy(data,"{\r\n \"message_settings\": \"NETWORK_DATA_NODES_TO_NETWORK_DATA_NODES_DATABASE_SYNC_CHECK\",\r\n \"data_hash_reserve_proofs\": \"",119);
-      memcpy(data+strlen(data),block_verifiers_sync_database_list.block_verifiers_database_data_hash[0][count],DATA_HASH_LENGTH);
-      memcpy(data+strlen(data),"\",\r\n \"data_hash_reserve_bytes\": \"",33);
-      memcpy(data+strlen(data),block_verifiers_sync_database_list.block_verifiers_database_data_hash[1][count],DATA_HASH_LENGTH);
-      memcpy(data+strlen(data),"\",\r\n \"data_hash_delegates\": \"",29);
-      memcpy(data+strlen(data),block_verifiers_sync_database_list.block_verifiers_database_data_hash[2][count],DATA_HASH_LENGTH);
-      memcpy(data+strlen(data),"\",\r\n \"data_hash_statistics\": \"",30);
-      memcpy(data+strlen(data),block_verifiers_sync_database_list.block_verifiers_database_data_hash[3][count],DATA_HASH_LENGTH);
-      memcpy(data+strlen(data),"\",\r\n \"previous_blocks_reserve_bytes\": \"",39);
-      memcpy(data+strlen(data),data2,strnlen(data2,sizeof(data)));
-      memcpy(data+strlen(data),"\",\r\n}",5);
+//       // create the message
+//       memcpy(data,"{\r\n \"message_settings\": \"NETWORK_DATA_NODES_TO_NETWORK_DATA_NODES_DATABASE_SYNC_CHECK\",\r\n \"data_hash_reserve_proofs\": \"",119);
+//       memcpy(data+strlen(data),block_verifiers_sync_database_list.block_verifiers_database_data_hash[0][count],DATA_HASH_LENGTH);
+//       memcpy(data+strlen(data),"\",\r\n \"data_hash_reserve_bytes\": \"",33);
+//       memcpy(data+strlen(data),block_verifiers_sync_database_list.block_verifiers_database_data_hash[1][count],DATA_HASH_LENGTH);
+//       memcpy(data+strlen(data),"\",\r\n \"data_hash_delegates\": \"",29);
+//       memcpy(data+strlen(data),block_verifiers_sync_database_list.block_verifiers_database_data_hash[2][count],DATA_HASH_LENGTH);
+//       memcpy(data+strlen(data),"\",\r\n \"data_hash_statistics\": \"",30);
+//       memcpy(data+strlen(data),block_verifiers_sync_database_list.block_verifiers_database_data_hash[3][count],DATA_HASH_LENGTH);
+//       memcpy(data+strlen(data),"\",\r\n \"previous_blocks_reserve_bytes\": \"",39);
+//       memcpy(data+strlen(data),data2,strnlen(data2,sizeof(data)));
+//       memcpy(data+strlen(data),"\",\r\n}",5);
 
-      // sign_data
-      if (sign_data(data) == 0)
-      { 
-        break;
-      }
+//       // sign_data
+//       if (sign_data(data) == 0)
+//       { 
+//         break;
+//       }
+//       // TODO replace this ideology of sync to req-reply mode
+//       // send the data to the other network data nodes
+//       block_verifiers_send_data_socket((const char*)data);
+//     }
+//   }
 
-      // send the data to the other network data nodes
-      block_verifiers_send_data_socket((const char*)data);
-    }
-  }
+//   // if this is the xcash official shared delegate save a copy of the database before the majority check
+//   // if (production_settings == 1 && strncmp(xcash_wallet_public_address,OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,BUFFER_SIZE) == 0)
+//   // {
+//   //   color_print("Saving a copy of the database before the majority check","yellow");
+//   //   memset(data3,0,sizeof(data3));
+//   //   memcpy(data3,database_path_write_before_majority,strnlen(database_path_write_before_majority,sizeof(database_path_write_before_majority)));
+//   //   memcpy(data3+strlen(data3),current_block_height,strnlen(current_block_height,sizeof(current_block_height)));
+//   //   memcpy(data3+strlen(data3),"/",1);
+//   //   count = system(data3);
+//   // }
 
-  // if this is the xcash official shared delegate save a copy of the database before the majority check
-  // if (production_settings == 1 && strncmp(xcash_wallet_public_address,OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,BUFFER_SIZE) == 0)
-  // {
-  //   color_print("Saving a copy of the database before the majority check","yellow");
-  //   memset(data3,0,sizeof(data3));
-  //   memcpy(data3,database_path_write_before_majority,strnlen(database_path_write_before_majority,sizeof(database_path_write_before_majority)));
-  //   memcpy(data3+strlen(data3),current_block_height,strnlen(current_block_height,sizeof(current_block_height)));
-  //   memcpy(data3+strlen(data3),"/",1);
-  //   count = system(data3);
-  // }
+//   // wait for all of the block verifiers to process the data
+//   sync_block_verifiers_minutes_and_seconds(1,15);
 
-  // wait for all of the block verifiers to process the data
-  sync_block_verifiers_minutes_and_seconds(1,15);
+//   // get the majority database data hash, and every block verifier that is in the majority
+//   for (database_count = 0; database_count < DATABASE_TOTAL; database_count++)
+//   {
+//     for (count2 = 0; count2 < BLOCK_VERIFIERS_AMOUNT; count2++)
+//     {
+//       for (count = 0, count3 = 0; count3 < BLOCK_VERIFIERS_AMOUNT; count3++)
+//       {
+//           if (strncmp(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count2],
+//                       block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count3],
+//                       sizeof(block_verifiers_sync_database_list
+//                                  .block_verifiers_database_data_hash[database_count][count3])) == 0) {
+//               count++;
+//           }
+//       }
+//       if (count >= BLOCK_VERIFIERS_VALID_AMOUNT)
+//       {
+//         memset(database_data_hash_majority[database_count],0,sizeof(database_data_hash_majority[database_count]));
+//         memcpy(database_data_hash_majority[database_count],block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count2],DATA_HASH_LENGTH);
 
-  // get the majority database data hash, and every block verifier that is in the majority
-  for (database_count = 0; database_count < DATABASE_TOTAL; database_count++)
-  {
-    for (count2 = 0; count2 < BLOCK_VERIFIERS_AMOUNT; count2++)
-    {
-      for (count = 0, count3 = 0; count3 < BLOCK_VERIFIERS_AMOUNT; count3++)
-      {
-        if (strncmp(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count2],block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count3],sizeof(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count3])) == 0)
-        {
-          count++;
-        }
-      }
-      if (count >= BLOCK_VERIFIERS_VALID_AMOUNT)
-      {
-        memset(database_data_hash_majority[database_count],0,sizeof(database_data_hash_majority[database_count]));
-        memcpy(database_data_hash_majority[database_count],block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count2],DATA_HASH_LENGTH);
+//         // the majority can only use one data hash, but we dont exit the loop because we want to get every block verifier that is in the majority for syncing
+//         synced_block_verifiers_nodes[database_count][count2] = 0;
+//       }
+//     }
+//   }
 
-        // the majority can only use one data hash, but we dont exit the loop because we want to get every block verifier that is in the majority for syncing
-        synced_block_verifiers_nodes[database_count][count2] = 0;
-      }
-    }
-  }
+//   // check if there is a majority
+//   for (database_count = 0; database_count < DATABASE_TOTAL; database_count++, reset_count = 1)
+//   {
+//     if (database_count == 0)
+//     {
+//       color_print("Checking reserve proofs","green");
+//     }
+//     else if (database_count == 1)
+//     {
+//       color_print("Checking reserve bytes","green");
+//     }
+//     else if (database_count == 2)
+//     {
+//       color_print("Checking delegates","green");
+//     }
+//     else if (database_count == 3)
+//     {
+//       color_print("Checking statistics","green");
+//     }
+//     if (strlen(database_data_hash_majority[database_count]) == DATA_HASH_LENGTH)
+//     {
+//       // there is a majority, check if the block verifier is in the majority
+//       for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
+//       {
+//         if (strncmp(block_verifiers_sync_database_list.block_verifiers_public_address[count],xcash_wallet_public_address,BUFFER_SIZE) == 0)
+//         {
+//           settings = strncmp(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count],database_data_hash_majority[database_count],BUFFER_SIZE) == 0 ? 1 : 0;
+//         }
+//       }
 
-  // check if there is a majority
-  for (database_count = 0; database_count < DATABASE_TOTAL; database_count++, reset_count = 1)
-  {
-    if (database_count == 0)
-    {
-      color_print("Checking reserve proofs","green");
-    }
-    else if (database_count == 1)
-    {
-      color_print("Checking reserve bytes","green");
-    }
-    else if (database_count == 2)
-    {
-      color_print("Checking delegates","green");
-    }
-    else if (database_count == 3)
-    {
-      color_print("Checking statistics","green");
-    }
-    if (strlen(database_data_hash_majority[database_count]) == DATA_HASH_LENGTH)
-    {
-      // there is a majority, check if the block verifier is in the majority
-      for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
-      {
-        if (strncmp(block_verifiers_sync_database_list.block_verifiers_public_address[count],xcash_wallet_public_address,BUFFER_SIZE) == 0)
-        {
-          settings = strncmp(block_verifiers_sync_database_list.block_verifiers_database_data_hash[database_count][count],database_data_hash_majority[database_count],BUFFER_SIZE) == 0 ? 1 : 0;
-        }
-      }
+//       if (settings == 1)
+//       {
+//         // the block verifier is in the majority
+//         color_print("A majority has been reached and the block verifier is already synced with the majority\n","yellow");
+//         if (database_count == DATABASE_TOTAL-1)
+//         {
+//           return;
+//         }
+//         else
+//         {
+//           goto start;
+//         }
+//       }
+//       else
+//       {
+//         // the block verifier is not in the majority, sync the database from a block verifier that is in the majority
+//         color_print("The database is not synced with the majority of block verifiers, syncing the database from a random block verifier that is in the majority","yellow");  
+//         do
+//         {
+//           SYNC_BLOCK_VERIFIERS;
 
-      if (settings == 1)
-      {
-        // the block verifier is in the majority
-        color_print("A majority has been reached and the block verifier is already synced with the majority\n","yellow");
-        if (database_count == DATABASE_TOTAL-1)
-        {
-          return;
-        }
-        else
-        {
-          goto start;
-        }
-      }
-      else
-      {
-        // the block verifier is not in the majority, sync the database from a block verifier that is in the majority
-        color_print("The database is not synced with the majority of block verifiers, syncing the database from a random block verifier that is in the majority","yellow");  
-        do
-        {
-          SYNC_BLOCK_VERIFIERS;
+//           color_print("Checking to make sure the database received is the majority database, if not sync from another block verifier in the majority\n","blue");
 
-          color_print("Checking to make sure the database received is the majority database, if not sync from another block verifier in the majority\n","blue");
+//           // check if you received the same database data as the database_data_hash_majority, otherwise sync from a different block verifier
+//           memset(data,0,sizeof(data));
 
-          // check if you received the same database data as the database_data_hash_majority, otherwise sync from a different block verifier
-          memset(data,0,sizeof(data));
+//           if (reset_count >= MAXIMUM_DATABASE_MAJORITY_SYNC_CONNECTIONS_ATTEMPTS)
+//           {
+//             color_print("Could not sync the database, maximum connection attempts has been reached\n","red");
+//             goto start2;
+//           }
+//           reset_count++;
+//         } while ((database_count == 0 && (get_database_data_hash(data, database_name, "reserve_proofs") == 0 ||
+//                                           strncmp(data, database_data_hash_majority[database_count],
+//                                                   sizeof(database_data_hash_majority[database_count])) != 0)) ||
+//                  (database_count == 1 && (get_database_data_hash(data, database_name, "reserve_bytes") == 0 ||
+//                                           strncmp(data, database_data_hash_majority[database_count],
+//                                                   sizeof(database_data_hash_majority[database_count])) != 0)) ||
+//                  (database_count == 2 && (get_database_data_hash(data, database_name, "delegates") == 0 ||
+//                                           strncmp(data, database_data_hash_majority[database_count],
+//                                                   sizeof(database_data_hash_majority[database_count])) != 0)) ||
+//                  (database_count == 3 && (get_database_data_hash(data, database_name, "statistics") == 0 ||
+//                                           strncmp(data, database_data_hash_majority[database_count],
+//                                                   sizeof(database_data_hash_majority[database_count])) != 0)));
 
-          if (reset_count >= MAXIMUM_DATABASE_MAJORITY_SYNC_CONNECTIONS_ATTEMPTS)
-          {
-            color_print("Could not sync the database, maximum connection attempts has been reached\n","red");
-            goto start2;
-          }
-          reset_count++;
-        } while ((database_count == 0 && (get_database_data_hash(data,database_name,"reserve_proofs") == 0 || strncmp(data,database_data_hash_majority[database_count],sizeof(database_data_hash_majority[database_count])) != 0)) || (database_count == 1 && (get_database_data_hash(data,database_name,"reserve_bytes") == 0 || strncmp(data,database_data_hash_majority[database_count],sizeof(database_data_hash_majority[database_count])) != 0)) || (database_count == 2 && (get_database_data_hash(data,database_name,"delegates") == 0 || strncmp(data,database_data_hash_majority[database_count],sizeof(database_data_hash_majority[database_count])) != 0)) || (database_count == 3 && (get_database_data_hash(data,database_name,"statistics") == 0 || strncmp(data,database_data_hash_majority[database_count],sizeof(database_data_hash_majority[database_count])) != 0)));      
-      
-        color_print("Successfully synced the database\n","yellow");
+//         color_print("Successfully synced the database\n","yellow");
 
-        start2:
-        if (database_count == DATABASE_TOTAL-1)
-        {
-          return;
-        }
-        else
-        {
-          goto start;
-        }
-      }    
-    }
-    else
-    {
-      // there is not a majority, sync from a block verifier that has the previous blocks reserve bytes data
-      color_print("A majority could not be reached between block verifiers for the database sync. Syncing the database from a block verifier with the previous blocks reserve bytes\n","yellow");
+//         start2:
+//         if (database_count == DATABASE_TOTAL-1)
+//         {
+//           return;
+//         }
+//         else
+//         {
+//           goto start;
+//         }
+//       }    
+//     }
+//     else
+//     {
+//       // there is not a majority, sync from a block verifier that has the previous blocks reserve bytes data
+//       color_print("A majority could not be reached between block verifiers for the database sync. Syncing the database from a block verifier with the previous blocks reserve bytes\n","yellow");
     
-      for (count = 0, settings = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
-      {
-        if (block_verifiers_sync_database_list.block_verifiers_previous_block_settings[count] == 1)
-        {
-          settings = 1;
-          if (strncmp(block_verifiers_sync_database_list.block_verifiers_public_address[count],xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
-          {
-            SYNC_BLOCK_VERIFIERS_FROM_SPECIFIC_BLOCK_VERIFIER(block_verifiers_sync_database_list.block_verifiers_IP_address[count]);
-            if (database_count == DATABASE_TOTAL-1)
-            {
-              return;
-            }  
-            else
-            {
-              goto start;
-            }
-          }
-          else
-          {
-            color_print("Successfully synced all databases\n","yellow");
-            if (database_count == DATABASE_TOTAL-1)
-            {
-              return;
-            }
-            else
-            {
-              goto start;
-            }
-          } 
-        }        
-      }
+//       for (count = 0, settings = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
+//       {
+//         if (block_verifiers_sync_database_list.block_verifiers_previous_block_settings[count] == 1)
+//         {
+//           settings = 1;
+//           if (strncmp(block_verifiers_sync_database_list.block_verifiers_public_address[count],xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
+//           {
+//             SYNC_BLOCK_VERIFIERS_FROM_SPECIFIC_BLOCK_VERIFIER(block_verifiers_sync_database_list.block_verifiers_IP_address[count]);
+//             if (database_count == DATABASE_TOTAL-1)
+//             {
+//               return;
+//             }  
+//             else
+//             {
+//               goto start;
+//             }
+//           }
+//           else
+//           {
+//             color_print("Successfully synced all databases\n","yellow");
+//             if (database_count == DATABASE_TOTAL-1)
+//             {
+//               return;
+//             }
+//             else
+//             {
+//               goto start;
+//             }
+//           } 
+//         }        
+//       }
 
-      // if no block verifiers had the previous blocks reserve bytes, sync from a random network data node
-      if (settings == 0)
-      {
-        SYNC_BLOCK_VERIFIERS_FROM_RANDOM_NETWORK_DATA_NODE;
-      }
-    }
-    start: ;
-  }
-  color_print("Syncing databases is complete","yellow");
-  return;
+//       // if no block verifiers had the previous blocks reserve bytes, sync from a random network data node
+//       if (settings == 0)
+//       {
+//         SYNC_BLOCK_VERIFIERS_FROM_RANDOM_NETWORK_DATA_NODE;
+//       }
+//     }
+//     start: ;
+//   }
+//   color_print("Syncing databases is complete","yellow");
+//   return;
 
-  #undef SYNC_BLOCK_VERIFIERS
-  #undef SYNC_BLOCK_VERIFIERS_FROM_SPECIFIC_BLOCK_VERIFIER
-  #undef SYNC_BLOCK_VERIFIERS_FROM_RANDOM_NETWORK_DATA_NODE
-  #undef MAXIMUM_DATABASE_MAJORITY_SYNC_CONNECTIONS_ATTEMPTS
-}
+//   #undef SYNC_BLOCK_VERIFIERS
+//   #undef SYNC_BLOCK_VERIFIERS_FROM_SPECIFIC_BLOCK_VERIFIER
+//   #undef SYNC_BLOCK_VERIFIERS_FROM_RANDOM_NETWORK_DATA_NODE
+//   #undef MAXIMUM_DATABASE_MAJORITY_SYNC_CONNECTIONS_ATTEMPTS
+// }
 
 
 
-/*
------------------------------------------------------------------------------------------------------------
-Name: sync_all_block_verifiers_list
-Description: Sync the previous, current and next block verifiers from a network data node. This function is only run at startup, since after that the database is used to get the block verifiers list
-Paramters:
-  SETTINGS - 1 to sync immediately, 0 to wait for the network data nodes to sync
-  NETWORK_DATA_NODES_ONLINE_SETTINGS - 0 if no network data nodes are online, otherwise 1
-Return: 0 if an error has occured, 1 if successfull
------------------------------------------------------------------------------------------------------------
-*/
 
+/// @brief Sync the previous, current and next block verifiers from a network data node. This function is only run at startup, since after that the database is used to get the block verifiers list
+/// @param SETTINGS 1 to sync immediately, 0 to wait for the network data nodes to sync
+/// @param NETWORK_DATA_NODES_ONLINE_SETTINGS 0 if no network data nodes are online, otherwise 1
+/// @return 0 if an error has occurred, 1 if successful
 int sync_all_block_verifiers_list(const int SETTINGS, const int NETWORK_DATA_NODES_ONLINE_SETTINGS)
 {
   // Variables
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
   char message[BUFFER_SIZE];
   char data2[BUFFER_SIZE];
   time_t current_date_and_time;
@@ -613,7 +629,7 @@ int sync_all_block_verifiers_list(const int SETTINGS, const int NETWORK_DATA_NOD
   char data3[BUFFER_SIZE];
   int count;
   int count2;
-  int total_delegates = 0;
+  size_t total_delegates = 0;
   size_t data_size;
 
   // define macros
@@ -624,7 +640,7 @@ int sync_all_block_verifiers_list(const int SETTINGS, const int NETWORK_DATA_NOD
   { \
     SYNC_ALL_BLOCK_VERIFIERS_LIST_ERROR("Could not parse the message"); \
   } \
-  for (count = 0, count2 = 0; count < total_delegates; count++) \
+  for (count = 0, count2 = 0; count < (int)total_delegates; count++) \
   { \
     if ((data_size = strnlen(data2,sizeof(data2)) - strnlen(strstr(data2+count2,"|"),sizeof(data2)) - count2) >= sizeof(block_verifiers_data)) \
     { \
@@ -644,69 +660,73 @@ int sync_all_block_verifiers_list(const int SETTINGS, const int NETWORK_DATA_NOD
   memset(data2,0,sizeof(data2));
   memset(data3,0,sizeof(data3));
 
-  // reset the previous current and next block verifiers list
-  for (count = 0; count < BLOCK_VERIFIERS_TOTAL_AMOUNT; count++)
-  {
-    memset(previous_block_verifiers_list.block_verifiers_name[count],0,sizeof(previous_block_verifiers_list.block_verifiers_name[count]));
-    memset(previous_block_verifiers_list.block_verifiers_public_address[count],0,sizeof(previous_block_verifiers_list.block_verifiers_public_address[count]));
-    memset(previous_block_verifiers_list.block_verifiers_public_key[count],0,sizeof(previous_block_verifiers_list.block_verifiers_public_key[count]));
-    memset(previous_block_verifiers_list.block_verifiers_IP_address[count],0,sizeof(previous_block_verifiers_list.block_verifiers_IP_address[count]));
-    memset(current_block_verifiers_list.block_verifiers_name[count],0,sizeof(current_block_verifiers_list.block_verifiers_name[count]));
-    memset(current_block_verifiers_list.block_verifiers_public_address[count],0,sizeof(current_block_verifiers_list.block_verifiers_public_address[count]));
-    memset(current_block_verifiers_list.block_verifiers_public_key[count],0,sizeof(current_block_verifiers_list.block_verifiers_public_key[count]));
-    memset(current_block_verifiers_list.block_verifiers_IP_address[count],0,sizeof(current_block_verifiers_list.block_verifiers_IP_address[count]));
-    memset(next_block_verifiers_list.block_verifiers_name[count],0,sizeof(next_block_verifiers_list.block_verifiers_name[count]));
-    memset(next_block_verifiers_list.block_verifiers_public_address[count],0,sizeof(next_block_verifiers_list.block_verifiers_public_address[count]));
-    memset(next_block_verifiers_list.block_verifiers_public_key[count],0,sizeof(next_block_verifiers_list.block_verifiers_public_key[count]));
-    memset(next_block_verifiers_list.block_verifiers_IP_address[count],0,sizeof(next_block_verifiers_list.block_verifiers_IP_address[count]));
-  }
 
-  if (network_data_node_settings == 0 && NETWORK_DATA_NODES_ONLINE_SETTINGS == 1)
+  // reset the previous current and next block verifiers list
+  memset(&previous_block_verifiers_list,0,sizeof(previous_block_verifiers_list));
+  memset(&current_block_verifiers_list,0,sizeof(current_block_verifiers_list));
+  memset(&next_block_verifiers_list,0,sizeof(next_block_verifiers_list));
+
+  if (!is_seed_node && NETWORK_DATA_NODES_ONLINE_SETTINGS == 1)
   {
+
+    // we're a regular delegate node and some of seed nodes are online
+
+    // FIXME: I guess this should done somehow else
     // wait for the network data nodes to load the previous, current and next block verifiers list, before trying to sync them
     if (SETTINGS == 0)
     {
       sleep(10);
     }
-    
-    if (test_settings == 0)
-    {
-      print_start_message(current_date_and_time,current_UTC_date_and_time,"Syncing the previous, current and next block verifiers directly from a network data node, to be able to update the database",data2);
-    }
+
+
+    INFO_PRINT("Syncing the previous, current and next block verifiers directly from a network data node, to be able to update the database");
+    // if (test_settings == 0)
+    // {
+    //   print_start_message(current_date_and_time,current_UTC_date_and_time,"Syncing the previous, current and next block verifiers directly from a network data node, to be able to update the database",data2);
+    // }
 
     // create the message
-    memcpy(message,MESSAGE,sizeof(MESSAGE)-1);
 
-    // sign the message
-    if (sign_data(message) == 0)
-    {
-      SYNC_ALL_BLOCK_VERIFIERS_LIST_ERROR("Could not sign data");
-    }
+    // char* message_data = create_message(XMSG_NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST);
+    // // TODO complete all the things
+    // free(message_data);
+
+    // bool loaded_ok = false;
+    // while (!loaded_ok) {
+
+    // }    
+
 
     start:
-    if (test_settings == 0)
-    {
-      color_print("Connecting to a random network data node to get a list of previous, current and next block verifiers","white");
-    }
+
+
+    INFO_PRINT("Sending the message to the random seed node to get list of previous, current and next block verifiers");
+    // if (test_settings == 0)
+    // {
+    //   color_print("Connecting to a random network data node to get a list of previous, current and next block verifiers","white");
+    // }
     
     memset(data2,0,strlen(data2));
     memset(data3,0,strlen(data3));
 
+
+    // FIXME Currently it gives any node, offline or online. And didn't store the node we'we already checked
     // send the message to a random network data node
     get_random_network_data_node(count);
   
     // get the current time
     get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);   
+    DEBUG_PRINT("Sending NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST to %s", network_data_nodes_list.network_data_nodes_IP_address[count]);
     
-    if (test_settings == 0)
-    {
-      memcpy(data3,"Connecting to network data node ",32);
-      memcpy(data3+32,network_data_nodes_list.network_data_nodes_IP_address[count],strnlen(network_data_nodes_list.network_data_nodes_IP_address[count],BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH));
-      memcpy(data3+strlen(data3)," and sending NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST\n",87);
-      strftime(data2,sizeof(data2),"%a %d %b %Y %H:%M:%S UTC\n",&current_UTC_date_and_time);
-      memcpy(data3+strlen(data3),data2,strnlen(data2,sizeof(data3)));
-      color_print(data3,"white");
-    }
+    // if (test_settings == 0)
+    // {
+    //   memcpy(data3,"Connecting to network data node ",32);
+    //   memcpy(data3+32,network_data_nodes_list.network_data_nodes_IP_address[count],strnlen(network_data_nodes_list.network_data_nodes_IP_address[count],BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH));
+    //   memcpy(data3+strlen(data3)," and sending NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST\n",87);
+    //   strftime(data2,sizeof(data2),"%a %d %b %Y %H:%M:%S UTC\n",&current_UTC_date_and_time);
+    //   memcpy(data3+strlen(data3),data2,strnlen(data2,sizeof(data3)));
+    //   color_print(data3,"white");
+    // }
     memset(data2,0,strlen(data2));
     memset(data3,0,strlen(data3));
 
@@ -727,6 +747,7 @@ int sync_all_block_verifiers_list(const int SETTINGS, const int NETWORK_DATA_NOD
 
     total_delegates = (int)(string_count(data3,"|") / 12);
     
+    // FIXME that crazyness
     PARSE_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST_DATA("previous_block_verifiers_name_list",previous_block_verifiers_list.block_verifiers_name);
     PARSE_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST_DATA("previous_block_verifiers_public_address_list",previous_block_verifiers_list.block_verifiers_public_address);
     PARSE_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST_DATA("previous_block_verifiers_public_key_list",previous_block_verifiers_list.block_verifiers_public_key);
@@ -746,27 +767,25 @@ int sync_all_block_verifiers_list(const int SETTINGS, const int NETWORK_DATA_NOD
   }
   else
   {
-    if (test_settings == 0)
-    {
-      print_start_message(current_date_and_time,current_UTC_date_and_time,"Loading the previous, current and next block verifiers from the database",data2);
-    }
+    // seeds are offline
+    // whoever we're we need to load from the local delegates db
+    INFO_PRINT("Loading the previous, current and next block verifiers from the database");
 
     // initialize the delegates struct
-    INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"sync_all_block_verifiers_list",data2,current_date_and_time,current_UTC_date_and_time);
+    delegates_t* delegates = (delegates_t*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_t));
 
-    // organize the delegates
-    if ((total_delegates = organize_delegates(delegates)) == 0)
-    {
-      POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
-      SYNC_ALL_BLOCK_VERIFIERS_LIST_ERROR("Could not organize the delegates");
-    }
-    else if (total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT)
-    {
-      total_delegates = BLOCK_VERIFIERS_TOTAL_AMOUNT;
+    if (read_organize_delegates(delegates, &total_delegates) != XCASH_OK) {
+      ERROR_PRINT("Could not organize the delegates");
+
+      free(delegates);
+      return XCASH_ERROR;
     }
 
+    total_delegates = total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT ? BLOCK_VERIFIERS_TOTAL_AMOUNT: total_delegates;
+
+    // FIXME: that's a shitty code
     // copy the delegates to the next, current and previous block verifiers list
-    for (count = 0; count < total_delegates; count++)
+    for (count = 0; count < (int)total_delegates; count++)
     {
       memcpy(previous_block_verifiers_list.block_verifiers_name[count],delegates[count].delegate_name,strnlen(delegates[count].delegate_name,sizeof(previous_block_verifiers_list.block_verifiers_name[count])));
       memcpy(previous_block_verifiers_list.block_verifiers_public_address[count],delegates[count].public_address,strnlen(delegates[count].public_address,sizeof(previous_block_verifiers_list.block_verifiers_public_address[count])));
@@ -782,14 +801,13 @@ int sync_all_block_verifiers_list(const int SETTINGS, const int NETWORK_DATA_NOD
       memcpy(next_block_verifiers_list.block_verifiers_IP_address[count],delegates[count].IP_address,strnlen(delegates[count].IP_address,sizeof(next_block_verifiers_list.block_verifiers_IP_address[count])));
     }
 
-    POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
-    if (test_settings == 0)
-    {
-      color_print("The previous, current and next block verifiers have been loaded from the database","green");
-    }
+    INFO_PRINT("The previous, current and next block verifiers have been loaded from the database");
+
+    // cleanup the allocated memory
+    free(delegates);
   }
 
-  return 1;
+  return XCASH_OK;
   
   #undef MESSAGE
   #undef PARSE_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST_DATA
@@ -816,7 +834,7 @@ int get_synced_block_verifiers(void)
   struct tm current_UTC_date_and_time;
   int count;
   int count2;
-  int total_delegates = 0;
+  size_t total_delegates = 0;
   size_t data_size;
 
   // define macros
@@ -828,7 +846,7 @@ int get_synced_block_verifiers(void)
   { \
     GET_SYNCED_BLOCK_VERIFIERS_ERROR("Could not parse the message"); \
   } \
-  for (count = 0, count2 = 0; count < total_delegates; count++) \
+  for (count = 0, count2 = 0; count < (int)total_delegates; count++) \
   { \
     if ((data_size = strnlen(data,sizeof(data)) - strnlen(strstr(data+count2,"|"),sizeof(data)) - count2) >= sizeof(block_verifiers_data[count])) \
     { \
@@ -1114,8 +1132,10 @@ int sync_check_reserve_proofs_specific_database(const char* DATABASE_DATA, const
       memcpy(data2,"reserve_proofs_",15);
       snprintf(data2+15,MAXIMUM_NUMBER_SIZE,"%d",count);
 
-      // delete the collection from the database
-      delete_collection_from_database(database_name,data2);
+      // FIXME we can't delete the database it caused problems
+
+      // // delete the collection from the database
+      // delete_collection_from_database(database_name,data2);
 
       // if the database is empty dont add any data
       if (strncmp(data3,DATABASE_EMPTY_STRING,BUFFER_SIZE) != 0)
@@ -1272,8 +1292,10 @@ int sync_check_reserve_bytes_specific_database(const char* DATABASE_DATA, const 
       memcpy(data2,"reserve_bytes_",14);
       snprintf(data2+14,MAXIMUM_NUMBER_SIZE,"%zu",starting_reserve_bytes_database);
 
-      // delete the collection from the database
-      delete_collection_from_database(database_name,data2);
+      // FIXME we can't delete the database it caused problems
+
+      // // delete the collection from the database
+      // delete_collection_from_database(database_name,data2);
 
       // if the database is empty dont add any data
       if (strncmp(data3,DATABASE_EMPTY_STRING,BUFFER_SIZE) != 0)
@@ -1570,27 +1592,20 @@ int sync_reserve_bytes_database(int settings, const int RESERVE_BYTES_START_SETT
 
 
 
-
-/*
------------------------------------------------------------------------------------------------------------
-Name: sync_delegates_database
-Description: Syncs the delegates database
-Paramters:
-  settings - 1 to sync from a random block verifier, 2 to sync from a random network data node, otherwise the index of the network data node to sync from + 3
-  DELEGATES_IP_ADDRESS - The specific delegates IP address, if you are syncing directly from a delegate, otherwise an empty string
-Return: 0 if an error has occured, 1 if successfull
------------------------------------------------------------------------------------------------------------
-*/
-
+/// @brief Syncs the delegates database
+/// @param settings 1 to sync from a random block verifier, 2 to sync from a random network data node, otherwise the index of the network data node to sync from + 3
+/// @param DELEGATES_IP_ADDRESS The specific delegates IP address, if you are syncing directly from a delegate, otherwise an empty string
+/// @return 0 if an error has occured, 1 if successfull
 int sync_delegates_database(int settings, const char* DELEGATES_IP_ADDRESS)
 {
 
   // check the light hard fork time and allocate more bytes
-  if (time(NULL) > TIME_SF_V_1_0_5_PART_1)
-  {
-    // run the correct allocation function
-    return sync_delegates_database_fixed(settings,DELEGATES_IP_ADDRESS);
-  }
+  // it's 2030 year
+  // if (time(NULL) > TIME_SF_V_1_0_5_PART_1)
+  // {
+  //   // run the correct allocation function
+  //   return sync_delegates_database_fixed(settings,DELEGATES_IP_ADDRESS);
+  // }
 
 
   // Variables
@@ -1696,7 +1711,7 @@ int sync_delegates_database(int settings, const char* DELEGATES_IP_ADDRESS)
     // insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data2,sizeof(data2));
     memset(data,0,strlen(data));
     memcpy(data,data2,strlen(data2)-2);
-    upsert_data_to_db(database_name,DATABASE_COLLECTION,data);
+    upsert_json_to_db(database_name,XCASH_DB_DELEGATES, 0, data, false);
     // insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data,MAXIMUM_BUFFER_SIZE);
   }  
 
@@ -1815,8 +1830,11 @@ int sync_statistics_database(int settings, const char* DELEGATES_IP_ADDRESS)
     SYNC_STATISTICS_DATABASE_ERROR("Could not receive data from ");
   }
 
-  // delete the collection from the database
-  delete_collection_from_database(database_name,DATABASE_COLLECTION);
+
+  // FIXME we can't delete the database it caused problems
+
+  // // delete the collection from the database
+  // delete_collection_from_database(database_name,DATABASE_COLLECTION);
 
   // if the database is empty dont add any data
   if (strncmp(data2,DATABASE_EMPTY_STRING,BUFFER_SIZE) != 0)
@@ -1961,7 +1979,7 @@ int sync_delegates_database_fixed(int settings, const char* DELEGATES_IP_ADDRESS
     // insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data2,sizeof(data2));
     memset(data,0,strlen(data));
     memcpy(data,data2,strlen(data2)-2);
-    upsert_data_to_db(database_name,DATABASE_COLLECTION,data);
+    upsert_json_to_db(database_name, XCASH_DB_DELEGATES, 0, data, false);
     // insert_multiple_documents_into_collection_json(database_name,DATABASE_COLLECTION,data,MAXIMUM_BUFFER_SIZE);
   }  
 

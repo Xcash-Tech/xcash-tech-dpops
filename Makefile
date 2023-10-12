@@ -21,7 +21,8 @@ BUILD_DIR ?= ./build
 SRC_DIRS ?= ./src
 
 # List all source files (check for every C++, C or assembly file)
-SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c -or -name *.s)
+# SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c -or -name *.s)
+SRCS := $(shell find $(SRC_DIRS) \( -name *.cpp -or -name *.c -or -name *.s \) | grep -v /obsolete)
 
 # Create an object file for every source file
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
@@ -45,7 +46,7 @@ MongoDB_INC_DIRS := -I/usr/local/include/libbson-1.0 -I/usr/local/include/libmon
 CFLAGS ?= $(INC_FLAGS) $(MongoDB_INC_DIRS) -MMD -MP
 
 # Linker flags
-LDFLAGS ?= -lmongoc-1.0 -lbson-1.0 -lresolv -lpthread -lcrypto
+LDFLAGS ?= -lmongoc-1.0 -lbson-1.0 -lresolv -lpthread -lcrypto -luv -lbsd
 
 # Set the compiler flags
 COMPILERFLAGS ?= -Wall -Wextra -Wstrict-prototypes -Wcast-qual -Wfloat-equal -Wundef -Wshadow -Wcast-align -Wstrict-overflow -Wdouble-promotion -fexceptions -pie -fPIE -Wl,dynamicbase -Wl,nxcompat

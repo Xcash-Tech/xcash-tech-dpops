@@ -90,7 +90,7 @@ SYSTEMD_TIMER_FILE_XCASH_WALLET=""
 
 # File URLs
 FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_script.sh"
-FIREWALL_SHARED_DELEGATES_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_shared_delegates_script.sh"
+FIREWALL_SHARED_DELEGATES_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_shared_delegates_tcript.sh"
 FIREWALL_XCASH_NODE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_script_xcash_node.sh"
 SYSTEMD_SERVICE_FILE_FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/firewall.service"
 SYSTEMD_SERVICE_FILE_MONGODB_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/MongoDB.service"

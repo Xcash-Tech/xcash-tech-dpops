@@ -46,6 +46,7 @@
 #include "variables_test.h"
 #include "network_functions_test.h"
 #include "reset_variables_allocated_on_the_heap_test.h"
+#include "xcash_delegates.h"
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -131,7 +132,7 @@ int reset_variables_allocated_on_the_heap_test(void)
   struct reserve_proof reserve_proof;
   struct database_document_fields database_data;
   struct database_multiple_documents_fields database_multiple_documents_fields;
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
   struct votes votes[MAXIMUM_AMOUNT_OF_DELEGATES];
   struct voters voters[MAXIMUM_AMOUNT_OF_VOTERS_PER_DELEGATE];
   unsigned char vrf_public_key[crypto_vrf_PUBLICKEYBYTES];
@@ -384,8 +385,8 @@ int reset_variables_allocated_on_the_heap_test(void)
   check_reserve_proofs(data_test,CHECK_RESERVE_PROOF_TEST_PUBLIC_ADDRESS,CHECK_RESERVE_PROOF_TEST_RESERVE_PROOF);
 
   #define ORGANIZE_DELEGATES_CODE \
-  RESET_DELEGATES_STRUCT; \
-  organize_delegates(delegates);
+  int total_delegates; \
+  read_organize_delegates(delegates, &total_delegates);
 
   #define PARSE_JSON_DATA_CODE \
   memcpy(result_test,"{\r\n \"message_settings\": \"XCASH_PROOF_OF_STAKE_TEST_DATA\",\r\n}",60);
@@ -979,7 +980,8 @@ int reset_variables_allocated_on_the_heap_test(void)
   }
 
   // initialize the delegates struct 
-  INITIALIZE_DELEGATES_STRUCT_TEST_DATA;
+  // INITIALIZE_DELEGATES_STRUCT_TEST_DATA;
+  delegates_s* delegates = (delegates_s*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_s));
 
   // initialize the votes struct 
   INITIALIZE_VOTES_STRUCT_TEST_DATA;
@@ -1513,7 +1515,7 @@ int reset_variables_allocated_on_the_heap_test(void)
 
   POINTER_RESET_VOTERS_STRUCT(count,MAXIMUM_AMOUNT_OF_VOTERS_PER_DELEGATE);
 
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
 
   POINTER_RESET_VOTES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
 

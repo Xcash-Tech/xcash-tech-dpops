@@ -17,14 +17,15 @@ Global Variables
 // database
 extern mongoc_client_pool_t* database_client_thread_pool;
 
+
 // network data nodes
 extern int network_data_node_settings; // 1 if a network data node, 0 if not a network data node 
 extern char xcash_wallet_public_address[XCASH_WALLET_LENGTH+1]; // Holds your wallets public address
 extern unsigned char secret_key_data[crypto_vrf_SECRETKEYBYTES+1]; // Holds the secret key for signing block verifier messages
 extern char secret_key[VRF_SECRET_KEY_LENGTH+1]; // Holds the secret key text for signing block verifier messages
-extern struct previous_block_verifiers_list previous_block_verifiers_list; // The list of block verifiers name, public address and IP address for the previous round
-extern struct current_block_verifiers_list current_block_verifiers_list; // The list of block verifiers name, public address and IP address for the current round
-extern struct next_block_verifiers_list next_block_verifiers_list; // The list of block verifiers name, public address and IP address for the next round
+extern block_verifiers_list_t previous_block_verifiers_list; // The list of block verifiers name, public address and IP address for the previous round
+extern block_verifiers_list_t current_block_verifiers_list; // The list of block verifiers name, public address and IP address for the current round
+extern block_verifiers_list_t next_block_verifiers_list; // The list of block verifiers name, public address and IP address for the next round
 extern struct synced_block_verifiers synced_block_verifiers; // The list of block verifiers for syncing the databases
 extern struct main_nodes_list main_nodes_list; // The list of main nodes public address and IP address
 extern struct network_data_nodes_list network_data_nodes_list; // The network data nodes
@@ -36,11 +37,12 @@ extern struct error_message error_message; // holds all of the error messages an
 extern struct invalid_reserve_proofs invalid_reserve_proofs; // The invalid reserve proofs that the block verifier finds every round
 extern struct network_data_nodes_sync_database_list network_data_nodes_sync_database_list; // Holds the network data nodes data and database hash for syncing network data nodes
 extern struct block_verifiers_sync_database_list block_verifiers_sync_database_list; // Holds the block verifiers data and database hash for syncing the block verifiers
-extern struct delegates_online_status delegates_online_status[MAXIMUM_AMOUNT_OF_DELEGATES]; // Holds the delegates online status
+// extern struct delegates_online_status delegates_online_status[MAXIMUM_AMOUNT_OF_DELEGATES]; // Holds the delegates online status
 extern struct block_height_start_time block_height_start_time; // Holds the block height start time data
 extern struct private_group private_group; // Holds the private group data
 extern char current_round_part[2]; // The current round part (1-4)
 extern char current_round_part_backup_node[2]; // The current main node in the current round part (0-5)
+
 extern pthread_rwlock_t rwlock;
 extern pthread_rwlock_t rwlock_reserve_proofs;
 extern pthread_mutex_t lock;
@@ -51,6 +53,7 @@ extern pthread_mutex_t add_reserve_proof_lock;
 extern pthread_mutex_t invalid_reserve_proof_lock;
 extern pthread_mutex_t database_data_IP_address_lock;
 extern pthread_mutex_t update_current_block_height_lock;
+extern pthread_mutex_t hash_mutex;
 
 extern pthread_t server_threads[100];
 extern int epoll_fd;
@@ -67,8 +70,8 @@ extern char log_file[BUFFER_SIZE_NETWORK_BLOCK_DATA]; // The log file
 extern char XCASH_DPOPS_delegates_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The  block verifiers IP address to run the server on
 
 extern char XCASH_daemon_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The XCASH daemon IP
-
-extern char MongoDB_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH];
+// TODO remove this
+extern char MongoDB_uri[256];
 
 extern char XCASH_wallet_IP_address[BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH]; // The  wallet IP address
 extern int xcash_wallet_port; // The xcash wallet port
@@ -107,5 +110,19 @@ extern int total_threads; // The total threads
 extern double fee; // the fee
 extern long long int minimum_amount; // the minimum amount to send a payment
 extern char voter_inactivity_count[10]; // the number of days to wait to remove an inactive delegates information from the database
+
+// extern mongoc_uri_t* uri_thread_pool;
+
+
+// xcash-next
+extern delegates_t delegates_all[BLOCK_VERIFIERS_TOTAL_AMOUNT];
+
+extern delegates_t temp_instance;
+extern size_t delegate_field_sizes[NUM_FIELDS];
+extern const char* delegate_keys[NUM_FIELDS];
+extern const char* collection_names[XCASH_DB_COUNT];
+extern int seed_index; // -1 - not a seed node, >0 index of seed node
+extern bool is_seed_node; // seed node or not
+extern bool network_recovery_state; // is network is in recovering state
 
 #endif

@@ -41,7 +41,7 @@ int string_functions_test(void)
   int counter;
   struct database_document_fields database_data;
   struct database_multiple_documents_fields database_multiple_documents_fields;
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
   struct votes votes[MAXIMUM_AMOUNT_OF_DELEGATES];
 
   // reset the variables
@@ -172,7 +172,11 @@ int string_functions_test(void)
   database_multiple_documents_fields.database_fields_count = DATABASE_DATA;
 
   // initialize the delegates struct 
-  INITIALIZE_DELEGATES_STRUCT_TEST_DATA;
+  // INITIALIZE_DELEGATES_STRUCT_TEST_DATA;
+
+  delegates_s* delegates = (delegates_s*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_s));
+
+
 
   // initialize the votes struct 
   INITIALIZE_VOTES_STRUCT_TEST_DATA;
@@ -361,28 +365,29 @@ int string_functions_test(void)
     }
   }
 
+  free(delegates);
   // reset the delegates struct
-  for (count = 0; count < MAXIMUM_AMOUNT_OF_DELEGATES; count++)
-  {
-    pointer_reset(delegates[count].public_address);
-    pointer_reset(delegates[count].total_vote_count);
-    pointer_reset(delegates[count].IP_address);
-    pointer_reset(delegates[count].delegate_name);
-    pointer_reset(delegates[count].about);
-    pointer_reset(delegates[count].website);
-    pointer_reset(delegates[count].team);
-    pointer_reset(delegates[count].shared_delegate_status);
-    pointer_reset(delegates[count].delegate_fee);
-    pointer_reset(delegates[count].server_specs);
-    pointer_reset(delegates[count].block_verifier_score);
-    pointer_reset(delegates[count].online_status);
-    pointer_reset(delegates[count].block_verifier_total_rounds);
-    pointer_reset(delegates[count].block_verifier_online_total_rounds);
-    pointer_reset(delegates[count].block_verifier_online_percentage);
-    pointer_reset(delegates[count].block_producer_total_rounds);
-    pointer_reset(delegates[count].block_producer_block_heights);
-    pointer_reset(delegates[count].public_key);
-  }
+  // for (count = 0; count < MAXIMUM_AMOUNT_OF_DELEGATES; count++)
+  // {
+  //   pointer_reset(delegates[count].public_address);
+  //   pointer_reset(delegates[count].total_vote_count);
+  //   pointer_reset(delegates[count].IP_address);
+  //   pointer_reset(delegates[count].delegate_name);
+  //   pointer_reset(delegates[count].about);
+  //   pointer_reset(delegates[count].website);
+  //   pointer_reset(delegates[count].team);
+  //   pointer_reset(delegates[count].shared_delegate_status);
+  //   pointer_reset(delegates[count].delegate_fee);
+  //   pointer_reset(delegates[count].server_specs);
+  //   pointer_reset(delegates[count].block_verifier_score);
+  //   pointer_reset(delegates[count].online_status);
+  //   pointer_reset(delegates[count].block_verifier_total_rounds);
+  //   pointer_reset(delegates[count].block_verifier_online_total_rounds);
+  //   pointer_reset(delegates[count].block_verifier_online_percentage);
+  //   pointer_reset(delegates[count].block_producer_total_rounds);
+  //   pointer_reset(delegates[count].block_producer_block_heights);
+  //   pointer_reset(delegates[count].public_key);
+  // }
 
   // reset the votes struct
   for (count = 0; count < MAXIMUM_AMOUNT_OF_DELEGATES; count++)

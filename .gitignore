@@ -1,2 +1,8 @@
 build
 .vscode/
+/test
+
+*.natvis
+workflow.md
+bugs*.md
+*.code-workspace

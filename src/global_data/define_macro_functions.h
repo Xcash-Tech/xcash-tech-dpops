@@ -14,8 +14,6 @@ Using define macros instead of functions for increased efficiency
 -----------------------------------------------------------------------------------------------------------
 */
 
-#define DEBUG_FUNC_PRINT() fprintf(stderr, "Function: %s: %s(), line %d\n", __FILE__, __FUNCTION__, __LINE__)
-
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -253,7 +251,7 @@ Parameters:
 Return: Writes the correct code
 -----------------------------------------------------------------------------------------------------------
 */
-
+// FIXME remake usage of all callers as it works wrong anyway
 #define get_random_network_data_node(count) \
 do \
 { \

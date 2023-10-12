@@ -21,6 +21,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-parameter="
+
+
 #include <string.h>
 
 #include "sha512EL.h"
@@ -159,3 +163,5 @@ crypto_vrf_ietfdraft03_prove(unsigned char proof[crypto_vrf_ietfdraft03_PROOFBYT
     memset(&Y_point, 0, sizeof Y_point); /* for good measure */
     return 0;
 }
+
+#pragma GCC diagnostic pop

@@ -31,7 +31,7 @@
 #include "network_security_functions.h"
 #include "network_wallet_functions.h"
 #include "server_functions.h"
-#include "organize_functions.h"
+// #include "organize_functions.h"
 #include "string_functions.h"
 #include "thread_functions.h"
 #include "convert.h"
@@ -39,7 +39,7 @@
 #include "crypto_vrf.h"
 #include "VRF_functions.h"
 #include "sha512EL.h"
-
+#include "xcash_delegates.h"
 /*
 -----------------------------------------------------------------------------------------------------------
 Functions
@@ -68,9 +68,10 @@ int server_receive_data_socket_delegates_website_get_statistics(const int CLIENT
   size_t number = 0;
   size_t block_height = 0;
   double generated_supply;
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
   struct database_document_fields database_data;
   int document_count = 0;
+  size_t total_delegates = 0;
 
   // define macros
   #define DATABASE_FIELDS "username|"
@@ -83,7 +84,6 @@ int server_receive_data_socket_delegates_website_get_statistics(const int CLIENT
   memset(data,0,strlen(data)); \
   memcpy(data,"{\"Error\":\"Could not get statistics\"}",36); \
   send_data(CLIENT_SOCKET,(unsigned char*)data,strlen(data),400,"application/json"); \
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES); \
   POINTER_RESET_DATABASE_DOCUMENT_FIELDS_STRUCT(count); \
   return 400;
 
@@ -91,7 +91,7 @@ int server_receive_data_socket_delegates_website_get_statistics(const int CLIENT
   memset(data,0,sizeof(data));
 
   // initialize the delegates struct
-  INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"server_receive_data_socket_delegates_website_get_statistics",buffer,current_date_and_time,current_UTC_date_and_time);
+  // INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"server_receive_data_socket_delegates_website_get_statistics",buffer,current_date_and_time,current_UTC_date_and_time);
 
   // initialize the database_document_fields struct 
   INITIALIZE_DATABASE_DOCUMENT_FIELDS_STRUCT(count,TOTAL_STATISTICS_DATABASE_FIELDS+4,"server_receive_data_socket_delegates_website_get_statistics",buffer,current_date_and_time,current_UTC_date_and_time);
@@ -103,13 +103,23 @@ int server_receive_data_socket_delegates_website_get_statistics(const int CLIENT
   }
 
   // organize the delegates
-  if ((document_count = organize_delegates(delegates)) == 0)
-  {
-    SERVER_RECEIVE_DATA_SOCKET_GET_STATISTICS_ERROR("Could not organize the delegates");
-  }
+    delegates_t* delegates = (delegates_t*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_t));
+    if (read_organize_delegates(delegates, &total_delegates) != XCASH_OK) {
+      free(delegates);
+      SERVER_RECEIVE_DATA_SOCKET_GET_STATISTICS_ERROR("Could not organize the delegates");
+    }
+
+    total_delegates = total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT ? BLOCK_VERIFIERS_TOTAL_AMOUNT: total_delegates;
+
+
+  // if ((document_count = organize_delegates(delegates)) == 0)
+  // {
+  //   SERVER_RECEIVE_DATA_SOCKET_GET_STATISTICS_ERROR("Could not organize the delegates");
+  // }
   
   if (read_document_all_fields_from_collection(database_name,"statistics",DATA,&database_data) == 0)
   {
+    free(delegates);
     SERVER_RECEIVE_DATA_SOCKET_GET_STATISTICS_ERROR("Could not read all of the fields of the statistics database collection");
   }
 
@@ -118,6 +128,7 @@ int server_receive_data_socket_delegates_website_get_statistics(const int CLIENT
   {
     if (get_current_block_height(data) == 0)
     {
+      free(delegates);
       SERVER_RECEIVE_DATA_SOCKET_GET_STATISTICS_ERROR("Could not get the current block height");
     }
   }
@@ -172,11 +183,13 @@ int server_receive_data_socket_delegates_website_get_statistics(const int CLIENT
   // create a json string out of the database array of item and value
   if (create_json_data_from_database_document_array(&database_data,data,DATABASE_FIELDS) == 0)
   {
+    free(delegates);
     SERVER_RECEIVE_DATA_SOCKET_GET_STATISTICS_ERROR("Could not create json data");
   }
   send_data(CLIENT_SOCKET,(unsigned char*)data,strlen(data),200,"application/json");
 
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  free(delegates);
   POINTER_RESET_DATABASE_DOCUMENT_FIELDS_STRUCT(count);
   network_functions_test_settings = 0; 
   return 200;
@@ -202,12 +215,12 @@ int server_receive_data_socket_get_delegates(const int CLIENT_SOCKET)
 {
   // Variables
   char buffer[1024];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // time_t current_date_and_time;
+  // struct tm current_UTC_date_and_time;
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
   int count = 0;
   size_t counter;
-  int total_delegates;
+  size_t total_delegates;
 
   // define macros
   #define DATABASE_FIELDS "public_address|IP_address|public_key|about|website|team|server_specs|block_verifier_online_total_rounds|block_verifier_score|block_producer_block_heights|"
@@ -219,22 +232,30 @@ int server_receive_data_socket_get_delegates(const int CLIENT_SOCKET)
   memset(buffer,0,strlen(buffer)); \
   memcpy(buffer,"{\"Error\":\"Could not get the delegates information\"}",51); \
   send_data(CLIENT_SOCKET,(unsigned char*)buffer,strlen(buffer),400,"application/json"); \
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES); \
   return 0;
 
   memset(buffer,0,sizeof(buffer));
 
   // initialize the delegates struct
-  INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"server_receive_data_socket_get_delegates",buffer,current_date_and_time,current_UTC_date_and_time);
+  // INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"server_receive_data_socket_get_delegates",buffer,current_date_and_time,current_UTC_date_and_time);
   
   // organize the delegates
-  if ((total_delegates = organize_delegates(delegates)) == 0)
-  {
+    delegates_t* delegates = (delegates_t*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_t));
+    if (read_organize_delegates(delegates, &total_delegates) != XCASH_OK) {
+      free(delegates);
     SERVER_RECEIVE_DATA_SOCKET_GET_DELEGATES_ERROR("Could not organize the delegates");
-  }
+    }
+
+    total_delegates = total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT ? BLOCK_VERIFIERS_TOTAL_AMOUNT: total_delegates;
+
+
+  // if ((total_delegates = organize_delegates(delegates)) == 0)
+  // {
+  //   SERVER_RECEIVE_DATA_SOCKET_GET_DELEGATES_ERROR("Could not organize the delegates");
+  // }
 
   // count how many bytes to allocate for the json data
-  for (count = 0, counter = BUFFER_SIZE; count < total_delegates; count++)
+  for (count = 0, counter = BUFFER_SIZE; count < (int)total_delegates; count++)
   {
     counter += strlen("\"public_address\":") + strlen("\"total_vote_count\":") + strlen("\"IP_address\":") + strlen("\"delegate_name\":") + strlen("\"about\":") + strlen("\"website\":") + strlen("\"team\":") + strlen("\"shared_delegate_status\":") + strlen("\"delegate_fee\":") + strlen("\"server_specs\":") + strlen("\"block_verifier_score\":") + strlen("\"online_status\":") + strlen("\"block_verifier_total_rounds\":") + strlen("\"block_verifier_online_total_rounds\":") + strlen("\"block_verifier_online_percentage\":") + strlen("\"block_producer_total_rounds\":") + strlen("\"block_producer_block_heights\":") + strlen("\"public_key\":") + 36; // 36 is for quotes for the values
     counter += strlen(delegates[count].public_address);
@@ -262,12 +283,16 @@ int server_receive_data_socket_get_delegates(const int CLIENT_SOCKET)
   if (create_json_data_from_delegates_array(delegates,message,DATABASE_FIELDS) == 0)
   {
     pointer_reset(message);
+    free(delegates);
+
     SERVER_RECEIVE_DATA_SOCKET_GET_DELEGATES_ERROR("Could not create json data");
   }
   send_data(CLIENT_SOCKET,(unsigned char*)message,strlen(message),200,"application/json");
 
   pointer_reset(message);
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  free(delegates);
+
+  // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
   return 1;
 
   #undef DATABASE_FIELDS
@@ -278,7 +303,7 @@ int server_receive_data_socket_get_delegates(const int CLIENT_SOCKET)
 
 /*
 -----------------------------------------------------------------------------------------------------------
-Name: server_receive_data_socket_get_delegates_statistics
+Name: server_receive_data_socket_get_delegates_ttatistics
 Description: Runs the code when the server receives /getdelegatesstatistics
 Parameters:
   CLIENT_SOCKET - The socket to send data to
@@ -287,7 +312,7 @@ Return: 0 if an error has occured, 1 if successfull
 -----------------------------------------------------------------------------------------------------------
 */
 
-int server_receive_data_socket_get_delegates_statistics(const int CLIENT_SOCKET, const char* DATA)
+int server_receive_data_socket_get_delegates_ttatistics(const int CLIENT_SOCKET, const char* DATA)
 {
   // Variables
   char message[BUFFER_SIZE];
@@ -298,8 +323,8 @@ int server_receive_data_socket_get_delegates_statistics(const int CLIENT_SOCKET,
   int count = 0;
   int count2 = 0;
   struct database_document_fields database_data;
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
-  int document_count = 0;
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  size_t document_count = 0;
 
   // define macros
   #define DATABASE_COLLECTION "delegates"
@@ -308,7 +333,7 @@ int server_receive_data_socket_get_delegates_statistics(const int CLIENT_SOCKET,
   #define SERVER_RECEIVE_DATA_SOCKET_GET_DELEGATES_STATISTICS_ERROR(settings) \
   if (debug_settings == 1) \
   { \
-    memcpy(error_message.function[error_message.total],"server_receive_data_socket_get_delegates_statistics",51); \
+    memcpy(error_message.function[error_message.total],"server_receive_data_socket_get_delegates_ttatistics",51); \
     memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
     error_message.total++; \
   } \
@@ -332,10 +357,10 @@ int server_receive_data_socket_get_delegates_statistics(const int CLIENT_SOCKET,
   } 
 
   // initialize the delegates struct
-  INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"server_receive_data_socket_get_delegates_statistics",buffer,current_date_and_time,current_UTC_date_and_time);
+  // INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"server_receive_data_socket_get_delegates_ttatistics",buffer,current_date_and_time,current_UTC_date_and_time);
 
   // initialize the database_document_fields struct 
-  INITIALIZE_DATABASE_DOCUMENT_FIELDS_STRUCT(count,TOTAL_DELEGATES_DATABASE_FIELDS+1,"server_receive_data_socket_get_delegates_statistics",buffer,current_date_and_time,current_UTC_date_and_time);
+  INITIALIZE_DATABASE_DOCUMENT_FIELDS_STRUCT(count,TOTAL_DELEGATES_DATABASE_FIELDS+1,"server_receive_data_socket_get_delegates_ttatistics",buffer,current_date_and_time,current_UTC_date_and_time);
 
   const size_t DATA_LENGTH = strnlen(data2,BUFFER_SIZE);
 
@@ -357,21 +382,29 @@ int server_receive_data_socket_get_delegates_statistics(const int CLIENT_SOCKET,
   // check if there is any data in the database that matches the message
   if (count_documents_in_collection(database_name,DATABASE_COLLECTION,message) <= 0 || read_document_all_fields_from_collection(database_name,DATABASE_COLLECTION,message,&database_data) == 0)
   {
-    POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+    // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
     POINTER_RESET_DATABASE_DOCUMENT_FIELDS_STRUCT(count);
     SERVER_RECEIVE_DATA_SOCKET_GET_DELEGATES_STATISTICS_ERROR("Could not get the data from the delegates database collection");
   }
 
   // organize the delegates
-  if ((document_count = organize_delegates(delegates)) == 0)
-  {
-    POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
-    POINTER_RESET_DATABASE_DOCUMENT_FIELDS_STRUCT(count);
+  delegates_t* delegates = (delegates_t*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_t));
+  if (read_organize_delegates(delegates, &document_count) != XCASH_OK) {
+    free(delegates);
     SERVER_RECEIVE_DATA_SOCKET_GET_DELEGATES_STATISTICS_ERROR("Could not organize the delegates");
   }
 
+
+
+  // if ((document_count = organize_delegates(delegates)) == 0)
+  // {
+  //   POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  //   POINTER_RESET_DATABASE_DOCUMENT_FIELDS_STRUCT(count);
+  //   SERVER_RECEIVE_DATA_SOCKET_GET_DELEGATES_STATISTICS_ERROR("Could not organize the delegates");
+  // }
+
   // get the delegates rank
-  for (count = 0, count2 = 0; count < document_count; count++)
+  for (count = 0, count2 = 0; count < (int)document_count; count++)
   {
     if (strncmp(delegates[count].public_address,data2,XCASH_WALLET_LENGTH) == 0 || strncmp(delegates[count].delegate_name,data2,BUFFER_SIZE) == 0)
     {
@@ -392,12 +425,14 @@ int server_receive_data_socket_get_delegates_statistics(const int CLIENT_SOCKET,
   // create a json string out of the database array of item and value
   if (create_json_data_from_database_document_array(&database_data,message,DATABASE_FIELDS) == 0)
   {   
-    POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+    free(delegates);
+    // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
     POINTER_RESET_DATABASE_DOCUMENT_FIELDS_STRUCT(count); 
     SERVER_RECEIVE_DATA_SOCKET_GET_DELEGATES_STATISTICS_ERROR("Could not create json data");
   }
   send_data(CLIENT_SOCKET,(unsigned char*)message,strlen(message),200,"application/json");
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  free(delegates);
+  // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
   POINTER_RESET_DATABASE_DOCUMENT_FIELDS_STRUCT(count);
   return 1;
 
@@ -635,7 +670,7 @@ int server_receive_data_socket_get_delegates_voters_list(const int CLIENT_SOCKET
   int count = 0;
   int count2;
   size_t counter = 0;
-  int total_delegates = 0;
+  size_t total_delegates = 0;
 
   struct votes votes[MAXIMUM_AMOUNT_OF_VOTERS_PER_DELEGATE];
   struct database_multiple_documents_fields database_multiple_documents_fields;
@@ -748,7 +783,7 @@ int server_receive_data_socket_get_delegates_voters_list(const int CLIENT_SOCKET
   RESET_ERROR_MESSAGES;
 
   // count how many bytes to allocate for the json data
-  for (count = 0, counter = BUFFER_SIZE; count < total_delegates; count++)
+  for (count = 0, counter = BUFFER_SIZE; count < (int)total_delegates; count++)
   {
     counter += strlen("\"public_address_created_reserve_proof\":") + strlen("\"public_address_voted_for\":") + strlen("\"total\":") + strlen("\"reserve_proof\":") + 8; // 8 is for quotes for the values
     counter += strlen(votes[count].public_address_created_reserve_proof);

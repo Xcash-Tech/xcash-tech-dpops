@@ -7,7 +7,8 @@ Function prototypes
 -----------------------------------------------------------------------------------------------------------
 */
 
-int create_server(const int MESSAGE_SETTINGS);
+bool create_server(void);
+
 void new_socket_thread(void);
 int server_limit_IP_addresses(const int SETTINGS, const char* IP_ADDRESS);
 int server_limit_public_addresses(const int SETTINGS, const char* MESSAGE);

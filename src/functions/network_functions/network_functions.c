@@ -23,7 +23,7 @@
 #include "database_functions.h"
 #include "network_functions.h"
 #include "network_security_functions.h"
-#include "organize_functions.h"
+// #include "organize_functions.h"
 #include "string_functions.h"
 
 /*
@@ -115,7 +115,7 @@ int send_http_request(char *result, const char* HOST, const char* URL, const int
   #define SEND_HTTP_REQUEST_ERROR(data_settings,socket_settings) \
   if (debug_settings == 1) \
   { \
-    DEBUG_FUNC_PRINT(); \
+    DEBUG_PRINT(data_settings); \
     fprintf(stderr,"%s:%d %s,%d\n", HOST, PORT, data_settings, socket_settings); \
     memcpy(error_message.function[error_message.total],"send_http_request",17); \
     memcpy(error_message.data[error_message.total],data_settings,sizeof(data_settings)-1); \
@@ -321,8 +321,7 @@ int send_and_receive_data_socket(char *result, const size_t RESULT_LENGTH, const
   #define SEND_AND_RECEIVE_DATA_SOCKET_ERROR(data_settings,socket_settings) \
   if (debug_settings == 1) \
   { \
-    DEBUG_FUNC_PRINT(); \
-    fprintf(stderr,"%s:%d %s,%d\n", HOST, PORT, data_settings, socket_settings); \
+    DEBUG_PRINT("%s: %s",HOST, data_settings); \
     memcpy(error_message.function[error_message.total],"send_and_receive_data_socket",28); \
     memcpy(error_message.data[error_message.total],data_settings,sizeof(data_settings)-1); \
     error_message.total++; \
@@ -434,7 +433,7 @@ int send_and_receive_data_socket(char *result, const size_t RESULT_LENGTH, const
   {
     SEND_AND_RECEIVE_DATA_SOCKET_ERROR("Error receiving data from host",1);
   }
-  
+
   // validate the data, dont run this is running the test, since it uses send_and_receive_data_socket to check all messages
   if (test_settings == 0 && validate_data(result) == 0)
   {
@@ -487,7 +486,7 @@ int send_data_socket(const char* HOST, const int PORT, const char* DATA, const i
   #define SEND_DATA_SOCKET_ERROR(data_settings,socket_settings) \
   if (debug_settings == 1) \
   { \
-    DEBUG_FUNC_PRINT(); \
+    DEBUG_PRINT(data_settings); \
     fprintf(stderr,"%s:%d %s,%d\n", HOST, PORT, data_settings, socket_settings); \
     memcpy(error_message.function[error_message.total],"send_data_socket",16); \
     memcpy(error_message.data[error_message.total],data_settings,sizeof(data_settings)-1); \

@@ -153,6 +153,8 @@ void* current_block_height_timer_thread(void* parameters)
       // check if it is 30 minutes before the start time and restart, this way non network data nodes get an up to date copy of the database
       if (network_data_node_settings == 0 && current_UTC_date_and_time.tm_year == block_height_start_time.block_height_start_time_year && current_UTC_date_and_time.tm_mon == block_height_start_time.block_height_start_time_month && current_UTC_date_and_time.tm_mday == block_height_start_time.block_height_start_time_day && current_UTC_date_and_time.tm_hour == block_height_start_time.block_height_start_time_hour && block_height_start_time.block_height_start_time_minute - current_UTC_date_and_time.tm_min == 30)
       {
+
+        // FIXME this is unfucking believable logic. restart node to sync db...
         sleep(60);
         color_print("Restarting to get a up to date copy of the database","green");
         exit(0);
@@ -478,7 +480,7 @@ int check_reserve_proofs_timer_update_delegates_total_vote_count(const int CURRE
 
 /*
 -----------------------------------------------------------------------------------------------------------
-Name: check_reserve_proofs_timer_update_delegates_score
+Name: check_reserve_proofs_timer_update_delegates_tcore
 Description: Updates the delegates score
 Paramters:
   CURRENT_RESERVE_PROOF_COUNT - The current_reserve_proof_count
@@ -486,7 +488,7 @@ Return: 0 if an error has occured, 1 if successfull
 -----------------------------------------------------------------------------------------------------------
 */
 
-int check_reserve_proofs_timer_update_delegates_score(const int CURRENT_RESERVE_PROOF_COUNT)
+int check_reserve_proofs_timer_update_delegates_tcore(const int CURRENT_RESERVE_PROOF_COUNT)
 {
   // Variables
   char data[BUFFER_SIZE_NETWORK_BLOCK_DATA];
@@ -595,7 +597,7 @@ int check_reserve_proofs_timer_update_database(void)
     }
 
     /*// update all of the delegates scores
-    if (check_reserve_proofs_timer_update_delegates_score(count) == 0)
+    if (check_reserve_proofs_timer_update_delegates_tcore(count) == 0)
     {
       continue;
     }*/
@@ -919,66 +921,83 @@ Description: Removes any inactive delegates from the database
 
 void remove_inactive_delegates(void)
 {
-  // Variables
-  char data[BUFFER_SIZE_NETWORK_BLOCK_DATA];
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-  int count;
-  int count2;
-  long long int total_votes;
-  int total_delegates;
-
-  // define macros
-  #define DATABASE_COLLECTION "delegates"
-
-  memset(data,0,sizeof(data));
-
-  // initialize the delegates struct
-  INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"remove_inactive_delegates_timer_thread",data,current_date_and_time,current_UTC_date_and_time);
-
-  // organize the delegates  
-  if ((total_delegates = organize_delegates(delegates)) == 0)
-  {
-    POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
-    return;
-  }
-
-  for (count = 0; count < total_delegates; count++)
-  {
-    sscanf(delegates[count].total_vote_count, "%lld", &total_votes);
-
-    // check to make sure it is not a network data node
-    for (count2 = 0; count2 < NETWORK_DATA_NODES_AMOUNT; count2++)
-    {
-      if (strncmp(network_data_nodes_list.network_data_nodes_public_address[count2],delegates[count].public_address,XCASH_WALLET_LENGTH) == 0)
-      {
-        continue;
-      }
-    }
-
-    // check to make sure it is not an official delegate
-    // if (strncmp(OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,delegates[count].public_address,XCASH_WALLET_LENGTH) == 0)
-    // {
-    //   continue;
-    // }
-
-    // check if each delegate has not mined a block, and their vote count is under the MINIMUM_AMOUNT_REGISTER_DELEGATE
-    if (strncmp(delegates[count].block_producer_block_heights,"",1) == 0 && total_votes < MINIMUM_AMOUNT_REGISTER_DELEGATE)
-    {
-      // remove the delegate from the database
-      memset(data,0,strlen(data));
-      memcpy(data,"{\"public_address\":\"",19);
-      memcpy(data+strlen(data),delegates[count].public_address,XCASH_WALLET_LENGTH);
-      memcpy(data+strlen(data),"\"}",2);
-      delete_document_from_collection(database_name,DATABASE_COLLECTION,data);
-    }
-  }
-  RESET_ERROR_MESSAGES;
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // FIX the logic later. but now looks like it broken somewhere
   return;
 
-  #undef DATABASE_COLLECTION
+  // // Variables
+  // char data[BUFFER_SIZE_NETWORK_BLOCK_DATA];
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // time_t current_date_and_time;
+  // struct tm current_UTC_date_and_time;
+  // int count;
+  // int count2;
+  // long long int total_votes;
+  // size_t total_delegates;
+
+  // // define macros
+  // #define DATABASE_COLLECTION "delegates"
+
+  // memset(data,0,sizeof(data));
+
+  // // initialize the delegates struct
+  // // INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"remove_inactive_delegates_timer_thread",data,current_date_and_time,current_UTC_date_and_time);
+
+  // // organize the delegates  
+  // // if ((total_delegates = organize_delegates(delegates)) == 0)
+  // // {
+  // //   POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // //   return;
+  // // }
+
+  //   delegates_t* delegates = (delegates_t*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_t));
+  //   if (read_organize_delegates(delegates, &total_delegates) != XCASH_OK) {
+  //     free(delegates);
+  //     DEBUG_PRINT("Could not organize the delegates");
+  //   }
+
+  //   total_delegates = total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT ? BLOCK_VERIFIERS_TOTAL_AMOUNT: total_delegates;
+
+
+
+
+  // for (count = 0; count < total_delegates; count++)
+  // {
+  //   sscanf(delegates[count].total_vote_count, "%lld", &total_votes);
+
+  //   // check to make sure it is not a network data node
+  //   for (count2 = 0; count2 < NETWORK_DATA_NODES_AMOUNT; count2++)
+  //   {
+  //     if (strncmp(network_data_nodes_list.network_data_nodes_public_address[count2],delegates[count].public_address,XCASH_WALLET_LENGTH) == 0)
+  //     {
+  //       continue;
+  //     }
+  //   }
+
+  //   // check to make sure it is not an official delegate
+  //   // if (strncmp(OFFICIAL_SHARED_DELEGATE_PUBLIC_ADDRESS_PRODUCTION,delegates[count].public_address,XCASH_WALLET_LENGTH) == 0)
+  //   // {
+  //   //   continue;
+  //   // }
+
+  //   // check if each delegate has not mined a block, and their vote count is under the MINIMUM_AMOUNT_REGISTER_DELEGATE
+  //   if (strncmp(delegates[count].block_producer_block_heights,"",1) == 0 && total_votes < MINIMUM_AMOUNT_REGISTER_DELEGATE)
+  //   {
+  //     // remove the delegate from the database
+  //     memset(data,0,strlen(data));
+  //     memcpy(data,"{\"public_address\":\"",19);
+  //     memcpy(data+strlen(data),delegates[count].public_address,XCASH_WALLET_LENGTH);
+  //     memcpy(data+strlen(data),"\"}",2);
+  //     delete_document_from_collection(database_name,DATABASE_COLLECTION,data);
+  //   }
+  // }
+  // RESET_ERROR_MESSAGES;
+
+  // free(delegates);
+
+  // // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // return;
+
+  // #undef DATABASE_COLLECTION
 }
 
 
@@ -992,50 +1011,52 @@ Description: Removes block heights from the delegates database
 
 void remove_block_heights_from_delegates(void)
 {
-  // Variables
-  char data[BUFFER_SIZE_NETWORK_BLOCK_DATA];
-  char message[BUFFER_SIZE];
-  char message2[BUFFER_SIZE];
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-  int count;
-  int total_delegates;
-
-  // define macros
-  #define DATABASE_COLLECTION "delegates"
-
-  memset(data,0,sizeof(data));
-
-  color_print("Removing block heights from the delegates database","yellow");
-
-  // initialize the delegates struct
-  INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"remove_block_heights_from_delegates",data,current_date_and_time,current_UTC_date_and_time);
-
-  // organize the delegates  
-  if ((total_delegates = organize_delegates(delegates)) == 0)
-  {
-    POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
-    return;
-  }
-
-  for (count = 0; count < total_delegates; count++)
-  {
-    // create the message
-    memset(message,0,sizeof(message));
-    memcpy(message,"{\"public_address\":\"",19);
-    memcpy(message+19,delegates[count].public_address,XCASH_WALLET_LENGTH);
-    memcpy(message+19+XCASH_WALLET_LENGTH,"\"}",2);
-
-    // create the message
-    memset(message2,0,sizeof(message2));
-    memcpy(message2,"{\"block_producer_block_heights\":\"\"}",35);
-
-    update_document_from_collection(database_name,DATABASE_COLLECTION,message,message2);
-  }
-  RESET_ERROR_MESSAGES;
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // FIXME clean up the obsolete code. it's not used anymore
   return;
+  // Variables
+  // char data[BUFFER_SIZE_NETWORK_BLOCK_DATA];
+  // char message[BUFFER_SIZE];
+  // char message2[BUFFER_SIZE];
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // time_t current_date_and_time;
+  // struct tm current_UTC_date_and_time;
+  // int count;
+  // size_t total_delegates;
 
-  #undef DATABASE_COLLECTION
+  // // define macros
+  // #define DATABASE_COLLECTION "delegates"
+
+  // memset(data,0,sizeof(data));
+
+  // color_print("Removing block heights from the delegates database","yellow");
+
+  // // initialize the delegates struct
+  // INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"remove_block_heights_from_delegates",data,current_date_and_time,current_UTC_date_and_time);
+
+  // // organize the delegates  
+  // if ((total_delegates = organize_delegates(delegates)) == 0)
+  // {
+  //   POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  //   return;
+  // }
+
+  // for (count = 0; count < total_delegates; count++)
+  // {
+  //   // create the message
+  //   memset(message,0,sizeof(message));
+  //   memcpy(message,"{\"public_address\":\"",19);
+  //   memcpy(message+19,delegates[count].public_address,XCASH_WALLET_LENGTH);
+  //   memcpy(message+19+XCASH_WALLET_LENGTH,"\"}",2);
+
+  //   // create the message
+  //   memset(message2,0,sizeof(message2));
+  //   memcpy(message2,"{\"block_producer_block_heights\":\"\"}",35);
+
+  //   update_document_from_collection(database_name,DATABASE_COLLECTION,message,message2);
+  // }
+  // RESET_ERROR_MESSAGES;
+  // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // return;
+
+  // #undef DATABASE_COLLECTION
 }

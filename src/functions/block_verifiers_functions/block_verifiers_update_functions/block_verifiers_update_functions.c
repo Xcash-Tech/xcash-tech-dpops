@@ -37,7 +37,7 @@
 #include "network_functions.h"
 #include "network_security_functions.h"
 #include "network_wallet_functions.h"
-#include "organize_functions.h"
+// #include "organize_functions.h"
 #include "string_functions.h"
 #include "thread_functions.h"
 #include "convert.h"
@@ -45,6 +45,8 @@
 #include "crypto_vrf.h"
 #include "VRF_functions.h"
 #include "sha512EL.h"
+
+#include "xcash_delegates.h"
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -65,7 +67,7 @@ Return: 0 if an error has occured, 1 if successfull
 -----------------------------------------------------------------------------------------------------------
 */
 
-int get_block_verifiers_from_network_block(const int TOTAL_DELEGATES, const struct delegates* delegates, const size_t CURRENT_BLOCK_HEIGHT, const int SETTINGS)
+int get_block_verifiers_from_network_block(const int TOTAL_DELEGATES, const delegates_t* delegates, const size_t CURRENT_BLOCK_HEIGHT, const int SETTINGS)
 {
   // Variables 
   char data[BUFFER_SIZE];
@@ -113,7 +115,11 @@ int get_block_verifiers_from_network_block(const int TOTAL_DELEGATES, const stru
   snprintf(data3+14,MAXIMUM_NUMBER_SIZE,"%zu",block_height);
   if (read_document_field_from_collection(database_name,data3,data,"reserve_bytes",message) == 0)
   {
-    fprintf(stderr,"\033[1;31m%s\t%d: Can't read from DB %s, searching for block_height %ld\033[0m\n",__func__, __LINE__, data3, CURRENT_BLOCK_HEIGHT);
+
+    // FIXME need to be reviewed
+    ERROR_PRINT("Can't read from DB %s, searching for block_height %ld", data3, CURRENT_BLOCK_HEIGHT);
+    return XCASH_ERROR;
+    // fprintf(stderr,"\033[1;31m%s\t%d: Can't read from DB %s, searching for block_height %ld\033[0m\n",__func__, __LINE__, data3, CURRENT_BLOCK_HEIGHT);
     // restore the database from the backup
     // if (production_settings == 1 && network_data_node_settings == 1)
     // {
@@ -126,16 +132,16 @@ int get_block_verifiers_from_network_block(const int TOTAL_DELEGATES, const stru
     // }
     // else if (production_settings == 1 && network_data_node_settings == 0)
     // {
-      color_print("Could not get the previous blocks reserve bytes, syncing from a random network data node","red");
-      sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-1),SUBMIT_NETWORK_BLOCK_TIME_SECONDS);
-      exit(0);
+      // color_print("Could not get the previous blocks reserve bytes, syncing from a random network data node","red");
+      // sync_block_verifiers_minutes_and_seconds((BLOCK_TIME-1),SUBMIT_NETWORK_BLOCK_TIME_SECONDS);
+      // exit(0);
     // }
   }
   
   // get the next block verifiers public keys from the previous network blocks reserve bytes
   message_copy1 = message;
   message_copy1 = strstr(message_copy1,BLOCKCHAIN_DATA_SEGMENT_PUBLIC_ADDRESS_STRING_DATA) + (sizeof(BLOCKCHAIN_DATA_SEGMENT_PUBLIC_ADDRESS_STRING_DATA)-1);
-  
+  // fill public_keys from DB
   for (count = 0; count < BLOCK_VERIFIERS_AMOUNT; count++)
   {  
     memset(data,0,sizeof(data)); 
@@ -191,14 +197,14 @@ Return: 0 if an error has occured, 1 to sync from a random block verifier, 2 to 
 int update_block_verifiers_list(void)
 {
   // Variables 
-  char data[1024];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // char data[1024];
+  // time_t current_date_and_time;
+  // struct tm current_UTC_date_and_time;
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
   int count;
   int count2;
   int settings = 0;
-  int total_delegates = 0;
+  size_t total_delegates = 0;
   size_t current_block_height_count;
 
   // define macros
@@ -206,22 +212,31 @@ int update_block_verifiers_list(void)
   memcpy(error_message.function[error_message.total],"update_block_verifiers_list",27); \
   memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
   error_message.total++; \
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES); \
   return 0;
   
   // initialize the delegates struct
-  INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"update_block_verifiers_list",data,current_date_and_time,current_UTC_date_and_time);
+  // INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"update_block_verifiers_list",data,current_date_and_time,current_UTC_date_and_time);
 
-  // organize the delegates
-  if ((total_delegates = organize_delegates(delegates)) == 0)
-  {
-    POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  delegates_t* delegates = (delegates_t*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_t));
+  if (read_organize_delegates(delegates, &total_delegates) != XCASH_OK) {
+    free(delegates);
+    // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
     UPDATE_BLOCK_VERIFIERS_LIST_ERROR("Could not organize the delegates");
   }
-  else if (total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT)
-  {
-    total_delegates = BLOCK_VERIFIERS_TOTAL_AMOUNT;
-  }
+
+  total_delegates = total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT ? BLOCK_VERIFIERS_TOTAL_AMOUNT: total_delegates;
+
+
+  // organize the delegates
+  // if ((total_delegates = organize_delegates(delegates)) == 0)
+  // {
+  //   POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  //   UPDATE_BLOCK_VERIFIERS_LIST_ERROR("Could not organize the delegates");
+  // }
+  // else if (total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT)
+  // {
+  //   total_delegates = BLOCK_VERIFIERS_TOTAL_AMOUNT;
+  // }
 
   // get the current block height
   sscanf(current_block_height,"%zu", &current_block_height_count);
@@ -235,7 +250,7 @@ int update_block_verifiers_list(void)
   if (current_block_height_count <= XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT)
   {
     // load all of block verifiers from the current delegate database since there are no previous blocks
-    for (count = 0; count < total_delegates; count++)
+    for (count = 0; count < (int)total_delegates; count++)
     {
       memset(previous_block_verifiers_list.block_verifiers_name[count],0,sizeof(previous_block_verifiers_list.block_verifiers_name[count]));
       memset(previous_block_verifiers_list.block_verifiers_public_address[count],0,sizeof(previous_block_verifiers_list.block_verifiers_public_address[count]));
@@ -305,7 +320,8 @@ int update_block_verifiers_list(void)
 
     if (get_block_verifiers_from_network_block(total_delegates,delegates,current_block_height_count,0) == 0)
     {
-      POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+      // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+      free(delegates);
       UPDATE_BLOCK_VERIFIERS_LIST_ERROR("Could not organize the delegates");
     }
   }
@@ -336,7 +352,9 @@ int update_block_verifiers_list(void)
 
     if (get_block_verifiers_from_network_block(total_delegates,delegates,current_block_height_count,0) == 0)
     {
-      POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+      // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+      free(delegates);
+
       UPDATE_BLOCK_VERIFIERS_LIST_ERROR("Could not organize the delegates");
     }
 
@@ -351,7 +369,9 @@ int update_block_verifiers_list(void)
 
     if (get_block_verifiers_from_network_block(total_delegates,delegates,current_block_height_count,1) == 0)
     {
-      POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+      // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+      free(delegates);
+
       UPDATE_BLOCK_VERIFIERS_LIST_ERROR("Could not organize the delegates");
     }
   }
@@ -370,7 +390,9 @@ int update_block_verifiers_list(void)
   }
   settings = settings > (BLOCK_VERIFIERS_AMOUNT - BLOCK_VERIFIERS_VALID_AMOUNT) ? 1 : 2;
 
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  free(delegates);
+
 
   return settings;
   
@@ -628,7 +650,7 @@ Return: 0 if an error has occured, 1 if successfull
 int add_round_statistics(void)
 {
   // Variables
-  char data[SMALL_BUFFER_SIZE];
+  // char data[SMALL_BUFFER_SIZE];
   char block_verifier_total_rounds_delegates_name[SMALL_BUFFER_SIZE];
   char best_block_verifier_online_percentage_delegate_name[SMALL_BUFFER_SIZE];
   char most_block_producer_total_rounds_delegate_name[SMALL_BUFFER_SIZE];
@@ -639,10 +661,10 @@ int add_round_statistics(void)
   char message5[SMALL_BUFFER_SIZE];
   char message6[SMALL_BUFFER_SIZE];
 
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-  int total_delegates;
+  // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+  // time_t current_date_and_time;
+  // struct tm current_UTC_date_and_time;
+  size_t total_delegates;
   int count;
   size_t block_verifier_total_rounds = 0;
   int block_verifier_online_percentage = 0;
@@ -668,16 +690,24 @@ int add_round_statistics(void)
   memset(message6,0,sizeof(message6));
 
   // initialize the delegates struct
-  INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"add_round_statistics",data,current_date_and_time,current_UTC_date_and_time);
+  // INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"add_round_statistics",data,current_date_and_time,current_UTC_date_and_time);
 
-  // organize the delegates
-  if ((total_delegates = organize_delegates(delegates)) == 0)
-  {
-    POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // // organize the delegates
+  // if ((total_delegates = organize_delegates(delegates)) == 0)
+  // {
+  //   POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  //   ADD_ROUND_STATISTICS_ERROR("Could not organize the delegates");
+  // }
+
+
+  delegates_t* delegates = (delegates_t*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_t));
+  if (read_organize_delegates(delegates, &total_delegates) != XCASH_OK) {
+    free(delegates);
     ADD_ROUND_STATISTICS_ERROR("Could not organize the delegates");
   }
 
-  for (count = 0; count < total_delegates; count++)
+
+  for (count = 0; count < (int)total_delegates; count++)
   {
     // get the delegates data
     sscanf(delegates[count].block_verifier_total_rounds, "%zu", &block_verifier_total_rounds_current_delegate);
@@ -707,7 +737,9 @@ int add_round_statistics(void)
     }
   }
 
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+  free(delegates);
+
 
   // create the message
   memcpy(message1,"{\"most_total_rounds_delegate_name\":\"",36);
@@ -848,6 +880,7 @@ int calculate_main_nodes_roles(void)
   }
 
   // calculate the main nodes role
+  // TODO !!! check main_nodes_count == 6
   for (count = 0, count3 = 0, main_nodes_count = 0; count < VRF_BETA_LENGTH || main_nodes_count == 6; count += 2)
   {
     memset(data,0,sizeof(data));
@@ -884,9 +917,17 @@ int calculate_main_nodes_roles(void)
         continue;
 
       // check if this is a network data node, since they will not produce the blocks
-      if (strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[0],XCASH_WALLET_LENGTH) == 0 || strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[1],XCASH_WALLET_LENGTH) == 0 || strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[2],XCASH_WALLET_LENGTH) == 0 || strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[3],XCASH_WALLET_LENGTH) == 0 || strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],network_data_nodes_list.network_data_nodes_public_address[4],XCASH_WALLET_LENGTH) == 0)
-      {
-        goto start;
+      if (strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],
+                  network_data_nodes_list.network_data_nodes_public_address[0], XCASH_WALLET_LENGTH) == 0 ||
+          strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],
+                  network_data_nodes_list.network_data_nodes_public_address[1], XCASH_WALLET_LENGTH) == 0 ||
+          strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],
+                  network_data_nodes_list.network_data_nodes_public_address[2], XCASH_WALLET_LENGTH) == 0 ||
+          strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],
+                  network_data_nodes_list.network_data_nodes_public_address[3], XCASH_WALLET_LENGTH) == 0 ||
+          strncmp(current_block_verifiers_list.block_verifiers_public_address[count2],
+                  network_data_nodes_list.network_data_nodes_public_address[4], XCASH_WALLET_LENGTH) == 0) {
+          goto start;
       }
 
       if (main_nodes_count == 0)
@@ -1073,241 +1114,253 @@ Return: 0 if an error has occured, otherwise the amount of online delegates
 -----------------------------------------------------------------------------------------------------------
 */
 
-int get_delegates_online_status(void)
-{
-  // Variables
-  char data[SMALL_BUFFER_SIZE];
-  char data2[SMALL_BUFFER_SIZE];
-  char data3[SMALL_BUFFER_SIZE];
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
-  struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
-  int epoll_fd_copy;
-  struct timeval SOCKET_TIMEOUT = {SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS, 0};   
-  int total_delegates;
-  int total_delegates_online;
-  size_t total;
-  size_t sent;
-  long long int bytes = 1;
-  int count;
-  int count2;
-  int number;
+// int get_delegates_online_status(void)
+// {
+//   // Variables
+//   char data[SMALL_BUFFER_SIZE];
+//   char data2[SMALL_BUFFER_SIZE];
+//   char data3[SMALL_BUFFER_SIZE];
+//   time_t current_date_and_time;
+//   struct tm current_UTC_date_and_time;
+//   // struct delegates delegates[MAXIMUM_AMOUNT_OF_DELEGATES];
+//   int epoll_fd_copy;
+//   struct timeval SOCKET_TIMEOUT = {SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS, 0};   
+//   size_t total_delegates;
+//   size_t total_delegates_online;
+//   size_t total;
+//   size_t sent;
+//   long long int bytes = 1;
+//   int count;
+//   int count2;
+//   int number;
 
-  // define macros
-  #define DATABASE_COLLECTION "delegates"
-  #define MESSAGE "{\r\n \"message_settings\": \"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS\",\r\n}"
-  #define GET_DELEGATES_ONLINE_STATUS_ERROR(message) \
-  memcpy(error_message.function[error_message.total],"get_delegates_online_status",27); \
-  memcpy(error_message.data[error_message.total],message,strnlen(message,BUFFER_SIZE)); \
-  error_message.total++; \
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES); \
-  return 0;
+//   // define macros
+//   #define DATABASE_COLLECTION "delegates"
+//   #define MESSAGE "{\r\n \"message_settings\": \"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS\",\r\n}"
+//   #define GET_DELEGATES_ONLINE_STATUS_ERROR(message) \
+//   memcpy(error_message.function[error_message.total],"get_delegates_online_status",27); \
+//   memcpy(error_message.data[error_message.total],message,strnlen(message,BUFFER_SIZE)); \
+//   error_message.total++; \
+//   return 0;
 
-  memset(data,0,sizeof(data));
-  memset(data2,0,sizeof(data2));
+//   memset(data,0,sizeof(data));
+//   memset(data2,0,sizeof(data2));
   
-  // initialize the delegates struct
-  INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"get_delegates_online_status",data,current_date_and_time,current_UTC_date_and_time);
+//   // initialize the delegates struct
+//   // INITIALIZE_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES,"get_delegates_online_status",data,current_date_and_time,current_UTC_date_and_time);
 
-  // organize the delegates
-  if ((total_delegates = organize_delegates(delegates)) == 0)
-  {
-    GET_DELEGATES_ONLINE_STATUS_ERROR("Could not organize the delegates");
-  }
+//   // // organize the delegates
+//   // if ((total_delegates = organize_delegates(delegates)) == 0)
+//   // {
+//   //   GET_DELEGATES_ONLINE_STATUS_ERROR("Could not organize the delegates");
+//   // }
 
-  struct epoll_event events[total_delegates];
-  struct block_verifiers_send_data_socket block_verifiers_send_data_socket[total_delegates];
+//     delegates_t* delegates = (delegates_t*)calloc(MAXIMUM_AMOUNT_OF_DELEGATES, sizeof(delegates_t));
+//     if (read_organize_delegates(delegates, &total_delegates) != XCASH_OK) {
+//       free(delegates);
+//       GET_DELEGATES_ONLINE_STATUS_ERROR("Could not organize the delegates");
+//     }
 
-  // reset the struct delegates_online_status and struct block_verifiers_send_data_socket
-  for (count = 0; count < total_delegates; count++)
-  {
-    memset(delegates_online_status[count].public_address,0,sizeof(delegates_online_status[count].public_address));
-    memcpy(delegates_online_status[count].public_address,delegates[count].public_address,strnlen(delegates[count].public_address,sizeof(delegates_online_status[count].public_address)));
-    delegates_online_status[count].settings = 0;
+//     total_delegates = total_delegates > BLOCK_VERIFIERS_TOTAL_AMOUNT ? BLOCK_VERIFIERS_TOTAL_AMOUNT: total_delegates;
 
-    memset(block_verifiers_send_data_socket[count].IP_address,0,sizeof(block_verifiers_send_data_socket[count].IP_address));
-    memcpy(block_verifiers_send_data_socket[count].IP_address,delegates[count].IP_address,strnlen(delegates[count].IP_address,sizeof(block_verifiers_send_data_socket[count].IP_address)));
-    block_verifiers_send_data_socket[count].settings = 0;
-  }
 
-  // create the message
-  memcpy(data,MESSAGE,sizeof(MESSAGE)-1);
-  memcpy(data+strlen(data),SOCKET_END_STRING,sizeof(SOCKET_END_STRING)-1);
-  total = strnlen(data,SMALL_BUFFER_SIZE);
+//   struct epoll_event events[total_delegates];
+//   struct block_verifiers_send_data_socket block_verifiers_send_data_socket[total_delegates];
+
+//   // reset the struct delegates_online_status and struct block_verifiers_send_data_socket
+//   for (count = 0; count < (int)total_delegates; count++)
+//   {
+//     memset(delegates_online_status[count].public_address,0,sizeof(delegates_online_status[count].public_address));
+//     memcpy(delegates_online_status[count].public_address,delegates[count].public_address,strnlen(delegates[count].public_address,sizeof(delegates_online_status[count].public_address)));
+//     delegates_online_status[count].settings = 0;
+
+//     memset(block_verifiers_send_data_socket[count].IP_address,0,sizeof(block_verifiers_send_data_socket[count].IP_address));
+//     memcpy(block_verifiers_send_data_socket[count].IP_address,delegates[count].IP_address,strnlen(delegates[count].IP_address,sizeof(block_verifiers_send_data_socket[count].IP_address)));
+//     block_verifiers_send_data_socket[count].settings = 0;
+//   }
+
+//   // create the message
+//   memcpy(data,MESSAGE,sizeof(MESSAGE)-1);
+//   memcpy(data+strlen(data),SOCKET_END_STRING,sizeof(SOCKET_END_STRING)-1);
+//   total = strnlen(data,SMALL_BUFFER_SIZE);
   
-  // create the epoll file descriptor
-  if ((epoll_fd_copy = epoll_create1(0)) == -1)
-  {
-    GET_DELEGATES_ONLINE_STATUS_ERROR("Error creating the epoll file descriptor");
-  }
+//   // create the epoll file descriptor
+//   if ((epoll_fd_copy = epoll_create1(0)) == -1)
+//   {
+//     GET_DELEGATES_ONLINE_STATUS_ERROR("Error creating the epoll file descriptor");
+//   }
 
-  // convert the port to a string
-  snprintf(data2,sizeof(data2)-1,"%d",SEND_DATA_PORT); 
+//   // convert the port to a string
+//   snprintf(data2,sizeof(data2)-1,"%d",SEND_DATA_PORT); 
   
-  for (count = 0; count < total_delegates; count++)
-  { 
-    if (strncmp(delegates[count].public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
-    {
-      // Variables
-      struct addrinfo serv_addr;
-      struct addrinfo* settings = NULL;      
+//   for (count = 0; count < (int)total_delegates; count++)
+//   { 
+//     if (strncmp(delegates[count].public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
+//     {
+//       // Variables
+//       struct addrinfo serv_addr;
+//       struct addrinfo* settings = NULL;      
 
-      // set up the addrinfo
-      memset(&serv_addr, 0, sizeof(serv_addr));
-      if (check_if_IP_address_or_hostname(block_verifiers_send_data_socket[count].IP_address) == 1)
-      {
-        /* the host is an IP address
-        AI_NUMERICSERV = Specifies that getaddrinfo is provided a numerical port
-        AI_NUMERICHOST = The host is already an IP address, and this will have getaddrinfo not lookup the hostname
-        AF_INET = IPV4 support
-        SOCK_STREAM = TCP protocol
-        */
-        serv_addr.ai_flags = AI_NUMERICSERV | AI_NUMERICHOST;
-        serv_addr.ai_family = AF_INET;
-        serv_addr.ai_socktype = SOCK_STREAM;
-      }
-      else
-      {
-        /* the host is a domain name
-        AI_NUMERICSERV = Specifies that getaddrinfo is provided a numerical port
-        AF_INET = IPV4 support
-        SOCK_STREAM = TCP protocol
-        */
-        serv_addr.ai_flags = AI_NUMERICSERV;
-        serv_addr.ai_family = AF_INET;
-        serv_addr.ai_socktype = SOCK_STREAM;
-      }
+//       // set up the addrinfo
+//       memset(&serv_addr, 0, sizeof(serv_addr));
+//       if (check_if_IP_address_or_hostname(block_verifiers_send_data_socket[count].IP_address) == 1)
+//       {
+//         /* the host is an IP address
+//         AI_NUMERICSERV = Specifies that getaddrinfo is provided a numerical port
+//         AI_NUMERICHOST = The host is already an IP address, and this will have getaddrinfo not lookup the hostname
+//         AF_INET = IPV4 support
+//         SOCK_STREAM = TCP protocol
+//         */
+//         serv_addr.ai_flags = AI_NUMERICSERV | AI_NUMERICHOST;
+//         serv_addr.ai_family = AF_INET;
+//         serv_addr.ai_socktype = SOCK_STREAM;
+//       }
+//       else
+//       {
+//         /* the host is a domain name
+//         AI_NUMERICSERV = Specifies that getaddrinfo is provided a numerical port
+//         AF_INET = IPV4 support
+//         SOCK_STREAM = TCP protocol
+//         */
+//         serv_addr.ai_flags = AI_NUMERICSERV;
+//         serv_addr.ai_family = AF_INET;
+//         serv_addr.ai_socktype = SOCK_STREAM;
+//       }
   
-      // convert the hostname if used, to an IP address
-      memset(data3,0,sizeof(data3));
-      memcpy(data3,block_verifiers_send_data_socket[count].IP_address,strnlen(block_verifiers_send_data_socket[count].IP_address,sizeof(data3)));
-      if (getaddrinfo(data3, data2, &serv_addr, &settings) != 0)
-      { 
-        freeaddrinfo(settings);
-        continue;
-      }
+//       // convert the hostname if used, to an IP address
+//       memset(data3,0,sizeof(data3));
+//       memcpy(data3,block_verifiers_send_data_socket[count].IP_address,strnlen(block_verifiers_send_data_socket[count].IP_address,sizeof(data3)));
+//       if (getaddrinfo(data3, data2, &serv_addr, &settings) != 0)
+//       { 
+//         freeaddrinfo(settings);
+//         continue;
+//       }
 
-      /* Create the socket  
-      AF_INET = IPV4 support
-      SOCK_STREAM = TCP protocol
-      SOCK_NONBLOCK = Non blocking socket, so it will be able to use a custom timeout
-      */
-      if ((block_verifiers_send_data_socket[count].socket = socket(settings->ai_family, settings->ai_socktype | SOCK_NONBLOCK, settings->ai_protocol)) == -1)
-      {
-        freeaddrinfo(settings);
-        continue;
-      }
+//       /* Create the socket  
+//       AF_INET = IPV4 support
+//       SOCK_STREAM = TCP protocol
+//       SOCK_NONBLOCK = Non blocking socket, so it will be able to use a custom timeout
+//       */
+//       if ((block_verifiers_send_data_socket[count].socket = socket(settings->ai_family, settings->ai_socktype | SOCK_NONBLOCK, settings->ai_protocol)) == -1)
+//       {
+//         freeaddrinfo(settings);
+//         continue;
+//       }
 
-      /* Set the socket options for sending and receiving data
-      SOL_SOCKET = socket level
-      SO_SNDTIMEO = allow the socket on sending data, to use the timeout settings
-      */
-      if (setsockopt(block_verifiers_send_data_socket[count].socket, SOL_SOCKET, SO_SNDTIMEO,&SOCKET_TIMEOUT, sizeof(struct timeval)) != 0)
-      { 
-        freeaddrinfo(settings);
-        continue;
-      } 
+//       /* Set the socket options for sending and receiving data
+//       SOL_SOCKET = socket level
+//       SO_SNDTIMEO = allow the socket on sending data, to use the timeout settings
+//       */
+//       if (setsockopt(block_verifiers_send_data_socket[count].socket, SOL_SOCKET, SO_SNDTIMEO,&SOCKET_TIMEOUT, sizeof(struct timeval)) != 0)
+//       { 
+//         freeaddrinfo(settings);
+//         continue;
+//       } 
 
-      /* create the epoll_event struct
-      EPOLLIN = signal when the file descriptor is ready to read
-      EPOLLOUT = signal when the file descriptor is ready to write
-      EPOLLONESHOT = set the socket to only signal its ready once, since were using multiple threads
-      */  
-      events[count].events = EPOLLIN | EPOLLOUT | EPOLLONESHOT;
-      events[count].data.fd = block_verifiers_send_data_socket[count].socket;
+//       /* create the epoll_event struct
+//       EPOLLIN = signal when the file descriptor is ready to read
+//       EPOLLOUT = signal when the file descriptor is ready to write
+//       EPOLLONESHOT = set the socket to only signal its ready once, since were using multiple threads
+//       */  
+//       events[count].events = EPOLLIN | EPOLLOUT | EPOLLONESHOT;
+//       events[count].data.fd = block_verifiers_send_data_socket[count].socket;
 
-      // add the delegates socket to the epoll file descriptor
-      epoll_ctl(epoll_fd_copy, EPOLL_CTL_ADD, block_verifiers_send_data_socket[count].socket, &events[count]);
+//       // add the delegates socket to the epoll file descriptor
+//       epoll_ctl(epoll_fd_copy, EPOLL_CTL_ADD, block_verifiers_send_data_socket[count].socket, &events[count]);
 
-      // connect to the delegate
-      connect(block_verifiers_send_data_socket[count].socket,settings->ai_addr, settings->ai_addrlen);
+//       // connect to the delegate
+//       connect(block_verifiers_send_data_socket[count].socket,settings->ai_addr, settings->ai_addrlen);
 
-      freeaddrinfo(settings);
-    }  
-  }
+//       freeaddrinfo(settings);
+//     }  
+//   }
 
-  // wait for all of the sockets to connect
-  sleep(CONNECTION_TIMEOUT_SETTINGS);
+//   // wait for all of the sockets to connect
+//   sleep(CONNECTION_TIMEOUT_SETTINGS);
 
-  // get the total amount of sockets that are ready
-  number = epoll_wait(epoll_fd_copy, events, total_delegates, 0);
+//   // get the total amount of sockets that are ready
+//   number = epoll_wait(epoll_fd_copy, events, total_delegates, 0);
 
-  for (count = 0; count < number; count++)
-  {
-    // check that the socket is connected
-    if (events[count].events & EPOLLIN || events[count].events & EPOLLOUT)
-    {
-      // set the settings of the delegate to 1
-      for (count2 = 0; count2 < total_delegates; count2++)
-      {
-        if (events[count].data.fd == block_verifiers_send_data_socket[count2].socket)
-        {
-          block_verifiers_send_data_socket[count2].settings = 1;
-        }
-      }
-    }
-  }
+//   for (count = 0; count < number; count++)
+//   {
+//     // check that the socket is connected
+//     if (events[count].events & EPOLLIN || events[count].events & EPOLLOUT)
+//     {
+//       // set the settings of the delegate to 1
+//       for (count2 = 0; count2 < (int)total_delegates; count2++)
+//       {
+//         if (events[count].data.fd == block_verifiers_send_data_socket[count2].socket)
+//         {
+//           block_verifiers_send_data_socket[count2].settings = 1;
+//         }
+//       }
+//     }
+//   }
 
-  // get the current time
-  get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
+//   // get the current time
+//   get_current_UTC_time(current_date_and_time,current_UTC_date_and_time);
 
-  for (count = 0; count < total_delegates; count++)
-  {
-    if (block_verifiers_send_data_socket[count].settings == 1)
-    {
-      delegates_online_status[count].settings = 1;
+//   for (count = 0; count < (int)total_delegates; count++)
+//   {
+//     if (block_verifiers_send_data_socket[count].settings == 1)
+//     {
+//       delegates_online_status[count].settings = 1;
       
-      for (sent = 0; sent < total; sent += bytes == -1 ? 0 : bytes)
-      {
-        if ((bytes = send(block_verifiers_send_data_socket[count].socket,data+sent,total-sent,MSG_NOSIGNAL)) == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
-        {      
-          delegates_online_status[count].settings = 0;     
-          break;
-        }
-      }
-    }
-    else if (block_verifiers_send_data_socket[count].settings == 0 && strncmp(delegates_online_status[count].public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0)
-    {
-      delegates_online_status[count].settings = 1;
-    }
-    else if (block_verifiers_send_data_socket[count].settings == 0 && strncmp(delegates_online_status[count].public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
-    {
-      delegates_online_status[count].settings = 0;
-    }        
-  }
+//       for (sent = 0; sent < total; sent += bytes == -1 ? 0 : bytes)
+//       {
+//         if ((bytes = send(block_verifiers_send_data_socket[count].socket,data+sent,total-sent,MSG_NOSIGNAL)) == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
+//         {      
+//           delegates_online_status[count].settings = 0;     
+//           break;
+//         }
+//       }
+//     }
+//     else if (block_verifiers_send_data_socket[count].settings == 0 && strncmp(delegates_online_status[count].public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0)
+//     {
+//       delegates_online_status[count].settings = 1;
+//     }
+//     else if (block_verifiers_send_data_socket[count].settings == 0 && strncmp(delegates_online_status[count].public_address,xcash_wallet_public_address,XCASH_WALLET_LENGTH) != 0)
+//     {
+//       delegates_online_status[count].settings = 0;
+//     }        
+//   }
 
-  // wait for all of the data to be sent to the connected sockets, and for the block verifiers to process the data
-  sleep(BLOCK_VERIFIERS_SETTINGS);
+//   // wait for all of the data to be sent to the connected sockets, and for the block verifiers to process the data
+//   sleep(BLOCK_VERIFIERS_SETTINGS);
 
-  for (count = 0, total_delegates_online = 0; count < total_delegates; count++)
-  {
-    // update the delegates online status
-    memset(data,0,sizeof(data));
-    memset(data2,0,sizeof(data2));
-    memcpy(data2,"{\"public_address\":\"",19);
-    memcpy(data2+19,delegates_online_status[count].public_address,XCASH_WALLET_LENGTH);
-    memcpy(data2+117,"\"}",2);
+//   for (count = 0, total_delegates_online = 0; count < (int)total_delegates; count++)
+//   {
+//     // update the delegates online status
+//     memset(data,0,sizeof(data));
+//     memset(data2,0,sizeof(data2));
+//     memcpy(data2,"{\"public_address\":\"",19);
+//     memcpy(data2+19,delegates_online_status[count].public_address,XCASH_WALLET_LENGTH);
+//     memcpy(data2+117,"\"}",2);
 
-    if (delegates_online_status[count].settings == 1)
-    {
-      memcpy(data,"{\"online_status\":\"true\"}",24);
-      total_delegates_online++;
-    }
-    else
-    {
-      memcpy(data,"{\"online_status\":\"false\"}",25);
-    }
+//     if (delegates_online_status[count].settings == 1)
+//     {
+//       memcpy(data,"{\"online_status\":\"true\"}",24);
+//       total_delegates_online++;
+//     }
+//     else
+//     {
+//       memcpy(data,"{\"online_status\":\"false\"}",25);
+//     }
+//     // TODO this fucking mess. need to separate online status from delegates DB
+//     update_document_from_collection(database_name,DATABASE_COLLECTION,data2,data);
 
-    update_document_from_collection(database_name,DATABASE_COLLECTION,data2,data);
+//     // remove all of the sockets from the epoll file descriptor and close all of the sockets
+//     epoll_ctl(epoll_fd_copy, EPOLL_CTL_DEL, block_verifiers_send_data_socket[count].socket, &events[count]);
+//     close(block_verifiers_send_data_socket[count].socket);
+//   }
 
-    // remove all of the sockets from the epoll file descriptor and close all of the sockets
-    epoll_ctl(epoll_fd_copy, EPOLL_CTL_DEL, block_verifiers_send_data_socket[count].socket, &events[count]);
-    close(block_verifiers_send_data_socket[count].socket);
-  }
-  POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
-  return total_delegates_online;
 
-  #undef DATABASE_COLLECTION
-  #undef MESSAGE
-  #undef GET_DELEGATES_ONLINE_STATUS_ERROR
-}
+//   // POINTER_RESET_DELEGATES_STRUCT(count,MAXIMUM_AMOUNT_OF_DELEGATES);
+//   free(delegates);
+
+//   return total_delegates_online;
+
+//   #undef DATABASE_COLLECTION
+//   #undef MESSAGE
+//   #undef GET_DELEGATES_ONLINE_STATUS_ERROR
+// }

@@ -20,6 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-parameter="
 
 
 #include <string.h>
@@ -100,6 +102,7 @@ vrf_validate_key(ge25519_p3 *y_out, const unsigned char pk_string[32])
 /* Validate an untrusted public key as specified in the draft spec section
  * 5.6.1. Return 1 if the key is valid, 0 otherwise.
  */
+
 int
 crypto_vrf_ietfdraft03_is_valid_key(const unsigned char pk[crypto_vrf_ietfdraft03_PUBLICKEYBYTES])
 {
@@ -191,3 +194,5 @@ crypto_vrf_ietfdraft03_verify(unsigned char output[crypto_vrf_ietfdraft03_OUTPUT
         return -1;
     }
 }
+
+#pragma GCC diagnostic pop

@@ -1151,7 +1151,14 @@ void server_receive_data_socket_nodes_to_block_verifiers_recover_delegates(const
   for (count = 0; count < dns_result; count++)
   {
     ns_parserr(&dns_message, ns_s_an, count, &dns_record);
+
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
     ns_sprintrr(&dns_message, &dns_record, NULL, NULL, data2, sizeof(data2));
+    
+    #pragma GCC diagnostic pop
+
 
     // check if it is a XCASH DPOPS TXT record
     if ((message = strstr(data2,TXT_RECORD_START_STRING)) != NULL)

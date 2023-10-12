@@ -7,6 +7,8 @@ Function prototypes
 -----------------------------------------------------------------------------------------------------------
 */
 
+void server_received_msg_get_sync_info(const int CLIENT_SOCKET, const char* MESSAGE);
+
 void server_receive_data_socket_get_current_block_height(const char* CLIENT_IP_ADDRESS);
 void server_receive_data_socket_send_current_block_height(const char* MESSAGE);
 void server_receive_data_socket_node_to_network_data_nodes_get_previous_current_next_block_verifiers_list(const int CLIENT_SOCKET);

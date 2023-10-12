@@ -47,8 +47,8 @@ int sign_data(char *message)
   char beta_string[VRF_BETA_LENGTH+1];
   char* result = (char*)calloc(MAXIMUM_AMOUNT,sizeof(char));
   char* string = (char*)calloc(MAXIMUM_AMOUNT,sizeof(char));
-  time_t current_date_and_time;
-  struct tm current_UTC_date_and_time;
+  // time_t current_date_and_time;
+  // struct tm current_UTC_date_and_time;
 
   // define macros
   #define pointer_reset_all \
@@ -65,124 +65,146 @@ int sign_data(char *message)
   return 0;
 
   // check if the memory needed was allocated on the heap successfully
-  if (result == NULL || string == NULL)
-  {    
-    if (result != NULL)
-    {
-      pointer_reset(result);
-    }
-    if (string != NULL)
-    {
-      pointer_reset(string);
-    }
-    memcpy(error_message.function[error_message.total],"sign_data",9);
-    memcpy(error_message.data[error_message.total],"Could not allocate the memory needed on the heap",48);
-    error_message.total++;
-    print_error_message(current_date_and_time,current_UTC_date_and_time,data);
-    exit(0);
-  } 
-  
-  memset(proof,0,sizeof(proof));
-  memset(beta_string,0,sizeof(beta_string));
-  memset(random_data,0,sizeof(random_data));
-  memset(data,0,sizeof(data));
-  
+  if (result == NULL || string == NULL) {
+      SIGN_DATA_ERROR("Could not allocate the memory needed on the heap");
+
+      // stupid. free takes care of null pointer
+
+      // if (result != NULL) {
+      //     pointer_reset(result);
+      // }
+      // if (string != NULL) {
+      //     pointer_reset(string);
+      // }
+      
+      // memcpy(error_message.function[error_message.total], "sign_data", 9);
+      // memcpy(error_message.data[error_message.total], "Could not allocate the memory needed on the heap", 48);
+      // error_message.total++;
+      // print_error_message(current_date_and_time, current_UTC_date_and_time, data);
+      // exit(0);
+
+  };
+
+  memset(proof, 0, sizeof(proof));
+  memset(beta_string, 0, sizeof(beta_string));
+  memset(random_data, 0, sizeof(random_data));
+  memset(data, 0, sizeof(data));
+
   // create the random data
-  if (random_string(random_data,RANDOM_STRING_LENGTH) == 0)
-  {
-    SIGN_DATA_ERROR("Could not create the random data");
+  if (random_string(random_data, RANDOM_STRING_LENGTH) == 0) {
+      SIGN_DATA_ERROR("Could not create the random data");
   }
-  
+
   pthread_rwlock_rdlock(&rwlock);
+
+  // I bet it's concurency bug
+  // So, dirty hack, until I rewrite this shit completely
+  if (strlen(previous_block_hash) == 0) {
+      char local_previous_block_hash[BLOCK_HASH_LENGTH+1];
+      if (get_previous_block_hash(local_previous_block_hash) == 0) {
+          strcpy(previous_block_hash,local_previous_block_hash);
+      }else{
+        // sorry, I give up. Maybe it's some problem with daemon
+        // ! wtf? pthread_rwlock_rdlock will remain locked. fuuuuuck, how many of then during the session?
+        // fix it manually. again
+        pthread_rwlock_unlock(&rwlock);
+        SIGN_DATA_ERROR("previous_block_hash is empty. can't sign the message");
+      }
+
+  };
+
+
   // create the message
-  memcpy(result,message,strlen(message)-1);
-  memcpy(result+strlen(result),"\"public_address\": \"",19);
-  memcpy(result+strlen(result),xcash_wallet_public_address,XCASH_WALLET_LENGTH);
-  memcpy(result+strlen(result),"\",\r\n \"previous_block_hash\": \"",29);
-  memcpy(result+strlen(result),previous_block_hash,strnlen(previous_block_hash,sizeof(previous_block_hash)));  
-  memcpy(result+strlen(result),"\",\r\n \"current_round_part\": \"",28);
-  memcpy(result+strlen(result),current_round_part,sizeof(char));
-  memcpy(result+strlen(result),"\",\r\n \"current_round_part_backup_node\": \"",40);
-  memcpy(result+strlen(result),current_round_part_backup_node,sizeof(char));
-  memcpy(result+strlen(result),"\",\r\n \"data\": \"",14);
-  memcpy(result+strlen(result),random_data,RANDOM_STRING_LENGTH);
-  memcpy(result+strlen(result),"\",\r\n}",5);
+  memcpy(result, message, strlen(message) - 1);
+  memcpy(result + strlen(result), "\"public_address\": \"", 19);
+  memcpy(result + strlen(result), xcash_wallet_public_address, XCASH_WALLET_LENGTH);
+  memcpy(result + strlen(result), "\",\r\n \"previous_block_hash\": \"", 29);
+  memcpy(result + strlen(result), previous_block_hash, strnlen(previous_block_hash, sizeof(previous_block_hash)));
+  memcpy(result + strlen(result), "\",\r\n \"current_round_part\": \"", 28);
+  memcpy(result + strlen(result), current_round_part, sizeof(char));
+  memcpy(result + strlen(result), "\",\r\n \"current_round_part_backup_node\": \"", 40);
+  memcpy(result + strlen(result), current_round_part_backup_node, sizeof(char));
+  memcpy(result + strlen(result), "\",\r\n \"data\": \"", 14);
+  memcpy(result + strlen(result), random_data, RANDOM_STRING_LENGTH);
+  memcpy(result + strlen(result), "\",\r\n}", 5);
   pthread_rwlock_unlock(&rwlock);
 
   // format the message
-  string_replace(result,MAXIMUM_AMOUNT,"\"","\\\"");
-  
-  if (strstr(message,"XCASH_PROOF_OF_STAKE_TEST_DATA_2") != NULL || (strstr(message,"NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST") == NULL && strstr(message,"XCASH_PROOF_OF_STAKE_TEST_DATA") == NULL && strstr(message,"NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF") == NULL && strstr(message,"NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE") == NULL && strstr(message,"NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE") == NULL))
-  {
-    // sign data
-    if (VRF_sign_data(beta_string,proof,result) == 0)
-    {
-      SIGN_DATA_ERROR("Could not sign the message");
-    }
-    
-    pthread_rwlock_rdlock(&rwlock);
-    // create the message  
-    memcpy(message+strlen(message)-1,"\"public_address\": \"",19);
-    memcpy(message+strlen(message),xcash_wallet_public_address,XCASH_WALLET_LENGTH);
-    memcpy(message+strlen(message),"\",\r\n \"previous_block_hash\": \"",29);
-    memcpy(message+strlen(message),previous_block_hash,strnlen(previous_block_hash,sizeof(previous_block_hash)));  
-    memcpy(message+strlen(message),"\",\r\n \"current_round_part\": \"",28);
-    memcpy(message+strlen(message),current_round_part,sizeof(char));
-    memcpy(message+strlen(message),"\",\r\n \"current_round_part_backup_node\": \"",40);
-    memcpy(message+strlen(message),current_round_part_backup_node,sizeof(char));
-    memcpy(message+strlen(message),"\",\r\n \"data\": \"",14);
-    memcpy(message+strlen(message),random_data,RANDOM_STRING_LENGTH);
-    memcpy(message+strlen(message),"\",\r\n \"XCASH_DPOPS_signature\": \"",31);
-    memcpy(message+strlen(message),proof,VRF_PROOF_LENGTH);
-    memcpy(message+strlen(message),beta_string,VRF_BETA_LENGTH);
-    memcpy(message+strlen(message),"\",\r\n}",5);
-    pthread_rwlock_unlock(&rwlock);
-  }
-  else
-  {
-    // sign_data
-    memcpy(string,"{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"sign\",\"params\":{\"data\":\"",60);
-    memcpy(string+60,result,strnlen(result,MAXIMUM_AMOUNT));
-    memcpy(string+strlen(string),"\"}}",3);
-    memset(result,0,strlen(result));
-  
-    if (send_http_request(data,XCASH_wallet_IP_address,"/json_rpc",xcash_wallet_port,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,string,SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0)
-    {  
-      SIGN_DATA_ERROR("Could not create the message");
-    } 
+  string_replace(result, MAXIMUM_AMOUNT, "\"", "\\\"");
 
-    if (parse_json_data(data,"signature",result,MAXIMUM_AMOUNT) == 0)
-    {
-      SIGN_DATA_ERROR("Could not create the message");
-    }
+  if (strstr(message, "XCASH_PROOF_OF_STAKE_TEST_DATA_2") != NULL ||
+      (strstr(message, "NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST") == NULL &&
+        strstr(message, "XCASH_PROOF_OF_STAKE_TEST_DATA") == NULL &&
+        strstr(message, "NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF") == NULL &&
+        strstr(message, "NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE") == NULL &&
+        strstr(message, "NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE") == NULL)) {
+      // sign data
+      if (VRF_sign_data(beta_string, proof, result) == 0) {
+          SIGN_DATA_ERROR("Could not sign the message");
+      }
 
-    // check if the returned data is valid
-    if (strnlen(result,BUFFER_SIZE) != XCASH_SIGN_DATA_LENGTH && strncmp(result,XCASH_SIGN_DATA_PREFIX,sizeof(XCASH_SIGN_DATA_PREFIX)-1) != 0)
-    {
-      SIGN_DATA_ERROR("Could not create the message");
-    }
-  
-    pthread_rwlock_rdlock(&rwlock);
-    // create the message  
-    memcpy(message+strlen(message)-1,"\"public_address\": \"",19);
-    memcpy(message+strlen(message),xcash_wallet_public_address,XCASH_WALLET_LENGTH);
-    memcpy(message+strlen(message),"\",\r\n \"previous_block_hash\": \"",29);
-    memcpy(message+strlen(message),previous_block_hash,strnlen(previous_block_hash,sizeof(previous_block_hash)));  
-    memcpy(message+strlen(message),"\",\r\n \"current_round_part\": \"",28);
-    memcpy(message+strlen(message),current_round_part,sizeof(char));
-    memcpy(message+strlen(message),"\",\r\n \"current_round_part_backup_node\": \"",40);
-    memcpy(message+strlen(message),current_round_part_backup_node,sizeof(char));
-    memcpy(message+strlen(message),"\",\r\n \"data\": \"",14);
-    memcpy(message+strlen(message),random_data,RANDOM_STRING_LENGTH);
-    memcpy(message+strlen(message),"\",\r\n \"XCASH_DPOPS_signature\": \"",31);
-    memcpy(message+strlen(message),result,XCASH_SIGN_DATA_LENGTH);
-    memcpy(message+strlen(message),"\",\r\n}",5);
-    pthread_rwlock_unlock(&rwlock);
+      pthread_rwlock_rdlock(&rwlock);
+      // create the message
+      memcpy(message + strlen(message) - 1, "\"public_address\": \"", 19);
+      memcpy(message + strlen(message), xcash_wallet_public_address, XCASH_WALLET_LENGTH);
+      memcpy(message + strlen(message), "\",\r\n \"previous_block_hash\": \"", 29);
+      memcpy(message + strlen(message), previous_block_hash,
+              strnlen(previous_block_hash, sizeof(previous_block_hash)));
+      memcpy(message + strlen(message), "\",\r\n \"current_round_part\": \"", 28);
+      memcpy(message + strlen(message), current_round_part, sizeof(char));
+      memcpy(message + strlen(message), "\",\r\n \"current_round_part_backup_node\": \"", 40);
+      memcpy(message + strlen(message), current_round_part_backup_node, sizeof(char));
+      memcpy(message + strlen(message), "\",\r\n \"data\": \"", 14);
+      memcpy(message + strlen(message), random_data, RANDOM_STRING_LENGTH);
+      memcpy(message + strlen(message), "\",\r\n \"XCASH_DPOPS_signature\": \"", 31);
+      memcpy(message + strlen(message), proof, VRF_PROOF_LENGTH);
+      memcpy(message + strlen(message), beta_string, VRF_BETA_LENGTH);
+      memcpy(message + strlen(message), "\",\r\n}", 5);
+      pthread_rwlock_unlock(&rwlock);
+  } else {
+      // sign_data
+      memcpy(string, "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"sign\",\"params\":{\"data\":\"", 60);
+      memcpy(string + 60, result, strnlen(result, MAXIMUM_AMOUNT));
+      memcpy(string + strlen(string), "\"}}", 3);
+      memset(result, 0, strlen(result));
+
+      if (send_http_request(data, XCASH_wallet_IP_address, "/json_rpc", xcash_wallet_port, "POST", HTTP_HEADERS,
+                            HTTP_HEADERS_LENGTH, string, SEND_OR_RECEIVE_SOCKET_DATA_TIMEOUT_SETTINGS) <= 0) {
+          SIGN_DATA_ERROR("Could not create the message");
+      }
+
+      if (parse_json_data(data, "signature", result, MAXIMUM_AMOUNT) == 0) {
+          SIGN_DATA_ERROR("Could not create the message");
+      }
+
+      // check if the returned data is valid
+      if (strnlen(result, BUFFER_SIZE) != XCASH_SIGN_DATA_LENGTH &&
+          strncmp(result, XCASH_SIGN_DATA_PREFIX, sizeof(XCASH_SIGN_DATA_PREFIX) - 1) != 0) {
+          SIGN_DATA_ERROR("Could not create the message");
+      }
+
+      pthread_rwlock_rdlock(&rwlock);
+      // create the message
+      memcpy(message + strlen(message) - 1, "\"public_address\": \"", 19);
+      memcpy(message + strlen(message), xcash_wallet_public_address, XCASH_WALLET_LENGTH);
+      memcpy(message + strlen(message), "\",\r\n \"previous_block_hash\": \"", 29);
+      memcpy(message + strlen(message), previous_block_hash,
+              strnlen(previous_block_hash, sizeof(previous_block_hash)));
+      memcpy(message + strlen(message), "\",\r\n \"current_round_part\": \"", 28);
+      memcpy(message + strlen(message), current_round_part, sizeof(char));
+      memcpy(message + strlen(message), "\",\r\n \"current_round_part_backup_node\": \"", 40);
+      memcpy(message + strlen(message), current_round_part_backup_node, sizeof(char));
+      memcpy(message + strlen(message), "\",\r\n \"data\": \"", 14);
+      memcpy(message + strlen(message), random_data, RANDOM_STRING_LENGTH);
+      memcpy(message + strlen(message), "\",\r\n \"XCASH_DPOPS_signature\": \"", 31);
+      memcpy(message + strlen(message), result, XCASH_SIGN_DATA_LENGTH);
+      memcpy(message + strlen(message), "\",\r\n}", 5);
+      pthread_rwlock_unlock(&rwlock);
   }
   pointer_reset_all;
   return 1;
 
-  #undef pointer_reset_all  
+#undef pointer_reset_all  
   #undef SIGN_DATA_ERROR
 }
 
@@ -239,8 +261,7 @@ int verify_data(const char* MESSAGE, const int VERIFY_CURRENT_ROUND_PART_AND_CUR
   #define VERIFY_DATA_ERROR(settings) \
   if (network_functions_test_error_settings == 1 && debug_settings == 1) \
   { \
-  DEBUG_FUNC_PRINT(); \
-  fprintf(stderr,"%s\n\n%s\n\n\n", settings, MESSAGE); \
+  DEBUG_PRINT("%s\n\n%s\n\n\n", settings, MESSAGE); \
   memcpy(error_message.function[error_message.total],"verify_data",11); \
   memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
   error_message.total++; \
@@ -699,8 +720,7 @@ int validate_data(const char* MESSAGE)
   #define VALIDATE_DATA_ERROR(settings) \
   if (debug_settings == 1 && test_settings == 0) \
   { \
-  DEBUG_FUNC_PRINT(); \
-  fprintf(stderr,"\n\n\n%s\n\n%s\n", MESSAGE, settings); \
+  DEBUG_PRINT("\n\n\n%s\n\n%s\n", MESSAGE, settings); \
   memcpy(error_message.function[error_message.total],"validate_data",13); \
   memcpy(error_message.data[error_message.total],settings,sizeof(settings)-1); \
   error_message.total++; \
@@ -711,350 +731,673 @@ int validate_data(const char* MESSAGE)
   memset(data,0,sizeof(data));
 
   // check if the format is correct for each message
-  if (strstr(MESSAGE,"NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF") != NULL || strstr(MESSAGE,"NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE") != NULL || strstr(MESSAGE,"NODE_TO_NETWORK_DATA_NODES_CHECK_VOTE_STATUS") != NULL || strstr(MESSAGE,"NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE") != NULL || strstr(MESSAGE,"NODES_TO_BLOCK_VERIFIERS_RECOVER_DELEGATE") != NULL || strstr(MESSAGE,"NODE_TO_BLOCK_VERIFIERS_GET_RESERVE_BYTES_DATABASE_HASH") != NULL || strstr(MESSAGE,"BLOCK_VERIFIERS_TO_NODES_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_DOWNLOAD") != NULL || strstr(MESSAGE,"GET /delegateswebsitegetstatistics HTTP/") != NULL || strstr(MESSAGE,"GET /getdelegates HTTP/") != NULL || strncmp(MESSAGE,"GET /getdelegatesstatistics?parameter1=",39) == 0 || strncmp(MESSAGE,"GET /getdelegatesinformation?parameter1=",40) == 0)
-  {
-    return 1;
-  }
-  else if (strstr(MESSAGE,"GET_CURRENT_BLOCK_HEIGHT") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"GET_CURRENT_BLOCK_HEIGHT",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"SEND_CURRENT_BLOCK_HEIGHT") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"SEND_CURRENT_BLOCK_HEIGHT",sizeof(data)) != 0 || parse_json_data(MESSAGE,"block_height",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"MAIN_NODES_TO_NODES_PART_4_OF_ROUND_CREATE_NEW_BLOCK") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"MAIN_NODES_TO_NODES_PART_4_OF_ROUND_CREATE_NEW_BLOCK",sizeof(data)) != 0 || parse_json_data(MESSAGE,"block_blob",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"MAIN_NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_START_BLOCK") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"MAIN_NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_START_BLOCK",sizeof(data)) != 0 || parse_json_data(MESSAGE,"database_data",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_bytes_data_hash",data,sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA",sizeof(data)) != 0 || parse_json_data(MESSAGE,"vrf_secret_key",data,sizeof(data)) == 0 || strlen(data) != VRF_SECRET_KEY_LENGTH || parse_json_data(MESSAGE,"vrf_public_key",data,sizeof(data)) == 0 || strlen(data) != VRF_PUBLIC_KEY_LENGTH || parse_json_data(MESSAGE,"random_data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NODES_TO_NODES_VOTE_MAJORITY_RESULTS") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NODES_TO_NODES_VOTE_MAJORITY_RESULTS",sizeof(data)) != 0 || parse_json_data(MESSAGE,"vote_data_1",data,sizeof(data)) == 0 || (strlen(data) != VRF_SECRET_KEY_LENGTH+VRF_PUBLIC_KEY_LENGTH+RANDOM_STRING_LENGTH && strlen(data) != VRF_PROOF_LENGTH+VRF_BETA_LENGTH) || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NODES_TO_NODES_VOTE_RESULTS") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NODES_TO_NODES_VOTE_RESULTS",sizeof(data)) != 0 || parse_json_data(MESSAGE,"vote_settings",data,sizeof(data)) == 0 || (strncmp(data,"valid",5) != 0 && strncmp(data,"invalid",7) != 0) || parse_json_data(MESSAGE,"vote_data",data,sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_BLOCK_BLOB_SIGNATURE") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_BLOCK_BLOB_SIGNATURE",sizeof(data)) != 0 || parse_json_data(MESSAGE,"block_blob_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_PROOF_LENGTH+VRF_BETA_LENGTH || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_INVALID_RESERVE_PROOFS") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_INVALID_RESERVE_PROOFS",sizeof(data)) != 0 || parse_json_data(MESSAGE,"public_address_that_created_the_reserve_proof",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) || parse_json_data(MESSAGE,"reserve_proof",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST") != NULL)
-  {   
-    if (strstr(MESSAGE,"\"public_address\"") != NULL && (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST",sizeof(data)) != 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH))
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-    else if (strstr(MESSAGE,"\"public_address\"") == NULL && (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST",sizeof(data)) != 0))
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NETWORK_DATA_NODE_TO_NODE_SEND_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NETWORK_DATA_NODE_TO_NODE_SEND_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST",sizeof(data)) != 0 || parse_json_data(MESSAGE,"previous_block_verifiers_name_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"previous_block_verifiers_public_address_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"previous_block_verifiers_IP_address_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"current_block_verifiers_name_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"current_block_verifiers_public_address_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"current_block_verifiers_IP_address_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"next_block_verifiers_name_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"next_block_verifiers_public_address_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"next_block_verifiers_IP_address_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NETWORK_DATA_NODE_TO_NODE_SEND_CURRENT_BLOCK_VERIFIERS_LIST") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NETWORK_DATA_NODE_TO_NODE_SEND_CURRENT_BLOCK_VERIFIERS_LIST",sizeof(data)) != 0 || parse_json_data(MESSAGE,"block_verifiers_public_address_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"block_verifiers_IP_address_list",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME",sizeof(data)) != 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_BLOCK_VERIFIERS_CURRENT_TIME") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_BLOCK_VERIFIERS_CURRENT_TIME",sizeof(data)) != 0 || parse_json_data(MESSAGE,"current_time",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 ||
-     strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NODE_TO_BLOCK_VERIFIERS_CHECK_IF_CURRENT_BLOCK_VERIFIER") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NODE_TO_BLOCK_VERIFIERS_CHECK_IF_CURRENT_BLOCK_VERIFIER",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_NODE_SEND_RESERVE_BYTES") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_NODE_SEND_RESERVE_BYTES",sizeof(data)) != 0 || parse_json_data(MESSAGE,"reserve_bytes",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"NETWORK_DATA_NODES_TO_NETWORK_DATA_NODES_DATABASE_SYNC_CHECK") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"NETWORK_DATA_NODES_TO_NETWORK_DATA_NODES_DATABASE_SYNC_CHECK",sizeof(data)) != 0 || parse_json_data(MESSAGE,"previous_blocks_reserve_bytes",data,sizeof(data)) == 0 || (strncmp(data,"true",BUFFER_SIZE) != 0 && strncmp(data,"false",BUFFER_SIZE) != 0) || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE") != NULL)
-  {    
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE",sizeof(data)) != 0 || parse_json_data(MESSAGE,"reserve_bytes_settings",data,sizeof(data)) == 0 || (strncmp(data,"0",1) != 0 && strncmp(data,"1",1) != 0) || parse_json_data(MESSAGE,"reserve_bytes_data_hash",data,sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_DOWNLOAD",sizeof(data)) != 0 || parse_json_data(MESSAGE,"reserve_bytes_database",data,sizeof(data)) == 0 || (strncmp(data,"true",4) != 0 && strncmp(data,"false",5) != 0) || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_DOWNLOAD",sizeof(data)) != 0 || parse_json_data(MESSAGE,"reserve_bytes_database",data,sizeof(data)) == 0 || (strncmp(data,"true",4) != 0 && strncmp(data,"false",5) != 0) || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_DOWNLOAD_FILE_UPDATE") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_DOWNLOAD_FILE_UPDATE",sizeof(data)) != 0 || parse_json_data(MESSAGE,"file",data,sizeof(data)) == 0 || strstr(data,"reserve_bytes_") == NULL)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_DOWNLOAD_FILE_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_DOWNLOAD_FILE_DOWNLOAD",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_UPDATE") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_UPDATE",sizeof(data)) != 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash",data,sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH || parse_json_data(MESSAGE,"reserve_proofs_data_hash_1",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_2",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_3",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_4",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_5",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_6",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_7",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_8",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_9",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_10",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_11",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_12",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_13",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_14",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_15",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_16",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_17",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_18",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_19",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_20",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_20",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_21",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_22",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_23",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_24",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_25",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_26",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_27",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_28",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_29",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_30",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_31",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_32",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_33",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_34",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_35",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_36",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_37",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_38",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_39",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_40",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_41",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_42",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_43",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_44",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_45",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_46",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_47",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_48",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_49",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_data_hash_50",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_DOWNLOAD",sizeof(data)) != 0 || parse_json_data(MESSAGE,"reserve_proofs_database",data,sizeof(data)) == 0 || (strncmp(data,"true",4) != 0 && strncmp(data,"false",5) != 0) || parse_json_data(MESSAGE,"reserve_proofs_database_1",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_2",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_3",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_4",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_5",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_6",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_7",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_8",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_9",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_10",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_11",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_12",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_13",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_14",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_15",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_16",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_17",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_18",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_19",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_20",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_20",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_21",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_22",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_23",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_24",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_25",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_26",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_27",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_28",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_29",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_30",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_31",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_32",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_33",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_34",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_35",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_36",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_37",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_38",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_39",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_40",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_41",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_42",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_43",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_44",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_45",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_46",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_47",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_48",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_49",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"reserve_proofs_database_50",data,sizeof(data)) == 0 || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_DOWNLOAD_FILE_UPDATE") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_DOWNLOAD_FILE_UPDATE",sizeof(data)) != 0 || parse_json_data(MESSAGE,"file",data,sizeof(data)) == 0 || strstr(data,"reserve_proofs_") == NULL)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_DOWNLOAD_FILE_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_DOWNLOAD_FILE_DOWNLOAD",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_UPDATE") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_UPDATE",sizeof(data)) != 0 || parse_json_data(MESSAGE,"data_hash",data,sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_DOWNLOAD",sizeof(data)) != 0 || parse_json_data(MESSAGE,"delegates_database",data,sizeof(data)) == 0 || (strncmp(data,"true",4) != 0 && strncmp(data,"false",5) != 0) || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_DOWNLOAD_FILE_UPDATE") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_DOWNLOAD_FILE_UPDATE",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_DOWNLOAD_FILE_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_DOWNLOAD_FILE_DOWNLOAD",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_UPDATE") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_UPDATE",sizeof(data)) != 0 || parse_json_data(MESSAGE,"data_hash",data,sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_DOWNLOAD",sizeof(data)) != 0 || parse_json_data(MESSAGE,"statistics_database",data,sizeof(data)) == 0 || (strncmp(data,"true",4) != 0 && strncmp(data,"false",5) != 0) || parse_json_data(MESSAGE,"public_address",data,sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH || strncmp(data,XCASH_WALLET_PREFIX,sizeof(XCASH_WALLET_PREFIX)-1) != 0 || parse_json_data(MESSAGE,"previous_block_hash",data,sizeof(data)) == 0 || strlen(data) != BLOCK_HASH_LENGTH || parse_json_data(MESSAGE,"current_round_part",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"current_round_part_backup_node",data,sizeof(data)) == 0 || strlen(data) != 1 || parse_json_data(MESSAGE,"data",data,sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE,"XCASH_DPOPS_signature",data,sizeof(data)) == 0 || strlen(data) != VRF_BETA_LENGTH+VRF_PROOF_LENGTH)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_UPDATE") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_UPDATE",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_DOWNLOAD") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_DOWNLOAD",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"XCASH_PROOF_OF_STAKE_TEST_DATA") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"XCASH_PROOF_OF_STAKE_TEST_DATA",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (strstr(MESSAGE,"XCASH_PROOF_OF_STAKE_TEST_DATA_2") != NULL)
-  {
-    if (parse_json_data(MESSAGE,"message_settings",data,sizeof(data)) == 0 || strncmp(data,"XCASH_PROOF_OF_STAKE_TEST_DATA_2",sizeof(data)) != 0)
-    {
-      VALIDATE_DATA_ERROR("Invalid message");
-    }
-  }
-  else if (delegates_website == 1)
-  {
-    if (strncmp(MESSAGE,"GET /getdelegatesstatistics?parameter1=",39) == 0)
-    {
-      if (strlen(&MESSAGE[39]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[39]," HTTP/") == NULL)
-      {
-        VALIDATE_DATA_ERROR("Invalid message");
-      }      
-    }
-    else if (strncmp(MESSAGE,"GET /getdelegatesinformation?parameter1=",40) == 0)
-    {
-      if (strlen(&MESSAGE[40]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[40]," HTTP/") == NULL)
-      {
-        VALIDATE_DATA_ERROR("Invalid message");
-      } 
-    }
-    else if (strncmp(MESSAGE,"GET /checkvotestatus?parameter1=",32) == 0)
-    {
-      if (strlen(&MESSAGE[32]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[32]," HTTP/") == NULL)
-      {
-        VALIDATE_DATA_ERROR("Invalid message");
-      }      
-    }
-    else if (strncmp(MESSAGE,"GET /getdelegatesvoterslist?parameter1=",39) == 0)
-    {
-      if (strlen(&MESSAGE[39]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[39]," HTTP/") == NULL)
-      {
-        VALIDATE_DATA_ERROR("Invalid message");
-      } 
-    }
-    else if (strncmp(MESSAGE,"GET /getroundstatistics?parameter1=",35) == 0)
-    {
-      memcpy(data,&MESSAGE[35],(strnlen(MESSAGE,sizeof(data)) - strnlen(strstr(MESSAGE," HTTP/"),sizeof(data)))-35);
-      for (count = 35; count < (int)strlen(data); count++)
-      {
-        if (strncmp(&data[count],"0",1) != 0 && strncmp(&data[count],"1",1) != 0 && strncmp(&data[count],"2",1) != 0 && strncmp(&data[count],"3",1) != 0 && strncmp(&data[count],"4",1) != 0 && strncmp(&data[count],"5",1) != 0 && strncmp(&data[count],"6",1) != 0 && strncmp(&data[count],"7",1) != 0 && strncmp(&data[count],"8",1) != 0 && strncmp(&data[count],"9",1) != 0)
-        {
+  if (strstr(MESSAGE, "NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF") != NULL ||
+      strstr(MESSAGE, "NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE") != NULL ||
+      strstr(MESSAGE, "NODE_TO_NETWORK_DATA_NODES_CHECK_VOTE_STATUS") != NULL ||
+      strstr(MESSAGE, "NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE") != NULL ||
+      strstr(MESSAGE, "NODES_TO_BLOCK_VERIFIERS_RECOVER_DELEGATE") != NULL ||
+      strstr(MESSAGE, "NODE_TO_BLOCK_VERIFIERS_GET_RESERVE_BYTES_DATABASE_HASH") != NULL ||
+      strstr(MESSAGE, "BLOCK_VERIFIERS_TO_NODES_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_DOWNLOAD") != NULL ||
+      strstr(MESSAGE, "GET /delegateswebsitegetstatistics HTTP/") != NULL ||
+      strstr(MESSAGE, "GET /getdelegates HTTP/") != NULL ||
+      strncmp(MESSAGE, "GET /getdelegatesstatistics?parameter1=", 39) == 0 ||
+      strncmp(MESSAGE, "GET /getdelegatesinformation?parameter1=", 40) == 0) {
+      return 1;
+   } else if (strstr(MESSAGE, "XCASH_GET_SYNC_INFO") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "XCASH_GET_SYNC_INFO", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
           VALIDATE_DATA_ERROR("Invalid message");
-        }
       }
-    }
-  }
-  else if (shared_delegates_website == 1)
-  {
-    if (strncmp(MESSAGE,"GET /getpublicaddressinformation?public_address=",48) == 0)
-    {
-      if (strlen(&MESSAGE[40]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[40]," HTTP/") == NULL)
-      {
-        VALIDATE_DATA_ERROR("Invalid message");
-      } 
-    }
-    else if (strncmp(MESSAGE,"GET /getpublicaddresspaymentinformation?public_address=",55) == 0)
-    {
-      if (strlen(&MESSAGE[55]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[55]," HTTP/") == NULL)
-      {
-        VALIDATE_DATA_ERROR("Invalid message");
+  } else if (strstr(MESSAGE, "GET_CURRENT_BLOCK_HEIGHT") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "GET_CURRENT_BLOCK_HEIGHT", sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
       }
-    }
-    else if (strncmp(MESSAGE,"GET /getdelegatesvoterslist?parameter1=",39) == 0)
-    {
-      if (strlen(&MESSAGE[39]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[39]," HTTP/") == NULL)
-      {
-        VALIDATE_DATA_ERROR("Invalid message");
-      } 
-    }
-  }
-  else
-  {
-    VALIDATE_DATA_ERROR("Invalid message");
+  } else if (strstr(MESSAGE, "SEND_CURRENT_BLOCK_HEIGHT") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "SEND_CURRENT_BLOCK_HEIGHT", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "block_height", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "MAIN_NODES_TO_NODES_PART_4_OF_ROUND_CREATE_NEW_BLOCK") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "MAIN_NODES_TO_NODES_PART_4_OF_ROUND_CREATE_NEW_BLOCK", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "block_blob", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "MAIN_NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_START_BLOCK") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "MAIN_NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_START_BLOCK", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "database_data", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_bytes_data_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != DATA_HASH_LENGTH || parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 ||
+          strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_VRF_DATA", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "vrf_secret_key", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_SECRET_KEY_LENGTH ||
+          parse_json_data(MESSAGE, "vrf_public_key", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_PUBLIC_KEY_LENGTH || parse_json_data(MESSAGE, "random_data", data, sizeof(data)) == 0 ||
+          strlen(data) != RANDOM_STRING_LENGTH || parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 ||
+          strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NODES_TO_NODES_VOTE_MAJORITY_RESULTS") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "NODES_TO_NODES_VOTE_MAJORITY_RESULTS", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "vote_data_1", data, sizeof(data)) == 0 ||
+          (strlen(data) != VRF_SECRET_KEY_LENGTH + VRF_PUBLIC_KEY_LENGTH + RANDOM_STRING_LENGTH &&
+           strlen(data) != VRF_PROOF_LENGTH + VRF_BETA_LENGTH) ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NODES_TO_NODES_VOTE_RESULTS") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "NODES_TO_NODES_VOTE_RESULTS", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "vote_settings", data, sizeof(data)) == 0 ||
+          (strncmp(data, "valid", 5) != 0 && strncmp(data, "invalid", 7) != 0) ||
+          parse_json_data(MESSAGE, "vote_data", data, sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_BLOCK_BLOB_SIGNATURE") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_BLOCK_BLOB_SIGNATURE", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "block_blob_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_PROOF_LENGTH + VRF_BETA_LENGTH ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_INVALID_RESERVE_PROOFS") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_INVALID_RESERVE_PROOFS", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "public_address_that_created_the_reserve_proof", data, sizeof(data)) == 0 ||
+          strlen(data) != XCASH_WALLET_LENGTH || strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) ||
+          parse_json_data(MESSAGE, "reserve_proof", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "NODE_TO_NETWORK_DATA_NODES_GET_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST", sizeof(data)) !=
+              0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST") != NULL) {
+      if (strstr(MESSAGE, "\"public_address\"") != NULL &&
+          (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+           strncmp(data, "NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST", sizeof(data)) != 0 ||
+           parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+           strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+           parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+           strlen(data) != BLOCK_HASH_LENGTH ||
+           parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+           parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+           parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+           parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+           strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH)) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      } else if (strstr(MESSAGE, "\"public_address\"") == NULL &&
+                 (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+                  strncmp(data, "NODE_TO_NETWORK_DATA_NODES_GET_CURRENT_BLOCK_VERIFIERS_LIST", sizeof(data)) != 0)) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NETWORK_DATA_NODE_TO_NODE_SEND_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "NETWORK_DATA_NODE_TO_NODE_SEND_PREVIOUS_CURRENT_NEXT_BLOCK_VERIFIERS_LIST", sizeof(data)) !=
+              0 ||
+          parse_json_data(MESSAGE, "previous_block_verifiers_name_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "previous_block_verifiers_public_address_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "previous_block_verifiers_IP_address_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "current_block_verifiers_name_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "current_block_verifiers_public_address_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "current_block_verifiers_IP_address_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "next_block_verifiers_name_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "next_block_verifiers_public_address_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "next_block_verifiers_IP_address_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NETWORK_DATA_NODE_TO_NODE_SEND_CURRENT_BLOCK_VERIFIERS_LIST") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "NETWORK_DATA_NODE_TO_NODE_SEND_CURRENT_BLOCK_VERIFIERS_LIST", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "block_verifiers_public_address_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "block_verifiers_IP_address_list", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_NETWORK_DATA_NODE_BLOCK_VERIFIERS_CURRENT_TIME", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_BLOCK_VERIFIERS_CURRENT_TIME") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "NETWORK_DATA_NODE_TO_BLOCK_VERIFIERS_BLOCK_VERIFIERS_CURRENT_TIME", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "current_time", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_ONLINE_STATUS", sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NODE_TO_BLOCK_VERIFIERS_CHECK_IF_CURRENT_BLOCK_VERIFIER") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "NODE_TO_BLOCK_VERIFIERS_CHECK_IF_CURRENT_BLOCK_VERIFIER", sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_NODE_SEND_RESERVE_BYTES") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_NODE_SEND_RESERVE_BYTES", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "reserve_bytes", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "NETWORK_DATA_NODES_TO_NETWORK_DATA_NODES_DATABASE_SYNC_CHECK") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "NETWORK_DATA_NODES_TO_NETWORK_DATA_NODES_DATABASE_SYNC_CHECK", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "previous_blocks_reserve_bytes", data, sizeof(data)) == 0 ||
+          (strncmp(data, "true", BUFFER_SIZE) != 0 && strncmp(data, "false", BUFFER_SIZE) != 0) ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE") !=
+             NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_UPDATE",
+                  sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "reserve_bytes_settings", data, sizeof(data)) == 0 ||
+          (strncmp(data, "0", 1) != 0 && strncmp(data, "1", 1) != 0) ||
+          parse_json_data(MESSAGE, "reserve_bytes_data_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != DATA_HASH_LENGTH || parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 ||
+          strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_DOWNLOAD") !=
+             NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_ALL_DOWNLOAD",
+                  sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "reserve_bytes_database", data, sizeof(data)) == 0 ||
+          (strncmp(data, "true", 4) != 0 && strncmp(data, "false", 5) != 0) ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_DOWNLOAD") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_SYNC_CHECK_DOWNLOAD",
+                  sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "reserve_bytes_database", data, sizeof(data)) == 0 ||
+          (strncmp(data, "true", 4) != 0 && strncmp(data, "false", 5) != 0) ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_DOWNLOAD_FILE_UPDATE") !=
+             NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_DOWNLOAD_FILE_UPDATE",
+                  sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "file", data, sizeof(data)) == 0 || strstr(data, "reserve_bytes_") == NULL) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_DOWNLOAD_FILE_DOWNLOAD") !=
+             NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_BYTES_DATABASE_DOWNLOAD_FILE_DOWNLOAD",
+                  sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_UPDATE") !=
+             NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_UPDATE",
+                  sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != DATA_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_1", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_2", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_3", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_4", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_5", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_6", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_7", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_8", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_9", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_10", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_11", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_12", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_13", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_14", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_15", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_16", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_17", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_18", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_19", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_20", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_20", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_21", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_22", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_23", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_24", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_25", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_26", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_27", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_28", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_29", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_30", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_31", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_32", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_33", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_34", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_35", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_36", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_37", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_38", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_39", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_40", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_41", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_42", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_43", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_44", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_45", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_46", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_47", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_48", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_49", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_data_hash_50", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_DOWNLOAD") !=
+             NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_SYNC_CHECK_ALL_DOWNLOAD",
+                  sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database", data, sizeof(data)) == 0 ||
+          (strncmp(data, "true", 4) != 0 && strncmp(data, "false", 5) != 0) ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_1", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_2", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_3", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_4", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_5", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_6", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_7", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_8", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_9", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_10", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_11", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_12", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_13", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_14", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_15", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_16", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_17", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_18", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_19", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_20", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_20", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_21", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_22", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_23", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_24", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_25", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_26", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_27", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_28", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_29", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_30", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_31", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_32", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_33", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_34", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_35", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_36", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_37", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_38", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_39", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_40", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_41", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_42", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_43", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_44", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_45", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_46", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_47", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_48", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_49", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "reserve_proofs_database_50", data, sizeof(data)) == 0 ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_DOWNLOAD_FILE_UPDATE") !=
+             NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_DOWNLOAD_FILE_UPDATE",
+                  sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "file", data, sizeof(data)) == 0 || strstr(data, "reserve_proofs_") == NULL) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_DOWNLOAD_FILE_DOWNLOAD") !=
+             NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_RESERVE_PROOFS_DATABASE_DOWNLOAD_FILE_DOWNLOAD",
+                  sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_UPDATE") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_UPDATE", sizeof(data)) != 0 ||
+          parse_json_data(MESSAGE, "data_hash", data, sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_DOWNLOAD") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_SYNC_CHECK_DOWNLOAD", sizeof(data)) !=
+              0 ||
+          parse_json_data(MESSAGE, "delegates_database", data, sizeof(data)) == 0 ||
+          (strncmp(data, "true", 4) != 0 && strncmp(data, "false", 5) != 0) ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_DOWNLOAD_FILE_UPDATE") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_DOWNLOAD_FILE_UPDATE", sizeof(data)) !=
+              0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_DOWNLOAD_FILE_DOWNLOAD") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_DELEGATES_DATABASE_DOWNLOAD_FILE_DOWNLOAD", sizeof(data)) !=
+              0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_UPDATE") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_UPDATE", sizeof(data)) !=
+              0 ||
+          parse_json_data(MESSAGE, "data_hash", data, sizeof(data)) == 0 || strlen(data) != DATA_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_DOWNLOAD") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_SYNC_CHECK_DOWNLOAD", sizeof(data)) !=
+              0 ||
+          parse_json_data(MESSAGE, "statistics_database", data, sizeof(data)) == 0 ||
+          (strncmp(data, "true", 4) != 0 && strncmp(data, "false", 5) != 0) ||
+          parse_json_data(MESSAGE, "public_address", data, sizeof(data)) == 0 || strlen(data) != XCASH_WALLET_LENGTH ||
+          strncmp(data, XCASH_WALLET_PREFIX, sizeof(XCASH_WALLET_PREFIX) - 1) != 0 ||
+          parse_json_data(MESSAGE, "previous_block_hash", data, sizeof(data)) == 0 ||
+          strlen(data) != BLOCK_HASH_LENGTH ||
+          parse_json_data(MESSAGE, "current_round_part", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "current_round_part_backup_node", data, sizeof(data)) == 0 || strlen(data) != 1 ||
+          parse_json_data(MESSAGE, "data", data, sizeof(data)) == 0 || strlen(data) != RANDOM_STRING_LENGTH ||
+          parse_json_data(MESSAGE, "XCASH_DPOPS_signature", data, sizeof(data)) == 0 ||
+          strlen(data) != VRF_BETA_LENGTH + VRF_PROOF_LENGTH) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_UPDATE") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_UPDATE", sizeof(data)) !=
+              0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_DOWNLOAD") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_DOWNLOAD",
+                  sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "XCASH_PROOF_OF_STAKE_TEST_DATA") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "XCASH_PROOF_OF_STAKE_TEST_DATA", sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (strstr(MESSAGE, "XCASH_PROOF_OF_STAKE_TEST_DATA_2") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "XCASH_PROOF_OF_STAKE_TEST_DATA_2", sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
+  } else if (delegates_website == 1) {
+      if (strncmp(MESSAGE, "GET /getdelegatesstatistics?parameter1=", 39) == 0) {
+          if (strlen(&MESSAGE[39]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[39], " HTTP/") == NULL) {
+              VALIDATE_DATA_ERROR("Invalid message");
+          }
+      } else if (strncmp(MESSAGE, "GET /getdelegatesinformation?parameter1=", 40) == 0) {
+          if (strlen(&MESSAGE[40]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[40], " HTTP/") == NULL) {
+              VALIDATE_DATA_ERROR("Invalid message");
+          }
+      } else if (strncmp(MESSAGE, "GET /checkvotestatus?parameter1=", 32) == 0) {
+          if (strlen(&MESSAGE[32]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[32], " HTTP/") == NULL) {
+              VALIDATE_DATA_ERROR("Invalid message");
+          }
+      } else if (strncmp(MESSAGE, "GET /getdelegatesvoterslist?parameter1=", 39) == 0) {
+          if (strlen(&MESSAGE[39]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[39], " HTTP/") == NULL) {
+              VALIDATE_DATA_ERROR("Invalid message");
+          }
+      } else if (strncmp(MESSAGE, "GET /getroundstatistics?parameter1=", 35) == 0) {
+          memcpy(data, &MESSAGE[35],
+                 (strnlen(MESSAGE, sizeof(data)) - strnlen(strstr(MESSAGE, " HTTP/"), sizeof(data))) - 35);
+          for (count = 35; count < (int)strlen(data); count++) {
+              if (strncmp(&data[count], "0", 1) != 0 && strncmp(&data[count], "1", 1) != 0 &&
+                  strncmp(&data[count], "2", 1) != 0 && strncmp(&data[count], "3", 1) != 0 &&
+                  strncmp(&data[count], "4", 1) != 0 && strncmp(&data[count], "5", 1) != 0 &&
+                  strncmp(&data[count], "6", 1) != 0 && strncmp(&data[count], "7", 1) != 0 &&
+                  strncmp(&data[count], "8", 1) != 0 && strncmp(&data[count], "9", 1) != 0) {
+                  VALIDATE_DATA_ERROR("Invalid message");
+              }
+          }
+      }
+  } else if (shared_delegates_website == 1) {
+      if (strncmp(MESSAGE, "GET /getpublicaddressinformation?public_address=", 48) == 0) {
+          if (strlen(&MESSAGE[40]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[40], " HTTP/") == NULL) {
+              VALIDATE_DATA_ERROR("Invalid message");
+          }
+      } else if (strncmp(MESSAGE, "GET /getpublicaddresspaymentinformation?public_address=", 55) == 0) {
+          if (strlen(&MESSAGE[55]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[55], " HTTP/") == NULL) {
+              VALIDATE_DATA_ERROR("Invalid message");
+          }
+      } else if (strncmp(MESSAGE, "GET /getdelegatesvoterslist?parameter1=", 39) == 0) {
+          if (strlen(&MESSAGE[39]) < XCASH_WALLET_LENGTH || strstr(&MESSAGE[39], " HTTP/") == NULL) {
+              VALIDATE_DATA_ERROR("Invalid message");
+          }
+      }
+  } else {
+      VALIDATE_DATA_ERROR("Invalid message");
   }
   return 1;
   
