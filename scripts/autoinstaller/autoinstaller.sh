@@ -779,6 +779,7 @@ function download_xcash()
   echo -ne "${COLOR_PRINT_YELLOW}Downloading X-CASH${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_INSTALLATION_DIR}"
   git clone --quiet "${XCASH_URL}" "${XCASH_DIR}"
+  git switch next
   echo -ne "\r${COLOR_PRINT_GREEN}Downloading X-CASH${END_COLOR_PRINT}"
   echo
 }
@@ -1179,6 +1180,7 @@ function download_shared_delegate_website()
   echo -ne "${COLOR_PRINT_YELLOW}Downloading Shared Delegates Website${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_INSTALLATION_DIR}"
   git clone --quiet "${SHARED_DELEGATES_WEBSITE_URL}"
+  git switch next
   echo -ne "\r${COLOR_PRINT_GREEN}Downloading Shared Delegates Website${END_COLOR_PRINT}"
   echo
 }
@@ -1310,6 +1312,7 @@ function update_xcash()
   if [ ! -d "$XCASH_DIR" ]; then
     cd "${XCASH_DPOPS_INSTALLATION_DIR}"
     git clone --quiet "${XCASH_URL}" "${XCASH_DIR}"
+    git switch next
   fi
   cd "${XCASH_DIR}"
   data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
@@ -1338,6 +1341,7 @@ function update_xcash_dpops()
   if [ ! -d "$XCASH_DPOPS_DIR" ]; then
     cd "${XCASH_DPOPS_INSTALLATION_DIR}"
     git clone --quiet "${XCASH_DPOPS_URL}" "${XCASH_DPOPS_DIR}"
+    git switch next
   fi
   cd "${XCASH_DPOPS_DIR}"
   git switch next
@@ -1367,6 +1371,7 @@ function update_shared_delegates_website()
   if [ ! -d "$SHARED_DELEGATES_WEBSITE_DIR" ]; then
     cd "${XCASH_DPOPS_INSTALLATION_DIR}"
     git clone --quiet "${SHARED_DELEGATES_WEBSITE_URL}"
+    git switch next
   fi
   cd "${SHARED_DELEGATES_WEBSITE_DIR}"
   data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
