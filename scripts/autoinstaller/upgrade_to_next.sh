@@ -12,18 +12,19 @@ sudo systemctl stop xcash-daemon
 
 
 echo "###Rebuilding xcash-core"
+half_cores=$(( $(nproc) / 2 ))
 
 cd ${HOME}/xcash-official/xcash-core
 git pull
 echo 'y' | make clean
-make release -j $(nproc)
+make release -j "$half_cores"
 
 echo "###Rebuilding xcash-dpops"
 cd ${HOME}/xcash-official/xcash-dpops
 git pull
 git switch next
 echo 'y' |make clean
-make release -j $(nproc)
+make release -j "$half_cores"
 
 
 get_current_block_height() {
