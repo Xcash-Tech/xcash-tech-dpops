@@ -1545,7 +1545,7 @@ function install()
   install_packages
 
   # Install the blockchain
-  #install_blockchain
+  install_blockchain
 
   # Install X-CASH
   install_xcash
