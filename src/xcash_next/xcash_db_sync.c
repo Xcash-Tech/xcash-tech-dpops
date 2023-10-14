@@ -31,7 +31,7 @@ bool get_node_sync_info(xcash_node_sync_info_t* sync_info) {
     memset(sync_info, 0, sizeof(xcash_node_sync_info_t));
 
 
-    if (!(get_db_max_block_height(database_name, &block_height, &reserve_bytes_db_index) >0)) {
+    if (get_db_max_block_height(database_name, &block_height, &reserve_bytes_db_index) < 0) {
         ERROR_PRINT("can't get DB block height");
         return false;
     }
