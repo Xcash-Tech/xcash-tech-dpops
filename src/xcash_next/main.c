@@ -12,6 +12,8 @@
 #include "init_processing.h"
 #include "round.h"
 #include "xnet_helpers.h"
+#include "VRF_functions.h"
+
 
 const char *argp_program_version = "Xcash Tech DPoPS v. 1.3";
 const char *argp_program_bug_address = "https://github.com/Xcash-Tech/xcash-tech-dpops/issues";
@@ -253,6 +255,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    if (arg_config.generate_key) {
+        generate_key();
+        return 0;
+    }
+    
     if (!arg_config.block_verifiers_secret_key) {
         ERROR_PRINT("--block-verifiers-secret-key is mandatory!");
         return 1;
