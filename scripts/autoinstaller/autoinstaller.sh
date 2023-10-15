@@ -1395,8 +1395,8 @@ function update_xcash_dpops()
   fi
   cd "${XCASH_DPOPS_DIR}"
   git switch "${XCASH_DPOPS_BRANCH}"
-  data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
-  if [ "$data" == "0" ]; then
+  # data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
+  # if [ "$data" == "0" ]; then
     git reset --hard HEAD --quiet
     git pull --quiet
     if [ "$RAM_CPU_RATIO" -ge "$RAM_CPU_RATIO_ALL_CPU_THREADS" ]; then
@@ -1410,7 +1410,7 @@ function update_xcash_dpops()
           make release -j $((CPU_THREADS / 2)) &>/dev/null
       fi
     fi
-  fi
+  # fi
   echo -ne "\r${COLOR_PRINT_GREEN}Updating xcash-dpops${END_COLOR_PRINT}"
   echo
 }
