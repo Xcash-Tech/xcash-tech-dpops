@@ -38,7 +38,7 @@ typedef enum {
 } xcash_round_result_t;
 
 
-void select_block_producers(size_t round_number);
+bool select_block_producers(size_t round_number);
 
 void select_block_producers2(size_t round_number);
 

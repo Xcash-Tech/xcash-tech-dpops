@@ -1494,17 +1494,21 @@ int block_verifiers_create_block(size_t round_number) {
     INFO_STAGE_PRINT("Round %s Final participants", current_round_part_backup_node);
 
     for (size_t i = 0; i < BLOCK_VERIFIERS_AMOUNT; i++) {
+      // onlu who was has data majority and VRF majority
       if ((majority[i] >= BLOCK_VERIFIERS_VALID_AMOUNT) && (strcmp(delegates_all[i].online_status, "true")==0))
       {
           strcpy(delegates_all[i].online_status, "true");
           INFO_PRINT_STATUS_OK("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
-      } else {
-        if ((strlen(delegates_all[i].online_status)==0) && (majority[i] >0)) {
-          INFO_PRINT_STATUS_FAIL("[%02ld] %s (wrong client version)",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
-        }else if (majority[i] >0) {
+      } else 
+      {
+        // has no data majority but within the round - probably wrong client
+        if ((majority[i] >0) && (strcmp(delegates_all[i].online_status, "false")==0) ) {
+          INFO_PRINT_STATUS_FAIL("[%02ld] %s (data majority not checked)",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
+        }else if ((majority[i] >0) && (strlen(delegates_all[i].online_status)>0)) {
           INFO_PRINT_STATUS_FAIL("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
         }
 
+        // fill all ther offline nodes
         if (strlen(delegates_all[i].online_status)>0) {
           strcpy(delegates_all[i].online_status, "false");
         }
@@ -1512,7 +1516,10 @@ int block_verifiers_create_block(size_t round_number) {
       }
     }
 
-    select_block_producers(round_number);
+    if (!select_block_producers(round_number)) {
+      INFO_PRINT_STATUS_FAIL("Block producer NOT selected");
+      return ROUND_SKIP;
+    }
 
     INFO_PRINT_STATUS_OK("Block producer selected");
     show_block_producer(round_number);

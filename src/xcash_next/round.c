@@ -39,7 +39,7 @@ unsigned char* get_pseudo_random_hash(size_t seed, size_t feed_size) {
 }
 
 // TODO add shift selection depending on time. because if some node stuck, all networks will stuck on block
-void select_block_producers(size_t round_number) {
+bool select_block_producers(size_t round_number) {
     (void)round_number;
     producer_node_t producers_list[BLOCK_VERIFIERS_AMOUNT];
     memset(producers_list, 0, sizeof(producers_list));
@@ -74,7 +74,7 @@ void select_block_producers(size_t round_number) {
 
     if (num_producers == 0) {
         WARNING_PRINT("No valid producers generated during procuder selection.");
-        return;
+        return false;
     }
 
     size_t block_height, seed_block;
@@ -188,6 +188,7 @@ void select_block_producers(size_t round_number) {
         producing_position++;
     }
 
+    return true;
 }
 
 
