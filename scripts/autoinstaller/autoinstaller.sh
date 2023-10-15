@@ -47,6 +47,8 @@ MONGODB_TOOLS_RESTORE_URL="https://fastdl.mongodb.org/tools/db/${MONGODB_TOOLS_R
 MONGOC_DRIVER_RESTORE_URL="https://github.com/mongodb/mongo-c-driver/releases/download/${MONGOC_DRIVER_RESTORE_VERSION:15}/${MONGOC_DRIVER_RESTORE_VERSION}.tar.gz"
 
 # Settings
+XCASH_MONGODB_DATA_URL="http://xcash.tech/snapshot/xcash_mongodb_1033979.tar"
+XCASH_MONGODB_DATA_FILE="${XCASH_MONGODB_DATA_URL##*/}"
 XCASH_URL="https://github.com/Xcash-Tech/xcash-tech-core.git"
 XCASH_CORE_BRANCH="master"
 XCASH_BLOCKCHAIN_BOOTSTRAP_URL="http://xcash.tech/snapshot/block-1033979.zip"
@@ -72,7 +74,7 @@ MONGODB_CURRENT_VERSION=""
 MONGOC_DRIVER_URL="https://github.com/mongodb/mongo-c-driver/releases/download/${MONGOC_DRIVER_LATEST_VERSION:15}/${MONGOC_DRIVER_LATEST_VERSION}.tar.gz"
 MONGOC_DRIVER_DIR=""
 MONGOC_DRIVER_CURRENT_VERSION=""
-XCASH_DPOPS_PACKAGES="build-essential cmake pkg-config libboost-all-dev libssl-dev libzmq3-dev libunbound-dev libsodium-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libpcsclite-dev git screen p7zip-full moreutils wget iptables libuv1-dev"
+XCASH_DPOPS_PACKAGES="build-essential cmake pkg-config libboost-all-dev libssl-dev libzmq3-dev libunbound-dev libsodium-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libpcsclite-dev git screen p7zip-full moreutils wget iptables libuv1-dev jq curl iproute2"
 CURRENT_XCASH_WALLET_INFORMATION=""
 PUBLIC_ADDRESS=""
 
@@ -89,17 +91,17 @@ SYSTEMD_TIMER_FILE_XCASH_DPOPS=""
 SYSTEMD_TIMER_FILE_XCASH_WALLET=""
 
 # File URLs
-FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_script.sh"
-FIREWALL_SHARED_DELEGATES_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_shared_delegates_tcript.sh"
-FIREWALL_XCASH_NODE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/firewall/firewall_script_xcash_node.sh"
-SYSTEMD_SERVICE_FILE_FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/firewall.service"
-SYSTEMD_SERVICE_FILE_MONGODB_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/MongoDB.service"
-SYSTEMD_SERVICE_FILE_XCASH_DAEMON_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-daemon.service"
-SYSTEMD_SERVICE_FILE_XCASH_DPOPS_SOLO_DELEGATE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-dpops.service"
-SYSTEMD_SERVICE_FILE_XCASH_DPOPS_SHARED_DELEGATE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-dpops-shared-delegate.service"
-SYSTEMD_SERVICE_FILE_XCASH_WALLET_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-rpc-wallet.service"
-SYSTEMD_TIMER_FILE_XCASH_DPOPS_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-dpops.timer"
-SYSTEMD_TIMER_FILE_XCASH_WALLET_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/master/scripts/systemd/xcash-rpc-wallet.timer"
+FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/firewall/firewall_script.sh"
+FIREWALL_SHARED_DELEGATES_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/firewall/firewall_shared_delegates_script.sh"
+FIREWALL_XCASH_NODE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/firewall/firewall_script_xcash_node.sh"
+SYSTEMD_SERVICE_FILE_FIREWALL_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/systemd/firewall.service"
+SYSTEMD_SERVICE_FILE_MONGODB_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/systemd/MongoDB.service"
+SYSTEMD_SERVICE_FILE_XCASH_DAEMON_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/systemd/xcash-daemon.service"
+SYSTEMD_SERVICE_FILE_XCASH_DPOPS_SOLO_DELEGATE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/systemd/xcash-dpops.service"
+SYSTEMD_SERVICE_FILE_XCASH_DPOPS_SHARED_DELEGATE_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/systemd/xcash-dpops-shared-delegate.service"
+SYSTEMD_SERVICE_FILE_XCASH_WALLET_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/systemd/xcash-rpc-wallet.service"
+SYSTEMD_TIMER_FILE_XCASH_DPOPS_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/systemd/xcash-dpops.timer"
+SYSTEMD_TIMER_FILE_XCASH_WALLET_URL="https://raw.githubusercontent.com/Xcash-Tech/xcash-tech-dpops/${XCASH_DPOPS_BRANCH}/scripts/systemd/xcash-rpc-wallet.timer"
 
 # System settings
 CPU_THREADS=$(nproc)
@@ -140,6 +142,36 @@ fi
 
 # Functions
 
+
+function get_current_block_height() {
+    local host="$1"
+    height=$(curl -s -X POST "http://${host}:18281/json_rpc" -d '{
+       "jsonrpc":"2.0",
+       "id":"0",
+       "method":"get_info"
+    }' | jq -r '.result.height')
+    echo "$height"
+}
+
+function get_wallet_address() {
+    local host="$1"
+    address=$(curl -s -X POST "http://${host}:18285/json_rpc" -d '{
+       "jsonrpc":"2.0",
+       "id":"0",
+       "method":"get_address"
+    }' | jq -r '.result.address')
+    echo "$address"
+
+}
+
+function get_service_exec_line() {
+    local service_file="$1"
+    exec_start_value=$(grep -oP '^\s*ExecStart=\K.*' "$service_file")
+    exec_start_value=$(echo "$exec_start_value" | sed -e 's/^[[:space:]]*//')
+    echo "$exec_start_value"
+}
+
+
 # Sed used when modifying service files (if used inside containers use sponge utility - moreutils package)
 function sed_services()
 {
@@ -169,9 +201,13 @@ function get_installation_settings()
   echo -ne "${COLOR_PRINT_YELLOW}17 = Configure Installation\n18 = Firewall\n19 = Shared Delegates Firewall\n\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_GREEN}Backup\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}20 = Display wallet and xcash-dpops data, and backup shared delegates database\n\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_GREEN}Sync with network\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_YELLOW}21 = Sync blockchain\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_YELLOW}22 = Sync Dpops DB (Only after registering the node)\n\n${END_COLOR_PRINT}"
+
   echo -ne "${COLOR_PRINT_GREEN}Enter the number of the chosen option (default 1): ${END_COLOR_PRINT}"
   read -r data
-  INSTALLATION_TYPE_SETTINGS=$([ "$data" == "2" ] || [ "$data" == "3" ] || [ "$data" == "4" ] || [ "$data" == "5" ] || [ "$data" == "6" ] || [ "$data" == "7" ] || [ "$data" == "8" ] || [ "$data" == "9" ] || [ "$data" == "10" ] || [ "$data" == "11" ] || [ "$data" == "12" ] || [ "$data" == "13" ] || [ "$data" == "14" ] || [ "$data" == "15" ] || [ "$data" == "16" ] || [ "$data" == "17" ] || [ "$data" == "18" ] || [ "$data" == "19" ] || [ "$data" == "20" ] && echo "$data" || echo "1")
+  INSTALLATION_TYPE_SETTINGS=$([ "$data" == "2" ] || [ "$data" == "3" ] || [ "$data" == "4" ] || [ "$data" == "5" ] || [ "$data" == "6" ] || [ "$data" == "7" ] || [ "$data" == "8" ] || [ "$data" == "9" ] || [ "$data" == "10" ] || [ "$data" == "11" ] || [ "$data" == "12" ] || [ "$data" == "13" ] || [ "$data" == "14" ] || [ "$data" == "15" ] || [ "$data" == "16" ] || [ "$data" == "17" ] || [ "$data" == "18" ] || [ "$data" == "19" ] || [ "$data" == "20" ] || [ "$data" == "21" ] || [ "$data" == "22" ] && echo "$data" || echo "1")
   echo -ne "\r"
   # Check if xcash-dpops is already installed, if the user choose to install
   if [ "$INSTALLATION_TYPE_SETTINGS" -eq "1" ]; then
@@ -522,31 +558,37 @@ function get_current_xcash_wallet_data()
 
   sudo systemctl stop xcash-daemon &>/dev/null
   sleep 10s
-  sudo systemctl start xcash-daemon &>/dev/null
-  sleep 20s
+  # sudo systemctl start xcash-daemon &>/dev/null
+  # sleep 20s
 
-  screen -dmS XCASH_RPC_Wallet "${XCASH_DIR}"build/release/bin/xcash-wallet-rpc --wallet-file "${XCASH_WALLET_DIR}"delegate-wallet --password "${WALLET_PASSWORD}" --rpc-bind-port 18288 --confirm-external-bind --disable-rpc-login --trusted-daemon --log-file "${XCASH_LOGS_DIR}"xcash-wallet-rpc.log
-  sleep 10s
+  start_local_daemon
+  start_local_wallet_rpc
+
+  # screen -dmS XCASH_RPC_Wallet "${XCASH_DIR}"build/release/bin/xcash-wallet-rpc --wallet-file "${XCASH_WALLET_DIR}"delegate-wallet --password "${WALLET_PASSWORD}" --rpc-bind-port 18288 --confirm-external-bind --disable-rpc-login --trusted-daemon --log-file "${XCASH_LOGS_DIR}"xcash-wallet-rpc.log
+  # sleep 10s
   
    while
-    data=$(curl -s -X POST http://127.0.0.1:18288/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"get_address"}' -H 'Content-Type: application/json') 
+    data=$(curl -s -X POST http://127.0.0.1:18285/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"get_address"}' -H 'Content-Type: application/json') 
     sleep 10s
     [[ "$data" == "" ]]
   do true; done
 
-  PUBLIC_ADDRESS=$(curl -s -X POST http://127.0.0.1:18288/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"get_address"}' -H 'Content-Type: application/json' | grep \"address\" | head -1 | sed s"|    \"address\": ||g" | sed s"|\"||g" | sed s"|,||g")
-  SPEND_KEY=$(curl -s -X POST http://127.0.0.1:18288/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"query_key","params":{"key_type":"spend_key"}}' -H 'Content-Type: application/json' | grep \"key\" | sed s"|    \"key\": ||g" | sed s"|\"||g")
-  VIEW_KEY=$(curl -s -X POST http://127.0.0.1:18288/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"query_key","params":{"key_type":"view_key"}}' -H 'Content-Type: application/json' | grep \"key\" | sed s"|    \"key\": ||g" | sed s"|\"||g")
-  WALLET_SEED=$(curl -s -X POST http://127.0.0.1:18288/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"query_key","params":{"key_type":"mnemonic"}}' -H 'Content-Type: application/json' | grep \"key\" | sed s"|    \"key\": ||g" | sed s"|\"||g")
+  PUBLIC_ADDRESS=$(curl -s -X POST http://127.0.0.1:18285/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"get_address"}' -H 'Content-Type: application/json' | grep \"address\" | head -1 | sed s"|    \"address\": ||g" | sed s"|\"||g" | sed s"|,||g")
+  SPEND_KEY=$(curl -s -X POST http://127.0.0.1:18285/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"query_key","params":{"key_type":"spend_key"}}' -H 'Content-Type: application/json' | grep \"key\" | sed s"|    \"key\": ||g" | sed s"|\"||g")
+  VIEW_KEY=$(curl -s -X POST http://127.0.0.1:18285/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"query_key","params":{"key_type":"view_key"}}' -H 'Content-Type: application/json' | grep \"key\" | sed s"|    \"key\": ||g" | sed s"|\"||g")
+  WALLET_SEED=$(curl -s -X POST http://127.0.0.1:18285/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"query_key","params":{"key_type":"mnemonic"}}' -H 'Content-Type: application/json' | grep \"key\" | sed s"|    \"key\": ||g" | sed s"|\"||g")
   CURRENT_XCASH_WALLET_INFORMATION="${COLOR_PRINT_GREEN}############################################################\n                 X-CASH Wallet Data  \n############################################################${END_COLOR_PRINT}\n\n${COLOR_PRINT_YELLOW}Public Address: $PUBLIC_ADDRESS\nMnemonic Seed: $WALLET_SEED\nSpend Key: $SPEND_KEY\nView Key: $VIEW_KEY\nWallet Password: $WALLET_PASSWORD\nBlock Verifiers Public Key: $BLOCK_VERIFIER_PUBLIC_KEY\nBlock Verifiers Secret Key: $BLOCK_VERIFIER_SECRET_KEY${END_COLOR_PRINT}"
   PUBLIC_ADDRESS=${PUBLIC_ADDRESS%?}
 
-  curl -s -X POST http://127.0.0.1:18288/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"stop_wallet"}' -H 'Content-Type: application/json' &>/dev/null
+  curl -s -X POST http://127.0.0.1:18285/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"stop_wallet"}' -H 'Content-Type: application/json' &>/dev/null
   sleep 10s
   
-  sudo systemctl stop xcash-daemon &>/dev/null
-  sleep 10s
-  
+  # sudo systemctl stop xcash-daemon &>/dev/null
+  # sleep 10s
+
+  stop_local_wallet_rpc
+  stop_local_daemon
+
   echo -ne "\r${COLOR_PRINT_GREEN}Refreshing and Getting Current X-CASH Wallet Data${END_COLOR_PRINT}"
   echo
   echo
@@ -957,7 +999,8 @@ function download_xcash_dpops()
   echo -ne "${COLOR_PRINT_YELLOW}Downloading xcash-dpops${END_COLOR_PRINT}"
   cd "${XCASH_DPOPS_INSTALLATION_DIR}"
   git clone --quiet "${XCASH_DPOPS_URL}" "${XCASH_DPOPS_DIR}"
-  git switch next
+  cd "${XCASH_DPOPS_DIR}"
+  git switch "${XCASH_DPOPS_BRANCH}"
   echo -ne "\r${COLOR_PRINT_GREEN}Downloading xcash-dpops${END_COLOR_PRINT}"
   echo
 }
@@ -1072,10 +1115,14 @@ function create_xcash_wallet()
   echo -ne "${COLOR_PRINT_YELLOW}Starting local daemon${END_COLOR_PRINT}"
   sudo systemctl stop xcash-daemon &>/dev/null
   sleep 10s
-  sudo systemctl start xcash-daemon &>/dev/null
-  sleep 20s
+  # sudo systemctl start xcash-daemon &>/dev/null
+  # sleep 20s
+
+  
   echo -ne "\r${COLOR_PRINT_GREEN}Starting local daemon${END_COLOR_PRINT}"
   echo
+
+  start_local_daemon
 
   echo -e "${COLOR_PRINT_GREEN}Starting Wallet Refresh${END_COLOR_PRINT}"
   echo "exit" | "${XCASH_DIR}"build/release/bin/xcash-wallet-cli --generate-new-wallet "${XCASH_DPOPS_INSTALLATION_DIR}"xcash-wallets/delegate-wallet --password "${WALLET_PASSWORD}" --mnemonic-language English --restore-height 0 --trusted-daemon | stdbuf -oL tr '\r' '\n' | stdbuf -o 0 grep -C 1 "Height" | stdbuf -o 0 awk '{print "Processing: ",$1,$2,$3,$4}' ORS="\r"
@@ -1083,9 +1130,11 @@ function create_xcash_wallet()
   echo -e "${COLOR_PRINT_GREEN}Wallet Refresh Completed${END_COLOR_PRINT}"
 
   echo -ne "${COLOR_PRINT_YELLOW}Stopping local daemon${END_COLOR_PRINT}"
-  sudo systemctl stop xcash-daemon &>/dev/null
-  sleep 10s
-  echo -ne "\r${COLOR_PRINT_GREEN}Stopping local daemon${END_COLOR_PRINT}"
+
+  stop_local_daemon
+  # sudo systemctl stop xcash-daemon &>/dev/null
+  # sleep 10s
+  # echo -ne "\r${COLOR_PRINT_GREEN}Stopping local daemon${END_COLOR_PRINT}"
   echo
 }
 
@@ -1101,28 +1150,31 @@ function import_xcash_wallet()
   echo -ne "${COLOR_PRINT_YELLOW}Starting local daemon${END_COLOR_PRINT}"
   sudo systemctl stop xcash-daemon &>/dev/null
   sleep 10s
-  sudo systemctl start xcash-daemon &>/dev/null
-  sleep 20s
+  # sudo systemctl start xcash-daemon &>/dev/null
+  # sleep 20s
   echo -ne "\r${COLOR_PRINT_GREEN}Starting local daemon${END_COLOR_PRINT}"
   echo
   
+  start_local_daemon
+
   echo -e "${COLOR_PRINT_GREEN}Starting Wallet Refresh${END_COLOR_PRINT}"
   (echo -ne "\n"; echo "${WALLET_PASSWORD}"; echo "exit") | "${XCASH_DIR}"build/release/bin/xcash-wallet-cli --restore-deterministic-wallet --electrum-seed "${WALLET_SEED}" --generate-new-wallet "${XCASH_DPOPS_INSTALLATION_DIR}"xcash-wallets/delegate-wallet --password "${WALLET_PASSWORD}" --mnemonic-language English --restore-height 0 --trusted-daemon | stdbuf -oL tr '\r' '\n' | stdbuf -o 0 grep -C 1 "Height" | stdbuf -o 0 awk '{print "Processing: ",$1,$2,$3,$4}' ORS="\r"
   echo -ne "                                                                              \r"
   echo -e "${COLOR_PRINT_GREEN}Wallet Refresh Completed${END_COLOR_PRINT}"
 
   echo -ne "${COLOR_PRINT_YELLOW}Stopping local daemon${END_COLOR_PRINT}"
-  sudo systemctl stop xcash-daemon &>/dev/null
-  sleep 10s
+
+
+
+  # sudo systemctl stop xcash-daemon &>/dev/null
+  # sleep 10s
   echo -ne "\r${COLOR_PRINT_GREEN}Stopping local daemon${END_COLOR_PRINT}"
   echo
+  stop_local_daemon
   
   echo
   echo
 }
-
-
-
 
 
 
@@ -1338,10 +1390,11 @@ function update_xcash_dpops()
   if [ ! -d "$XCASH_DPOPS_DIR" ]; then
     cd "${XCASH_DPOPS_INSTALLATION_DIR}"
     git clone --quiet "${XCASH_DPOPS_URL}" "${XCASH_DPOPS_DIR}"
-    git switch next
+    cd "${XCASH_DPOPS_DIR}"
+    git switch "${XCASH_DPOPS_BRANCH}"
   fi
   cd "${XCASH_DPOPS_DIR}"
-  git switch next
+  git switch "${XCASH_DPOPS_BRANCH}"
   data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
   if [ "$data" == "0" ]; then
     git reset --hard HEAD --quiet
@@ -1515,14 +1568,210 @@ function uninstall_shared_delegates_website()
   echo
 }
 
+function start_local_mongodb() {
+  echo "### Starting local mongodb ###"
+  mongo_bin=$(get_service_exec_line "/lib/systemd/system/mongodb.service")
+
+  $mongo_bin&
+  echo "### Local mongodb started"
+}
+
+function stop_local_mongodb() {
+  kill $(pgrep mongod) || true
+
+  while pgrep -x mongod > /dev/null; do
+      echo "Shutting down mongod daemon..."
+      sleep 1
+  done
+
+  echo "### Local mongodb stoped"
+}
 
 
 
 
 
+function start_local_daemon() {
+  echo "### Checking network current block height"
+  top_block_height=$(get_current_block_height "seed2.xcash.tech")
+  echo "### Current Network block height: ${top_block_height}"
+
+  echo "### Starting local daemon"
+  xcash_daemon=$(get_service_exec_line "/lib/systemd/system/xcash-daemon.service")
+  xcash_daemon="${xcash_daemon} --xcash_trusted_sync_block ${top_block_height}"
+
+  $xcash_daemon
+
+  echo "### Wait untill it loaded"
+
+  while true; do
+      current_block_height=$(get_current_block_height "127.0.0.1")
+
+      echo "Current local block height: ${current_block_height}"
+      if [[ "$current_block_height" =~ ^[0-9]+$ ]]; then
+          break
+      fi
+      sleep 5
+  done
+
+  echo "### Local daemon started"
+}
+
+
+function stop_local_daemon() {
+  kill $(pgrep xcashd) || true
+
+  while pgrep -x xcashd > /dev/null; do
+      echo "Shutting down xcash daemon..."
+      sleep 1
+  done
+
+  echo "### Local daemon stoped"
+}
+
+
+function start_local_wallet_rpc() {
+  echo "### Starting local wallet rpc"
+  xcash_wallet=$(get_service_exec_line "/lib/systemd/system/xcash-rpc-wallet.service")
+
+  $xcash_wallet&
+  echo "### Local wallet rpc started"
+}
+
+
+function stop_local_wallet_rpc() {
+  kill $(pgrep xcash-wallet-rpc) || true
+
+  while pgrep -x xcash-wallet-rpc > /dev/null; do
+      echo "Shutting down xcash rpc wallet..."
+      sleep 1
+  done
+
+  echo "### Local wallet stoped"
+}
 
 
 
+function sync_blockchain() {
+  echo
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}                  Syncing blockchain${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+
+  echo "### Shutting down xcash-daemon service"
+  sudo systemctl stop xcash-daemon &>/dev/null
+  sleep 10s
+
+  start_local_daemon
+
+  echo "### Quick syncing blockchain"
+  echo "### Waiting for the blockchain to reach the top block"
+
+  while true; do
+      current_block_height=$(get_current_block_height "127.0.0.1")
+
+      echo "Current local block height: ${current_block_height} of $top_block_height"
+      if [[ "$current_block_height" =~ ^[0-9]+$ ]]; then
+        if [ "$current_block_height" -ge "$top_block_height" ]; then
+          break
+        fi
+      fi
+      sleep 5
+  done
+
+  stop_local_daemon
+
+  echo "### Blockchain has been updated"
+}
+
+
+
+function sync_wallet() {
+  echo
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}                  Syncing wallet${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+
+
+  echo "### Starting daemon and wallet services"
+
+  # make sure we don't run system services
+  sudo systemctl stop xcash-daemon
+  sudo systemctl stop xcash-rpc-wallet
+
+  start_local_daemon
+  start_local_wallet_rpc
+
+  echo "### Waiting for wallet"
+  while true; do
+      wallet_address=$(get_wallet_address "127.0.0.1")
+
+      echo "Wallet address: ${wallet_address}"
+      if [[ "$wallet_address" != "" ]]; then
+          break
+      fi
+      sleep 1
+  done
+
+  curl -s -X POST http://127.0.0.1:18285/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"stop_wallet"}' -H 'Content-Type: application/json' &>/dev/null
+  sleep 10s
+
+
+  stop_local_wallet_rpc
+  stop_local_daemon
+
+  echo "### Wallet data has been updated"
+}
+
+function sync_dpops() {
+  echo
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}                  Syncing Dpops data from network${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+
+  sudo systemctl start xcash-daemon &>/dev/null
+
+  echo "### Shutting down xcash-dpops service"
+  sudo systemctl stop xcash-dpops &>/dev/null
+
+
+  echo "### Shutting xcash-dpops sync"
+
+  xcash_dpops=$(get_service_exec_line "/lib/systemd/system/xcash-dpops.service")
+  xcash_dpops="${xcash_dpops} --init-db-from-seeds"
+  $xcash_dpops
+}
+
+
+function restore_mongo_data() {
+  echo
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}                  Restoring MongoDB data snapshot${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+
+
+
+  cd $HOME
+  echo -e "${COLOR_PRINT_GREEN}Starting the Download${END_COLOR_PRINT}"
+  wget -q --show-progress ${XCASH_MONGODB_DATA_URL}
+  echo -e "${COLOR_PRINT_GREEN}Starting Extraction${END_COLOR_PRINT}"
+  tar xvf  ${XCASH_MONGODB_DATA_FILE}
+  rm ${XCASH_MONGODB_DATA_FILE} || true
+
+
+  echo "### Starting mongodb service"
+
+  start_local_mongodb
+
+  source ~/.profile || true
+  mongorestore || true
+  rm -rf "./dump"
+
+  stop_local_mongodb
+
+
+  echo "###  mongodb data restored"
+}
 
 
 function install()
@@ -1553,6 +1802,10 @@ function install()
   # Install xcash-dpops
   install_xcash_dpops
 
+  sync_blockchain
+
+  restore_mongo_data
+
   # Install shared delegates website
   if [ "${SHARED_DELEGATE^^}" == "YES" ]; then
     install_shared_delegates_website
@@ -1565,8 +1818,11 @@ function install()
     import_xcash_wallet
   fi
 
+  # sync_wallet
+
   # Get the current xcash wallet data
   get_current_xcash_wallet_data
+
 
   # import the wallet if they created the wallet before. This should fix any 0 balance error
   if [ "${WALLET_SETTINGS^^}" == "YES" ]; then
@@ -2590,6 +2846,8 @@ function restore_tools()
   echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
 }
 
+
+
 # Check for a compatible OS
 check_ubuntu_version
 
@@ -2640,4 +2898,10 @@ elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "19" ]; then
   install_firewall_script_shared_delegates
 elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "20" ]; then
   backup
+elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "21" ]; then
+  sync_blockchain
+  echo -e "${COLOR_PRINT_YELLOW}Restart all services manually${END_COLOR_PRINT}\n\n"
+elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "22" ]; then
+  sync_dpops
+  echo -e "${COLOR_PRINT_YELLOW}Restart all services manually${END_COLOR_PRINT}\n\n"
 fi
