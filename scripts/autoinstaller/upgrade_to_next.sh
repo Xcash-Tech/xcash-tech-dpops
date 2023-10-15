@@ -1,5 +1,7 @@
 #!/bin/bash
 
+XCASH_DPOPS_BRANCH="master"
+
 echo "###Updating requirements"
 sudo apt update
 sudo apt install libuv1-dev jq
@@ -22,7 +24,7 @@ make release -j "$half_cores"
 echo "###Rebuilding xcash-dpops"
 cd ${HOME}/xcash-official/xcash-dpops
 git pull
-git switch next
+git switch "${XCASH_DPOPS_BRANCH}"
 echo 'y' |make clean
 make release -j "$half_cores"
 
