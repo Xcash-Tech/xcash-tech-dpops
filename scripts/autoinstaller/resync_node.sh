@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "###Updating requirements"
+sudo apt update
+sudo apt install libuv1-dev jq
 
 echo "###Stopping services"
 
