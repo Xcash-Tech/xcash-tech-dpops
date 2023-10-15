@@ -536,7 +536,7 @@ static char xcash_tech_header[] = "\n"
 "|__/  |__/\\_______/\\_______|_______/|__/  |__|__|__/\\_______/\\_______|__/  |__/\n"
 "\n";
 
-#define xcash_tech_status_fmt "ver.(%s) %s\n\n"\
+#define xcash_tech_status_fmt "%s (%s)\n\n"\
 "Address:\t%s\n"\
 "\n"\
 "Node Type:\t%s\n"\
@@ -553,7 +553,7 @@ void print_starter_state(void)
 {
     fprintf(stderr, "%s",xcash_tech_header);
     fprintf(stderr, xcash_tech_status_fmt,
-        "1.3.0","~Next",
+        argp_program_version,"~Next",
         xcash_wallet_public_address,
         is_seed_node? "SEED NODE": "DELEGATE NODE",
         XCASH_daemon_IP_address, XCASH_DAEMON_PORT,

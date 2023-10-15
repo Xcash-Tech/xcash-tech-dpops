@@ -38,8 +38,9 @@ unsigned char* get_pseudo_random_hash(size_t seed, size_t feed_size) {
     return hash_buf;
 }
 
-
+// TODO add shift selection depending on time. because if some node stuck, all networks will stuck on block
 void select_block_producers(size_t round_number) {
+    (void)round_number;
     producer_node_t producers_list[BLOCK_VERIFIERS_AMOUNT];
     memset(producers_list, 0, sizeof(producers_list));
 
@@ -140,15 +141,20 @@ void select_block_producers(size_t round_number) {
 
     memset(&main_nodes_list, 0, sizeof(main_nodes_list));
 
-    size_t producing_position = block_height % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
+    // size_t producing_position = block_height % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
+
+    size_t producing_position = 0;
+    size_t shift_position = ((time(NULL) /BLOCK_TIME_SEC)) % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
 
     // positioning to the first online node and skipping the round numbers
     // when the amount of online nodes is small we have too many repeats. so better switch frame
-    producing_position += round_number*num_producers;
+    // producing_position += round_number*num_producers;
     // producing_position += round_number;
 
     // FIXME possible repeating selection of the same producer during the next block if previous producers was offline
     // add checking for previous block producer
+
+    producing_position += shift_position;
 
     for (size_t i = 0; i < sizeof(producer_refs)/sizeof(producer_ref_t); i++)
     {

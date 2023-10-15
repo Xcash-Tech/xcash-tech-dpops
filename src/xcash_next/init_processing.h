@@ -22,6 +22,8 @@
 #include "network_daemon_functions.h"
 #include "xcash_node.h"
 
+
+extern const char* argp_program_version;
 bool get_node_data(void);
 bool init_data_by_config(const arg_config_t* config);
 bool processing(const arg_config_t* arg_config);

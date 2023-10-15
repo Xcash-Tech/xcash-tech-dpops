@@ -1494,15 +1494,21 @@ int block_verifiers_create_block(size_t round_number) {
     INFO_STAGE_PRINT("Round %s Final participants", current_round_part_backup_node);
 
     for (size_t i = 0; i < BLOCK_VERIFIERS_AMOUNT; i++) {
-      if (majority[i] >= BLOCK_VERIFIERS_VALID_AMOUNT)
+      if ((majority[i] >= BLOCK_VERIFIERS_VALID_AMOUNT) && (strcmp(delegates_all[i].online_status, "true")==0))
       {
           strcpy(delegates_all[i].online_status, "true");
           INFO_PRINT_STATUS_OK("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
       } else {
-        if (majority[i] >0) {
-          strcpy(delegates_all[i].online_status, "false");
+        if ((strlen(delegates_all[i].online_status)==0) && (majority[i] >0)) {
+          INFO_PRINT_STATUS_FAIL("[%02ld] %s (wrong client version)",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
+        }else if (majority[i] >0) {
           INFO_PRINT_STATUS_FAIL("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
         }
+
+        if (strlen(delegates_all[i].online_status)>0) {
+          strcpy(delegates_all[i].online_status, "false");
+        }
+
       }
     }
 

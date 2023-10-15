@@ -20,7 +20,7 @@ Using define statements instead of constants for increased efficiency
 #define XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT 800000 // The start block height for X-CASH proof of stake
 #define XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT_DATA "800000" // The start block height for X-CASH proof of stake
 #define BLOCK_TIME 5 // The block time in minutes
-#define BLOCK_TIME_SEC BLOCK_TIME*60 // The block time in seconds
+#define BLOCK_TIME_SEC (BLOCK_TIME*60) // The block time in seconds
 
 #define BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME 288 // The blocks per day with a 5 minute block time
 #define UNLOCK_BLOCK_AMOUNT 60 // The default unlock block amount for a block reward transaction
