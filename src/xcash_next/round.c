@@ -130,10 +130,6 @@ bool select_block_producers(size_t round_number) {
 
 
 
-    // for (size_t j = 0; j < 30; j++)
-    // {
-    //     INFO_PRINT("%s", producers_shuffle_list[j].producer_node->public_address);
-    // }
 
 
 
@@ -141,10 +137,17 @@ bool select_block_producers(size_t round_number) {
 
     memset(&main_nodes_list, 0, sizeof(main_nodes_list));
 
-    // size_t producing_position = block_height % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
+    size_t producing_position = block_height % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
 
-    size_t producing_position = 0;
-    size_t shift_position = ((time(NULL) /BLOCK_TIME_SEC)) % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
+    // size_t producing_position = 0;
+    // size_t shift_position = ((time(NULL) /BLOCK_TIME_SEC)) % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
+
+
+    struct timeval current_time;
+    gettimeofday(&current_time, NULL);
+    size_t shift_position = (current_time.tv_sec / (BLOCK_TIME * 60)) % 60; //5minutes block within an hour
+
+
 
     // positioning to the first online node and skipping the round numbers
     // when the amount of online nodes is small we have too many repeats. so better switch frame
@@ -154,34 +157,47 @@ bool select_block_producers(size_t round_number) {
     // FIXME possible repeating selection of the same producer during the next block if previous producers was offline
     // add checking for previous block producer
 
+    DEBUG_PRINT("Positions: %ld (%ld, %ld)", producing_position + shift_position, producing_position, shift_position);
+
     producing_position += shift_position;
+
+
+    // for (size_t j = producing_position; j < producing_position+30; j++)
+    // {
+    //     size_t pp = j % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
+    //     DEBUG_PRINT("%s", producers_shuffle_list[pp]->public_address);
+    // }
+
+
 
     for (size_t i = 0; i < sizeof(producer_refs)/sizeof(producer_ref_t); i++)
     {
 
-        // filter repetitive producers
-        bool repeated_node_found;
-        size_t num_tries = 0;
-        do
-        {
-            // for very small list of producers we need to get out of the loop
-            if (num_tries > num_producers)
-                break;
+        // // filter repetitive producers
+        // bool repeated_node_found;
+        // size_t num_tries = 0;
+        // do
+        // {
+        //     // for very small list of producers we need to get out of the loop
+        //     if (num_tries > num_producers)
+        //         break;
 
-            repeated_node_found = false;
-            producing_position = producing_position % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
-            for (size_t j = 0; j < i; j++)
-            {
-                if (strcmp(producer_refs[j].public_address, producers_shuffle_list[producing_position]->public_address) == 0) {
-                    repeated_node_found = true;
-                    producing_position++;
-                    num_tries++;
-                    break;
-                }
-            }
-        } while (repeated_node_found);
+        //     repeated_node_found = false;
+        //     producing_position = producing_position % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
+        //     for (size_t j = 0; j < i; j++)
+        //     {
+        //         if (strcmp(producer_refs[j].public_address, producers_shuffle_list[producing_position]->public_address) == 0) {
+        //             repeated_node_found = true;
+        //             producing_position++;
+        //             num_tries++;
+        //             break;
+        //         }
+        //     }
+        // } while (repeated_node_found);
         
         
+        producing_position = producing_position % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
+
         strcpy(producer_refs[i].public_address, producers_shuffle_list[producing_position]->public_address);
         strcpy(producer_refs[i].IP_address, producers_shuffle_list[producing_position]->IP_address);
 
@@ -345,12 +361,13 @@ void select_block_producers2(size_t round_number) {
 
 
 void show_block_producer(size_t round_number) {
-    INFO_STAGE_PRINT("Block producers for block %s round %ld: ", current_block_height, round_number);
+    // INFO_STAGE_PRINT("Block producers for block %s round %ld: ", current_block_height, round_number);
+    INFO_STAGE_PRINT("Block producers for block: [%s]", current_block_height);
     INFO_PRINT("Main Block Producer: "GREEN_TEXT("%s"), address_to_node_name(producer_refs[round_number].public_address));
-    for (size_t i = round_number + 1; i < 2; i++)
-    {
-        INFO_PRINT("Backup Block Producer %ld: "GREEN_TEXT("%s"), i, address_to_node_name(producer_refs[i].public_address));
-    }
+    // for (size_t i = round_number + 1; i < 6; i++)
+    // {
+    //     INFO_PRINT("Backup Block Producer %ld: "GREEN_TEXT("%s"), i, address_to_node_name(producer_refs[i].public_address));
+    // }
 };
 
 

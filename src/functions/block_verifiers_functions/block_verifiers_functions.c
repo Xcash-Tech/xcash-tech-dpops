@@ -1509,9 +1509,15 @@ int block_verifiers_create_block(size_t round_number) {
             INFO_PRINT_STATUS_FAIL("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
           }
           strcpy(delegates_all[i].online_status, "false");
+        } else if (strlen(delegates_all[i].online_status) >0) {
+          // remove suddenly dead delegate
+          strcpy(delegates_all[i].online_status, "false");
         }
       }
     }
+
+
+    // FIXME until we don't have stable network exchange we should consider to check all possible delegates
 
     if (!select_block_producers(round_number)) {
       INFO_PRINT_STATUS_FAIL("Block producer NOT selected");

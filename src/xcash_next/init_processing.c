@@ -692,10 +692,23 @@ bool processing(const arg_config_t *arg_config) {
 
     INFO_STAGE_PRINT("Starting network initialisation loop...");
 
-    network_recovery_state = false;
     bool server_started = false;
-    size_t network_majority_count = 0;
+
+      // we need the server to be online to allow other nodes get node data to reach majority even if node is not fully synced yet
+      if (!server_started) {
+        // start the server
+        if (!create_server()) {
+            ERROR_PRINT("Could not start the server");
+            cleanup_data_structures();
+            return false;
+        }
+        server_started =  true;
+      }
+
+
     // do the synchronization until the network reach majority
+    network_recovery_state = false;
+    size_t network_majority_count = 0;
     do
     {
 
@@ -708,9 +721,12 @@ bool processing(const arg_config_t *arg_config) {
       // FIXME possible dead end if node has not synced blockchain. it will not return right data to
       // to other nodes. and if there is not enough working nodes we could loop
       // but we need to start server anyway
+
+      // ! probably better start server at the beginning and loop recovery before data synchronization
       if (!get_daemon_data()) {
           network_recovery_state =  true;
           WARNING_PRINT("Can't get node daemon data");
+          continue;
       }
 
 
@@ -737,16 +753,6 @@ bool processing(const arg_config_t *arg_config) {
           network_recovery_state = true;
       }
 
-      // we need the server to be online to allow other nodes get node data to reach majority even if node is not fully synced yet
-      if (!server_started) {
-        // start the server
-        if (!create_server()) {
-            ERROR_PRINT("Could not start the server");
-            cleanup_data_structures();
-            return false;
-        }
-        server_started =  true;
-      }
     }while (network_recovery_state);
     
       
