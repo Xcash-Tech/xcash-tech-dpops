@@ -820,7 +820,7 @@ extern int debug_settings; // 1 to show all incoming and outgoing message from t
 #define DPOPS_DB "XCASH_PROOF_OF_STAKE"
 
 // uv_net 
-#define CONNECTION_TIMEOUT 1000  // 2 second
+#define CONNECTION_TIMEOUT 3000  // 3 second
 #define RESPONSE_TIMEOUT 3500    // 3 seconds. the time allowed for the each data block response
 #define TRANSFER_BUFFER_SIZE 1024*1024*1; // 1Mb. data block size
 
