@@ -203,7 +203,8 @@ function get_installation_settings()
   echo -ne "${COLOR_PRINT_YELLOW}20 = Display wallet and xcash-dpops data, and backup shared delegates database\n\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_GREEN}Sync with network\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}21 = Sync blockchain\n${END_COLOR_PRINT}"
-  echo -ne "${COLOR_PRINT_YELLOW}22 = Sync Dpops DB (Only after registering the node)\n\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_YELLOW}22 = Sync Dpops DB (Only after registering the node)\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_YELLOW}23 = Cleanup DB cache (force recaching)\n\n${END_COLOR_PRINT}"
 
   echo -ne "${COLOR_PRINT_GREEN}Enter the number of the chosen option (default 1): ${END_COLOR_PRINT}"
   read -r data
@@ -1775,6 +1776,42 @@ function restore_mongo_data() {
 }
 
 
+function clean_top_cache() {
+  echo
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}                  Clean DB caches${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+
+  source ~/.profile || true
+
+
+  # Get the current block height
+  block_height=$(get_current_block_height "seed2.xcash.tech")
+
+  # Calculate idx
+  idx=$(((block_height - 800000) / 288))
+  prev_idx=$((idx-1))
+  next_idx=$((idx+1))
+
+  XCASH_MONGO_URI="mongodb://127.0.0.1:27017/XCASH_PROOF_OF_STAKE"
+
+  # Perform MongoDB deletion
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_bytes_$prev_idx\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_bytes_$idx\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_bytes_$next_idx\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_bytes\"})" || true
+
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_proofs_1\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_proofs\"})" || true
+
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"delegates\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"statistics\"})" || true
+
+
+  echo "###  cleanup done"
+}
+
+
 function install()
 {
   echo
@@ -2905,4 +2942,6 @@ elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "21" ]; then
 elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "22" ]; then
   sync_dpops
   echo -e "${COLOR_PRINT_YELLOW}Restart all services manually${END_COLOR_PRINT}\n\n"
+elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "23" ]; then
+  clean_top_cache
 fi
