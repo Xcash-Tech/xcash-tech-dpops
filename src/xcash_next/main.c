@@ -15,7 +15,7 @@
 #include "VRF_functions.h"
 
 
-const char *argp_program_version = "Xcash Tech DPoPS v. 1.3.1_2";
+const char *argp_program_version = "Xcash Tech DPoPS v. 1.3.1_3";
 const char *argp_program_bug_address = "https://github.com/Xcash-Tech/xcash-tech-dpops/issues";
 
 static char doc[] = "Usage: xcash-dpops [OPTIONS]\n"
