@@ -96,7 +96,10 @@ bool init_data_by_config(const arg_config_t *config) {
   }
 
   // make sure we have exact copy during initial db syncing
-  cleanup_db_before_upsert = config->init_db_from_seeds? true: false;
+  cleanup_db_before_upsert = false;
+  if (config->init_db_from_seeds || config->init_db_from_top) {
+    cleanup_db_before_upsert = true;
+  }
 
 
     // TODO move website processing to other service
@@ -639,6 +642,23 @@ bool processing(const arg_config_t *arg_config) {
         cleanup_data_structures();
         return false;
     }
+
+    if (arg_config->init_db_from_top) {
+      if (!fill_delegates_from_db()) {
+          ERROR_PRINT("Can't read delegates list from DB");
+          cleanup_data_structures();
+          return false;
+      }
+
+        INFO_STAGE_PRINT("Initializing database from top height nodes")
+        if (!init_db_from_top()) {
+            ERROR_PRINT("Can't initialize database from height nodes");
+        };
+        cleanup_data_structures();
+        return false;
+    }
+
+
 
     // brief check if database is empty
     if (count_db_delegates() <= 0 || count_db_statistics() <= 0) {
