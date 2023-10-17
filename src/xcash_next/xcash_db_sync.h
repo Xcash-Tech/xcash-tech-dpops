@@ -60,14 +60,15 @@ bool fill_delegates_from_db(void);
 
 bool get_actual_nodes_list(bool is_seeds_offline);
 
-xcash_node_sync_info_t** make_nodes_majority_list(xcash_node_sync_info_t* sync_states_list, size_t states_count);
+xcash_node_sync_info_t** make_nodes_majority_list(xcash_node_sync_info_t* sync_states_list, size_t states_count,
+                                                  bool by_top_block_height);
 
 bool get_sync_seeds_majority_list(xcash_node_sync_info_t** majority_list_result, size_t* majority_count_result);
 
 bool get_sync_nodes_majority_list(xcash_node_sync_info_t** majority_list_result, size_t* majority_count_result);
 
 bool check_sync_nodes_majority_list(response_t** replies, xcash_node_sync_info_t** majority_list_result,
-                                    size_t* majority_count_result);
+                                    size_t* majority_count_result, bool by_top_block_height);
 
 int get_random_majority(xcash_node_sync_info_t* majority_list, size_t majority_count);
 
@@ -75,6 +76,8 @@ bool initial_db_sync_check(size_t* majority_count, xcash_node_sync_info_t** majo
 bool check_time_sync_to_seeds(void);
 
 bool init_db_from_seeds(void);
+
+bool init_db_from_top(void);
 
 bool synchronize_database_from_specific_delegate(const char* delegate_ip);
 bool synchronize_database_from_network_data_node(void);

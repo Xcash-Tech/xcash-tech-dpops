@@ -203,11 +203,12 @@ function get_installation_settings()
   echo -ne "${COLOR_PRINT_YELLOW}20 = Display wallet and xcash-dpops data, and backup shared delegates database\n\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_GREEN}Sync with network\n${END_COLOR_PRINT}"
   echo -ne "${COLOR_PRINT_YELLOW}21 = Sync blockchain\n${END_COLOR_PRINT}"
-  echo -ne "${COLOR_PRINT_YELLOW}22 = Sync Dpops DB (Only after registering the node)\n\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_YELLOW}22 = Sync Dpops DB (Only after registering the node)\n${END_COLOR_PRINT}"
+  echo -ne "${COLOR_PRINT_YELLOW}23 = Cleanup DB cache (force recaching)\n\n${END_COLOR_PRINT}"
 
   echo -ne "${COLOR_PRINT_GREEN}Enter the number of the chosen option (default 1): ${END_COLOR_PRINT}"
   read -r data
-  INSTALLATION_TYPE_SETTINGS=$([ "$data" == "2" ] || [ "$data" == "3" ] || [ "$data" == "4" ] || [ "$data" == "5" ] || [ "$data" == "6" ] || [ "$data" == "7" ] || [ "$data" == "8" ] || [ "$data" == "9" ] || [ "$data" == "10" ] || [ "$data" == "11" ] || [ "$data" == "12" ] || [ "$data" == "13" ] || [ "$data" == "14" ] || [ "$data" == "15" ] || [ "$data" == "16" ] || [ "$data" == "17" ] || [ "$data" == "18" ] || [ "$data" == "19" ] || [ "$data" == "20" ] || [ "$data" == "21" ] || [ "$data" == "22" ] && echo "$data" || echo "1")
+  INSTALLATION_TYPE_SETTINGS=$([ "$data" == "2" ] || [ "$data" == "3" ] || [ "$data" == "4" ] || [ "$data" == "5" ] || [ "$data" == "6" ] || [ "$data" == "7" ] || [ "$data" == "8" ] || [ "$data" == "9" ] || [ "$data" == "10" ] || [ "$data" == "11" ] || [ "$data" == "12" ] || [ "$data" == "13" ] || [ "$data" == "14" ] || [ "$data" == "15" ] || [ "$data" == "16" ] || [ "$data" == "17" ] || [ "$data" == "18" ] || [ "$data" == "19" ] || [ "$data" == "20" ] || [ "$data" == "21" ] || [ "$data" == "22" ] || [ "$data" == "23" ] && echo "$data" || echo "1")
   echo -ne "\r"
   # Check if xcash-dpops is already installed, if the user choose to install
   if [ "$INSTALLATION_TYPE_SETTINGS" -eq "1" ]; then
@@ -1398,7 +1399,8 @@ function update_xcash_dpops()
   # data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
   # if [ "$data" == "0" ]; then
     git reset --hard HEAD --quiet
-    git pull --quiet
+    git pull
+    echo -ne "${COLOR_PRINT_GREEN}Rebuilding xcash-dpops${END_COLOR_PRINT}"
     if [ "$RAM_CPU_RATIO" -ge "$RAM_CPU_RATIO_ALL_CPU_THREADS" ]; then
       echo "y" | make clean &>/dev/null
       make release -j "${CPU_THREADS}" &>/dev/null
@@ -1771,6 +1773,42 @@ function restore_mongo_data() {
 
 
   echo "###  mongodb data restored"
+}
+
+
+function clean_top_cache() {
+  echo
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}                  Clean DB caches${END_COLOR_PRINT}"
+  echo -e "${COLOR_PRINT_GREEN}############################################################${END_COLOR_PRINT}"
+
+  source ~/.profile || true
+
+
+  # Get the current block height
+  block_height=$(get_current_block_height "seed2.xcash.tech")
+
+  # Calculate idx
+  idx=$(((block_height - 800000) / 288))
+  prev_idx=$((idx-1))
+  next_idx=$((idx+1))
+
+  XCASH_MONGO_URI="mongodb://127.0.0.1:27017/XCASH_PROOF_OF_STAKE"
+
+  # Perform MongoDB deletion
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_bytes_$prev_idx\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_bytes_$idx\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_bytes_$next_idx\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_bytes\"})" || true
+
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_proofs_1\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"reserve_proofs\"})" || true
+
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"delegates\"})" || true
+  mongo "$XCASH_MONGO_URI" --eval "db.hashes2.deleteOne({\"db_name\":\"statistics\"})" || true
+
+
+  echo "###  cleanup done"
 }
 
 
@@ -2904,4 +2942,6 @@ elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "21" ]; then
 elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "22" ]; then
   sync_dpops
   echo -e "${COLOR_PRINT_YELLOW}Restart all services manually${END_COLOR_PRINT}\n\n"
+elif [ "$INSTALLATION_TYPE_SETTINGS" -eq "23" ]; then
+  clean_top_cache
 fi

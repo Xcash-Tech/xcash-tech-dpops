@@ -96,7 +96,10 @@ bool init_data_by_config(const arg_config_t *config) {
   }
 
   // make sure we have exact copy during initial db syncing
-  cleanup_db_before_upsert = config->init_db_from_seeds? true: false;
+  cleanup_db_before_upsert = false;
+  if (config->init_db_from_seeds || config->init_db_from_top) {
+    cleanup_db_before_upsert = true;
+  }
 
 
     // TODO move website processing to other service
@@ -640,6 +643,23 @@ bool processing(const arg_config_t *arg_config) {
         return false;
     }
 
+    if (arg_config->init_db_from_top) {
+      if (!fill_delegates_from_db()) {
+          ERROR_PRINT("Can't read delegates list from DB");
+          cleanup_data_structures();
+          return false;
+      }
+
+        INFO_STAGE_PRINT("Initializing database from top height nodes")
+        if (!init_db_from_top()) {
+            ERROR_PRINT("Can't initialize database from height nodes");
+        };
+        cleanup_data_structures();
+        return false;
+    }
+
+
+
     // brief check if database is empty
     if (count_db_delegates() <= 0 || count_db_statistics() <= 0) {
         ERROR_PRINT("'delegates' or 'statistics' DB not initialized. Do it manually with --init-db-from-seeds");
@@ -692,10 +712,23 @@ bool processing(const arg_config_t *arg_config) {
 
     INFO_STAGE_PRINT("Starting network initialisation loop...");
 
-    network_recovery_state = false;
     bool server_started = false;
-    size_t network_majority_count = 0;
+
+      // we need the server to be online to allow other nodes get node data to reach majority even if node is not fully synced yet
+      if (!server_started) {
+        // start the server
+        if (!create_server()) {
+            ERROR_PRINT("Could not start the server");
+            cleanup_data_structures();
+            return false;
+        }
+        server_started =  true;
+      }
+
+
     // do the synchronization until the network reach majority
+    network_recovery_state = false;
+    size_t network_majority_count = 0;
     do
     {
 
@@ -708,9 +741,12 @@ bool processing(const arg_config_t *arg_config) {
       // FIXME possible dead end if node has not synced blockchain. it will not return right data to
       // to other nodes. and if there is not enough working nodes we could loop
       // but we need to start server anyway
+
+      // ! probably better start server at the beginning and loop recovery before data synchronization
       if (!get_daemon_data()) {
           network_recovery_state =  true;
           WARNING_PRINT("Can't get node daemon data");
+          continue;
       }
 
 
@@ -737,16 +773,6 @@ bool processing(const arg_config_t *arg_config) {
           network_recovery_state = true;
       }
 
-      // we need the server to be online to allow other nodes get node data to reach majority even if node is not fully synced yet
-      if (!server_started) {
-        // start the server
-        if (!create_server()) {
-            ERROR_PRINT("Could not start the server");
-            cleanup_data_structures();
-            return false;
-        }
-        server_started =  true;
-      }
     }while (network_recovery_state);
     
       

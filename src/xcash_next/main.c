@@ -15,7 +15,7 @@
 #include "VRF_functions.h"
 
 
-const char *argp_program_version = "Xcash Tech DPoPS v. 1.3.1";
+const char *argp_program_version = "Xcash Tech DPoPS v. 1.3.1_3";
 const char *argp_program_bug_address = "https://github.com/Xcash-Tech/xcash-tech-dpops/issues";
 
 static char doc[] = "Usage: xcash-dpops [OPTIONS]\n"
@@ -97,7 +97,8 @@ static struct argp_option options[] = {
     // {"synchronize-database-from-specific-delegate", OPTION_SYNCHRONIZE_DATABASE_FROM_SPECIFIC_DELEGATE, "IP", 0, "Sync database from a specific node without majority checks.", 0},
     {"total-threads", OPTION_TOTAL_THREADS, "THREADS", 0, "Set total threads (Default: CPU total threads).", 0},
     {"server-log-file", OPTION_SERVER_LOG_FILE, "FILE", 0, "Log server messages", 0},
-    {"init-db-from-seeds", OPTION_INIT_DB_FROM_SEEDS, 0, 0, "Sync current nodes list from seeds. Needed only during installation process", 0},
+    {"init-db-from-seeds", OPTION_INIT_DB_FROM_SEEDS, 0, 0, "Sync current node data from seeds. Needed only during installation process", 0},
+    {"init-db-from-top", OPTION_INIT_DB_FROM_TOP, 0, 0, "Sync current node data from top block_height nodes.", 0},
 
     {0}
 };
@@ -180,6 +181,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
             break;
         case OPTION_INIT_DB_FROM_SEEDS:
             arguments->init_db_from_seeds = true;
+            break;
+        case OPTION_INIT_DB_FROM_TOP:
+            arguments->init_db_from_top = true;
             break;
 
 

@@ -1032,7 +1032,7 @@ int compare_sync_hashed_node_data(const void* a, const void* b) {
     return strcmp(node1->overall_md5_hash, node2->overall_md5_hash);
 }
 
-xcash_node_sync_info_t** make_nodes_majority_list(xcash_node_sync_info_t* sync_states_list, size_t states_count) {
+xcash_node_sync_info_t** make_nodes_majority_list(xcash_node_sync_info_t* sync_states_list, size_t states_count, bool by_top_block_height) {
     // last pointer in sync_states_sorted_list is NULL as the marker of the end of the list
     xcash_node_sync_info_t** sync_states_sorted_list = calloc(states_count+1, sizeof(xcash_node_sync_info_t*));
     xcash_db_sync_prehash_t* sync_states_hashed_list = calloc(states_count, sizeof(xcash_db_sync_prehash_t));
@@ -1057,9 +1057,8 @@ xcash_node_sync_info_t** make_nodes_majority_list(xcash_node_sync_info_t* sync_s
 
     // Now let's find a majority 
     int max_count = 0, current_count = 1;
-    const char *major_hash = NULL;
-
-    major_hash = sync_states_hashed_list[0].overall_md5_hash;
+    const char *major_hash = sync_states_hashed_list[0].overall_md5_hash;
+    size_t top_block_height = sync_states_hashed_list[0].sync_info->block_height;
     for (size_t i = 1; i < states_count; i++) {
         if (strcmp(sync_states_hashed_list[i].overall_md5_hash, sync_states_hashed_list[i-1].overall_md5_hash) == 0) {
             current_count++;
@@ -1068,6 +1067,9 @@ xcash_node_sync_info_t** make_nodes_majority_list(xcash_node_sync_info_t* sync_s
                 major_hash = sync_states_hashed_list[i].overall_md5_hash;
             }
         } else {
+            if (by_top_block_height && (sync_states_hashed_list[i].sync_info->block_height < top_block_height)) {
+                break;
+            }
             current_count = 1;
         }
     }
@@ -1115,7 +1117,7 @@ bool get_sync_seeds_majority_list(xcash_node_sync_info_t** majority_list_result,
 
     xcash_node_sync_info_t* majority_list;
     size_t majority_count = 0;
-    if (check_sync_nodes_majority_list(replies, &majority_list, &majority_count)) {
+    if (check_sync_nodes_majority_list(replies, &majority_list, &majority_count, false)) {
         result = true;
     }
 
@@ -1145,7 +1147,7 @@ bool get_sync_nodes_majority_list(xcash_node_sync_info_t** majority_list_result,
 
     xcash_node_sync_info_t* majority_list;
     size_t majority_count = 0;
-    if (check_sync_nodes_majority_list(replies, &majority_list, &majority_count)) {
+    if (check_sync_nodes_majority_list(replies, &majority_list, &majority_count, false)) {
         result = true;
         // if (majority_count >= BLOCK_VERIFIERS_VALID_AMOUNT) {
         //     INFO_PRINT("Synced majority found. %ld nodes available", majority_count);
@@ -1162,8 +1164,36 @@ bool get_sync_nodes_majority_list(xcash_node_sync_info_t** majority_list_result,
 }
 
 
+bool get_sync_nodes_majority_list_top(xcash_node_sync_info_t** majority_list_result, size_t* majority_count_result) {
+    bool result = false;
+    *majority_list_result = NULL;
+    *majority_count_result = 0;
 
-bool check_sync_nodes_majority_list(response_t** replies,xcash_node_sync_info_t** majority_list_result, size_t* majority_count_result) {
+    response_t** replies =  NULL;
+    bool send_result = send_message(XNET_DELEGATES_ALL, XMSG_XCASH_GET_SYNC_INFO, &replies);
+    if (!send_result) {
+        ERROR_PRINT("Can't get sync info from all nodes");
+        cleanup_responses(replies);
+        return false;
+    }
+
+    xcash_node_sync_info_t* majority_list;
+    size_t majority_count = 0;
+    if (check_sync_nodes_majority_list(replies, &majority_list, &majority_count, true)) {
+        result = true;
+    }
+
+    *majority_count_result =  majority_count;
+    *majority_list_result = majority_list;
+
+
+    cleanup_responses(replies);
+    return result;
+}
+
+
+
+bool check_sync_nodes_majority_list(response_t** replies,xcash_node_sync_info_t** majority_list_result, size_t* majority_count_result, bool by_top_block_height) {
     *majority_list_result = NULL;
     *majority_count_result = 0;
     // bool result = false;
@@ -1222,7 +1252,7 @@ bool check_sync_nodes_majority_list(response_t** replies,xcash_node_sync_info_t*
     };
 
     // sync_state_index now contains the real parsed records count
-    xcash_node_sync_info_t** sync_majority_list = make_nodes_majority_list(sync_states_list, sync_state_index);
+    xcash_node_sync_info_t** sync_majority_list = make_nodes_majority_list(sync_states_list, sync_state_index, by_top_block_height);
 
 
     // calculate majority count
@@ -1464,6 +1494,55 @@ bool init_db_from_seeds(void) {
 
 
         if (!get_sync_seeds_majority_list(&nodes_majority_list, &nodes_majority_count)) {
+            WARNING_PRINT("Could not get data majority nodes sync list");
+        }else{
+            show_majority_statistics(nodes_majority_list, nodes_majority_count);
+
+            if ((nodes_majority_count < NETWORK_DATA_NODES_VALID_AMOUNT)) {
+                INFO_PRINT_STATUS_FAIL("Not enough data majority. Nodes: [%ld/%d]", nodes_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT);
+                result = false;
+            } else {
+                INFO_PRINT_STATUS_OK("Data majority reached. Nodes: [%ld/%d]",  nodes_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT);
+                int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
+                result = initial_sync_node(&nodes_majority_list[sync_source_index]);
+            }
+        }
+        free(nodes_majority_list);
+
+        if (!result) {
+            INFO_STAGE_PRINT("Waiting for network recovery...");
+            sleep(10);
+        };
+    }
+    if (result) {
+        INFO_PRINT_STATUS_OK("Database successfully synced")
+    }
+
+    return result;
+}
+
+bool init_db_from_top(void) {
+    bool result = false;
+
+    while (!result)
+    {
+        size_t nodes_majority_count = 0;
+        xcash_node_sync_info_t* nodes_majority_list = NULL;
+    
+        INFO_STAGE_PRINT("Checking the network data majority");
+
+        if (!get_daemon_data()) {
+            WARNING_PRINT("Can't get daemon data. You need to start xcash daemon service before");
+            return false;
+        }
+
+        if (!get_node_data()) {
+            WARNING_PRINT("Can't get wallet data. You need to start xcash rpc wallet service before");
+            return false;
+        }
+
+
+        if (!get_sync_nodes_majority_list_top(&nodes_majority_list, &nodes_majority_count)) {
             WARNING_PRINT("Could not get data majority nodes sync list");
         }else{
             show_majority_statistics(nodes_majority_list, nodes_majority_count);
