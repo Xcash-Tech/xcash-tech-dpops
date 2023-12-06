@@ -47,7 +47,7 @@
 #include "xcash_db_sync.h"
 #include "round.h"
 #include "xcash_db_helpers.h"
-
+#include <jansson.h>
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -61,40 +61,39 @@ void server_received_msg_get_block_producers(const int CLIENT_SOCKET, const char
     (void)MESSAGE;
     (void)CLIENT_SOCKET;
 
-  //   log_info("received %s, %s", __func__, "XCASH_GET_BLOCK_PRODUCERS");
-
-  //   if (!is_block_creation_stage) {
-  //     return;
-  //   };
-
-  //   char block_producers_list[MAIN_BLOCK_PRODUCERS*(XCASH_WALLET_LENGTH+1)+2];
-  //   char block_height_str[DB_COLLECTION_NAME_SIZE + 1];
-
-  //   sprintf(block_height_str,"%ld",current_block_height);
-
-  //   for (size_t i = 0, pos = 0; i < MAIN_BLOCK_PRODUCERS; i++)
-  //   {
-  //     snprintf(block_producers_list+pos,sizeof(block_producers_list)-1, "%s|", producer_refs[i].public_address);
-  //     pos = strlen(block_producers_list);
-  //   }
-    
-  //   char const **param_list = calloc(3, sizeof(char *) * 2);
-  //   int param_index = 0;
-
-  //   param_list[param_index++] = "block_height";
-  //   param_list[param_index++] = block_height_str;
-  //   param_list[param_index++] = "block_producers";
-  //   param_list[param_index++] = block_producers_list;
+    log_info("received %s, %s", __func__, "XCASH_GET_BLOCK_PRODUCERS");
 
 
-  //   char* message_data = create_message_param_list(XMSG_XCASH_GET_BLOCK_PRODUCERS, param_list);
-  //   message_data = realloc(message_data,strlen(message_data)+sizeof(SOCKET_END_STRING)+1);
-  //   strcat(message_data,SOCKET_END_STRING);
-  //   free(param_list);  
+    json_t *reply_json = json_object();
 
-  // // send the data
-  //   send_data(CLIENT_SOCKET,(unsigned char*)message_data,0,0,"");
-  //   free(message_data);
+    json_object_set_new(reply_json, "message_settings", json_string("XCASH_GET_BLOCK_PRODUCERS"));
+    json_object_set_new(reply_json, "public_address", json_string(xcash_wallet_public_address));
+
+    json_t* producers_array = json_array();
+    json_t* producers_ip_array = json_array();
+
+    for (size_t i = 0; i < BLOCK_VERIFIERS_TOTAL_AMOUNT; i++) {
+        if (strcmp(delegates_all[i].online_status, "true") == 0) {
+            json_array_append_new(producers_array, json_string(delegates_all[i].public_address));
+            json_array_append_new(producers_ip_array, json_string(delegates_all[i].IP_address));
+        }
+    }
+    json_object_set_new(reply_json, "producers", producers_array);
+    json_object_set_new(reply_json, "producers_ip", producers_ip_array);
+
+
+    char* message_result_data = json_dumps(reply_json, JSON_COMPACT);
+    json_decref(reply_json);
+
+    size_t message_result_size =  strlen(message_result_data);
+
+    message_result_data = realloc(message_result_data, message_result_size + sizeof(SOCKET_END_STRING));
+    strcat(message_result_data, SOCKET_END_STRING);
+
+
+    send_data(CLIENT_SOCKET,(unsigned char*)message_result_data,0,0,"");
+    free(message_result_data);
+
 }
 
 

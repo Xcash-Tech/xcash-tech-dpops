@@ -605,14 +605,14 @@ void socket_thread(const int CLIENT_SOCKET)
      server_limit_IP_addresses(0,(const char*)client_IP_address);
    }
  } else
-//  if (strstr(buffer,"\"message_settings\": \"XCASH_GET_BLOCK_PRODUCERS\"") != NULL)
-//  {
-//    if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
-//    {
-//      server_received_msg_get_block_producers(CLIENT_SOCKET,buffer);
-//      server_limit_IP_addresses(0,(const char*)client_IP_address);
-//    }
-//  } else
+ if (strstr(buffer,"\"message_settings\": \"XCASH_GET_BLOCK_PRODUCERS\"") != NULL)
+ {
+   if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
+   {
+     server_received_msg_get_block_producers(CLIENT_SOCKET,buffer);
+     server_limit_IP_addresses(0,(const char*)client_IP_address);
+   }
+ } else
  if (strstr(buffer,"\"message_settings\": \"XCASH_PROOF_OF_STAKE_TEST_DATA\"") != NULL)
  {
    if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)

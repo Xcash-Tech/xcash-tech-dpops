@@ -56,6 +56,8 @@
 
 #include "round.h"
 
+#include "xcash_block.h"
+
 /*
 -----------------------------------------------------------------------------------------------------------
 Functions
@@ -1323,7 +1325,7 @@ int block_verifiers_create_block(size_t round_number) {
         }
     }
 
-    // INFO_STAGE_PRINT("Part 0 - Exchanging block producers list");
+
 
     // replies = NULL;
     // if (!send_message(XNET_DELEGATES_ALL_ONLINE,XMSG_XCASH_GET_BLOCK_PRODUCERS, &replies)){
@@ -1372,6 +1374,15 @@ int block_verifiers_create_block(size_t round_number) {
 
 // start:
     // FIXME move the round restart logic to upper level function
+
+    INFO_STAGE_PRINT("Part 0 - Exchanging block producers list");
+
+    if (!sync_block_producers()) {
+        WARNING_PRINT("Can't select block producer");
+        return ROUND_NEXT;
+    }
+
+
 
     INFO_STAGE_PRINT("Part 1 - Create VRF data");
 
@@ -1478,54 +1489,54 @@ int block_verifiers_create_block(size_t round_number) {
 
     
 
-    size_t majority[BLOCK_VERIFIERS_AMOUNT];
-    memset(majority, 0 , sizeof(majority));
+    // size_t majority[BLOCK_VERIFIERS_AMOUNT];
+    // memset(majority, 0 , sizeof(majority));
 
-    for (size_t i = 0; i < BLOCK_VERIFIERS_AMOUNT; i++)
-    {
-      for (size_t j = 0; j < BLOCK_VERIFIERS_AMOUNT; j++)
-      {
-        if ((strlen(current_block_verifiers_majority_vote.data[i][j]) != 0) && (strcmp(current_block_verifiers_majority_vote.data[i][j],BLOCK_VERIFIER_MAJORITY_VRF_DATA_TEMPLATE) != 0)) {
-          majority[j]++;
-        }
-      }      
-    }
+    // for (size_t i = 0; i < BLOCK_VERIFIERS_AMOUNT; i++)
+    // {
+    //   for (size_t j = 0; j < BLOCK_VERIFIERS_AMOUNT; j++)
+    //   {
+    //     if ((strlen(current_block_verifiers_majority_vote.data[i][j]) != 0) && (strcmp(current_block_verifiers_majority_vote.data[i][j],BLOCK_VERIFIER_MAJORITY_VRF_DATA_TEMPLATE) != 0)) {
+    //       majority[j]++;
+    //     }
+    //   }      
+    // }
     
-    INFO_STAGE_PRINT("Round %s Final participants", current_round_part_backup_node);
+    // INFO_STAGE_PRINT("Round %s Final participants", current_round_part_backup_node);
 
-    for (size_t i = 0; i < BLOCK_VERIFIERS_AMOUNT; i++) {
-      // only nodes that have data majority and VRF majority
-      if ((majority[i] >= BLOCK_VERIFIERS_VALID_AMOUNT) && (strcmp(delegates_all[i].online_status, "true")==0))
-      {
-          // strcpy(delegates_all[i].online_status, "true");
-          INFO_PRINT_STATUS_OK("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
-      } else 
-      {
-        if (majority[i] >0) {
-          // has no data majority but within the round - probably wrong client
-          if (strcmp(delegates_all[i].online_status, "false")==0) {
-            INFO_PRINT_STATUS_FAIL("[%02ld] %s (data majority not checked)",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
-          }else{
-            INFO_PRINT_STATUS_FAIL("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
-          }
-          strcpy(delegates_all[i].online_status, "false");
-        } else if (strlen(delegates_all[i].online_status) >0) {
-          // remove suddenly dead delegate
-          strcpy(delegates_all[i].online_status, "false");
-        }
-      }
-    }
+    // for (size_t i = 0; i < BLOCK_VERIFIERS_AMOUNT; i++) {
+    //   // only nodes that have data majority and VRF majority
+    //   if ((majority[i] >= BLOCK_VERIFIERS_VALID_AMOUNT) && (strcmp(delegates_all[i].online_status, "true")==0))
+    //   {
+    //       // strcpy(delegates_all[i].online_status, "true");
+    //       INFO_PRINT_STATUS_OK("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
+    //   } else 
+    //   {
+    //     if (majority[i] >0) {
+    //       // has no data majority but within the round - probably wrong client
+    //       if (strcmp(delegates_all[i].online_status, "false")==0) {
+    //         INFO_PRINT_STATUS_FAIL("[%02ld] %s (data majority not checked)",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
+    //       }else{
+    //         INFO_PRINT_STATUS_FAIL("[%02ld] %s",majority[i], current_block_verifiers_list.block_verifiers_name[i]);
+    //       }
+    //       strcpy(delegates_all[i].online_status, "false");
+    //     } else if (strlen(delegates_all[i].online_status) >0) {
+    //       // remove suddenly dead delegate
+    //       strcpy(delegates_all[i].online_status, "false");
+    //     }
+    //   }
+    // }
 
 
-    // FIXME until we don't have stable network exchange we should consider to check all possible delegates
+    // // FIXME until we don't have stable network exchange we should consider to check all possible delegates
 
-    if (!select_block_producers(round_number)) {
-      INFO_PRINT_STATUS_FAIL("Block producer NOT selected");
-      return ROUND_SKIP;
-    }
+    // if (!select_block_producers(round_number)) {
+    //   INFO_PRINT_STATUS_FAIL("Block producer NOT selected");
+    //   return ROUND_SKIP;
+    // }
 
-    INFO_PRINT_STATUS_OK("Block producer selected");
-    show_block_producer(round_number);
+    // INFO_PRINT_STATUS_OK("Block producer selected");
+    // show_block_producer(round_number);
 
 
     //! wtf??? why not checking majority here

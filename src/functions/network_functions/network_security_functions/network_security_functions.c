@@ -732,6 +732,7 @@ int validate_data(const char* MESSAGE)
 
   // check if the format is correct for each message
   if (strstr(MESSAGE, "NODE_TO_BLOCK_VERIFIERS_ADD_RESERVE_PROOF") != NULL ||
+      strstr(MESSAGE, "XCASH_GET_BLOCK_PRODUCERS") != NULL ||
       strstr(MESSAGE, "NODES_TO_BLOCK_VERIFIERS_REGISTER_DELEGATE") != NULL ||
       strstr(MESSAGE, "NODE_TO_NETWORK_DATA_NODES_CHECK_VOTE_STATUS") != NULL ||
       strstr(MESSAGE, "NODES_TO_BLOCK_VERIFIERS_UPDATE_DELEGATE") != NULL ||
