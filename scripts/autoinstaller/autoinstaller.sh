@@ -1395,6 +1395,7 @@ function update_xcash_dpops()
     git switch "${XCASH_DPOPS_BRANCH}"
   fi
   cd "${XCASH_DPOPS_DIR}"
+  sudo apt install libjansson-dev -y
   git switch "${XCASH_DPOPS_BRANCH}"
   # data=$([ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ] && echo "1" || echo "0")
   # if [ "$data" == "0" ]; then
