@@ -119,6 +119,7 @@ bool xnet_send_data_multi(xcash_dest_t dest, const char* message, response_t ***
         for (size_t i = 0; i < BLOCK_VERIFIERS_AMOUNT; i++)
         {
             if (strlen(delegates_all[i].IP_address) != 0) {
+                DEBUG_PRINT("REQ to %s : %s", delegates_all[i].delegate_name, delegates_all[i].IP_address);
                 hosts[host_index++] = delegates_all[i].IP_address;
             }
         }

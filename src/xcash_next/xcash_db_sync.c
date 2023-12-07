@@ -1323,7 +1323,8 @@ bool initial_db_sync_check(size_t* majority_count, xcash_node_sync_info_t** majo
 
     INFO_STAGE_PRINT("Checking the network data majority");
 
-    if (!get_sync_nodes_majority_list(&nodes_majority_list, &nodes_majority_count)) {
+    if (!get_sync_nodes_majority_list_top(&nodes_majority_list, &nodes_majority_count)) {
+    // if (!get_sync_nodes_majority_list(&nodes_majority_list, &nodes_majority_count)) {
         WARNING_PRINT("Could not get data majority nodes sync list");
     }else{
         // seeds_majority_count = count_seeds_in_majority_list(nodes_majority_list, nodes_majority_count);
