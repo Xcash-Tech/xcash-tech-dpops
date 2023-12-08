@@ -23,6 +23,7 @@ bool get_node_sync_info(xcash_node_sync_info_t* sync_info) {
     bool result = false;
 
     size_t reserve_bytes_db_index;
+    size_t prev_reserve_bytes_db_index;
     size_t block_height;
 
     char db_collection_name[DB_COLLECTION_NAME_SIZE];
@@ -41,10 +42,10 @@ bool get_node_sync_info(xcash_node_sync_info_t* sync_info) {
     // fill the identifier of node
     strcpy(sync_info->public_address, xcash_wallet_public_address);
 
-    // check latest blocks in database
-    // get_reserve_bytes_database(reserve_bytes_db_index,1);
 
-    sprintf(db_collection_name, "reserve_bytes_%zu", reserve_bytes_db_index);
+    prev_reserve_bytes_db_index = ((block_height-1 - XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT) / BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME) + 1;
+
+    sprintf(db_collection_name, "reserve_bytes_%zu", prev_reserve_bytes_db_index);
     sprintf(prev_block_height_str, "%zu", block_height-1);
 
 
