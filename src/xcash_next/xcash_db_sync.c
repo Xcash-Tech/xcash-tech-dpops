@@ -1549,11 +1549,11 @@ bool init_db_from_top(void) {
         }else{
             show_majority_statistics(nodes_majority_list, nodes_majority_count);
 
-            if ((nodes_majority_count < NETWORK_DATA_NODES_VALID_AMOUNT)) {
-                INFO_PRINT_STATUS_FAIL("Not enough data majority. Nodes: [%ld/%d]", nodes_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT);
+            if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT)) {
+                INFO_PRINT_STATUS_FAIL("Not enough data majority. Nodes: [%ld/%d]", nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
                 result = false;
             } else {
-                INFO_PRINT_STATUS_OK("Data majority reached. Nodes: [%ld/%d]",  nodes_majority_count, NETWORK_DATA_NODES_VALID_AMOUNT);
+                INFO_PRINT_STATUS_OK("Data majority reached. Nodes: [%ld/%d]",  nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
                 int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
                 result = initial_sync_node(&nodes_majority_list[sync_source_index]);
             }
