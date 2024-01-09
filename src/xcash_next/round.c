@@ -210,156 +210,6 @@ bool select_block_producers(size_t round_number) {
 
 
 
-void select_block_producers2(size_t round_number) {
-    producer_node_t producers_list[BLOCK_VERIFIERS_AMOUNT];
-    memset(producers_list, 0, sizeof(producers_list));
-
-    // count delegates
-    size_t num_producers = 0;
-
-    for (size_t i = 0, j = 0; i < BLOCK_VERIFIERS_AMOUNT; i++)
-    {
-        if (!(strncmp(VRF_data.block_verifiers_vrf_secret_key_data[i],
-                    GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_SECRET_KEY_DATA, BUFFER_SIZE) != 0 &&
-            strncmp(VRF_data.block_verifiers_vrf_public_key_data[i],
-                    GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_VRF_PUBLIC_KEY_DATA, BUFFER_SIZE) != 0 &&
-            strncmp(VRF_data.block_verifiers_random_data[i], GET_BLOCK_TEMPLATE_BLOCK_VERIFIERS_RANDOM_STRING,
-                    BUFFER_SIZE) != 0))
-        {
-                continue;
-        }
-
-
-        // skip seed nodes from block production
-        if (is_seed_address(current_block_verifiers_list.block_verifiers_public_address[i]))
-            continue;
-
-
-
-        strcpy(producers_list[j].public_address, current_block_verifiers_list.block_verifiers_public_address[i]);
-        strcpy(producers_list[j].IP_address, current_block_verifiers_list.block_verifiers_IP_address[i]);
-
-        producers_list[j].is_online = true;
-
-        j++;
-        num_producers++;
-    }
-
-    size_t block_height, seed_block;
-    sscanf(current_block_height,"%zu", &block_height);
-
-    // we will has the same table of hashes within one day distribution
-    seed_block = block_height / BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
-
-    unsigned char* pseudo_random_hash = get_pseudo_random_hash(seed_block, BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME);
-
-    producer_node_t*  producers_shuffle_list[BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME];
-
-    // initialize producer list to make it day-long
-    // so, we have approximately even count of all producers for day distribution
-    for (size_t i = 0; i < BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME; i++)
-    {
-        // cycling within active producers_list
-        size_t producer_index = i % num_producers;
-        producers_shuffle_list[i] = &producers_list[producer_index];
-    }
-
-
-
-    for (size_t i = BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME - 1; i > 0; i--) {
-        // Generate a random index j using pseudo_random_hash
-        unsigned int j = (pseudo_random_hash[i * 2] << 8 | pseudo_random_hash[i * 2 + 1]) % (i + 1);
-
-        // Swap elements at indices i and j
-        producer_node_t* temp = producers_shuffle_list[i];
-        producers_shuffle_list[i] = producers_shuffle_list[j];
-        producers_shuffle_list[j] = temp;
-    }
-
-
-    free(pseudo_random_hash);
-
-
-    // // now shuffle the list with pseudorandom ordering
-    // qsort(producers_shuffle_list, BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME, sizeof(shuffle_node_t), shuffle_compare);
-    
-
-    // for (size_t i = 0; i < num_producers; i++)
-    // {
-    //     size_t counter = 0;
-    //     for (size_t j = 0; j < BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME; j++)
-    //     {
-    //         if (strcmp(producers_list[i].public_address, producers_shuffle_list[j].producer_node->public_address) == 0) {
-    //             counter++;
-    //         }
-    //     }
-    //     INFO_PRINT("%ld\t%s",counter, producers_list[i].public_address);
-    // }
-
-
-
-    // for (size_t j = 0; j < 30; j++)
-    // {
-    //     INFO_PRINT("%s", producers_shuffle_list[j].producer_node->public_address);
-    // }
-
-
-
-    // fill the main nodes list
-
-    memset(&main_nodes_list, 0, sizeof(main_nodes_list));
-
-    size_t producing_position = block_height % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
-
-    // positioning to the first online node and skipping the round numbers
-    // when the amount of online nodes is small we have too many repeats. so better switch frame
-    producing_position += round_number*num_producers;
-    // producing_position += round_number;
-
-    // FIXME possible repeating selection of the same producer during the next block if previous producers was offline
-    // add checking for previous block producer
-
-    for (size_t i = 0; i < sizeof(producer_refs)/sizeof(producer_ref_t); i++)
-    {
-
-        // filter repetitive producers
-        bool repeated_node_found;
-        size_t num_tries = 0;
-        do
-        {
-            // for very small list of producers we need to get out of the loop
-            if (num_tries > num_producers)
-                break;
-
-            repeated_node_found = false;
-            producing_position = producing_position % BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME;
-            for (size_t j = 0; j < i; j++)
-            {
-                if (strcmp(producer_refs[j].public_address, producers_shuffle_list[producing_position]->public_address) == 0) {
-                    repeated_node_found = true;
-                    producing_position++;
-                    num_tries++;
-                    break;
-                }
-            }
-        } while (repeated_node_found);
-        
-        
-        strcpy(producer_refs[i].public_address, producers_shuffle_list[producing_position]->public_address);
-        strcpy(producer_refs[i].IP_address, producers_shuffle_list[producing_position]->IP_address);
-
-        producing_position++;
-    }
-
-}
-
-
-
-
-
-
-
-
 void show_block_producer(size_t round_number) {
     // INFO_STAGE_PRINT("Block producers for block %s round %ld: ", current_block_height, round_number);
     INFO_STAGE_PRINT("Block producers for block: [%s]", current_block_height);
@@ -496,7 +346,7 @@ xcash_round_result_t process_round(size_t round_number) {
 void start_block_production(void) {
     struct timeval current_time, round_start_time, block_start_time;
     //  round_time,block_time;
-
+    xcash_round_result_t round_result = ROUND_OK;
     size_t retries = 0;
     bool current_block_healthy = false;
     while (true) {
@@ -513,9 +363,15 @@ void start_block_production(void) {
         // time already passed starting point. seconds  >25 is too late to start
         // a production. better wait next block
         if (seconds_within_block > 25 || !current_block_healthy) {
+
             retries = 0;
-            INFO_STAGE_PRINT("Waiting for a [%s] block production. Starting in ... [%ld:%02ld]", current_block_height, BLOCK_TIME-1-minute_within_block, 59-(current_time.tv_sec % 60));
-            sleep(5);
+            // refresh DB in case of last round error
+            if (round_result != ROUND_OK && current_block_healthy && seconds_within_block > 280) {
+                init_db_from_top();
+            }else{
+                INFO_STAGE_PRINT("Waiting for a [%s] block production. Starting in ... [%ld:%02ld]", current_block_height, BLOCK_TIME-1-minute_within_block, 59-(current_time.tv_sec % 60));
+                sleep(5);                
+            }
         } else
         {
 
@@ -527,7 +383,7 @@ void start_block_production(void) {
             while (retries < 2 && round_number < 1) {
                 gettimeofday(&round_start_time, NULL);
 
-                xcash_round_result_t round_result = process_round(round_number);
+                round_result = process_round(round_number);
 
                 // FIXME this is shitty, make it nice in the future
                 if (round_result == ROUND_RETRY) {

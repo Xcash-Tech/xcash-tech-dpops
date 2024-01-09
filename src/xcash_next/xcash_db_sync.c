@@ -155,6 +155,19 @@ size_t get_db_sub_count(xcash_dbs_t db_type) {
         case XCASH_DB_RESERVE_BYTES:
             // TODO replace to my own function
             get_reserve_bytes_database(dbs_count, 0);
+
+            // some nodes could have leftovers from not finished round and in case it's on the next reserve_bytes we have a trouble
+            // so, we need to sync next block just in case
+            // long block_height, prev_block_height;
+            // long db_index, next_db_index;
+
+            // sscanf(current_block_height,"%zu", &block_height);
+            // prev_block_height = block_height - 1;
+            // db_index = ((prev_block_height - 800000) / 288) + 1;
+            // next_db_index = ((block_height - 800000) / 288) + 1;
+            // if (db_index != next_db_index) {
+            //     dbs_count++;
+            // }
             break;
         default:
             break;
@@ -642,6 +655,7 @@ bool update_multi_db_from_node(const char* public_address, xcash_dbs_t db_type) 
     }
 
     size_t dbs_count = get_db_sub_count(db_type);
+
     bool *dbs_to_update = (bool *)calloc(dbs_count + 1, sizeof(bool));
 
     for (size_t i = 0; sync_objs[i] != NULL; i++) {
@@ -667,6 +681,10 @@ bool update_multi_db_from_node(const char* public_address, xcash_dbs_t db_type) 
 
     bool updated_applied = true;
     for (size_t db_file_index = 0; db_file_index <= dbs_count; db_file_index++) {
+        // temp fix
+        if (db_type == XCASH_DB_RESERVE_BYTES  && db_file_index == dbs_count) {
+            dbs_to_update[db_file_index] = true;
+        }
         if (dbs_to_update[db_file_index] == true) {
             INFO_PRINT("Updating %s_%ld database from %s ", collection_names[db_type], db_file_index, update_source_host);
 
@@ -1549,7 +1567,7 @@ bool init_db_from_top(void) {
         }else{
             show_majority_statistics(nodes_majority_list, nodes_majority_count);
 
-            if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT)) {
+            if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT - 2)) {
                 INFO_PRINT_STATUS_FAIL("Not enough data majority. Nodes: [%ld/%d]", nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
                 result = false;
             } else {
