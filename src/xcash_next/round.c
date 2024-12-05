@@ -53,8 +53,9 @@ bool select_block_producers(size_t round_number) {
         }
 
         // skip seed nodes from block production
-        if (is_seed_address(delegates_all[i].public_address))
-            continue;
+        // now seed  node can produce blocks
+        // if (is_seed_address(delegates_all[i].public_address))
+        //     continue;
 
         // skip offline nodes from block production
         if (strcmp(delegates_all[i].online_status, "false")==0)
