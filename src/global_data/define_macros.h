@@ -73,7 +73,7 @@ Using define statements instead of constants for increased efficiency
 #define XCASH_DPOPS_CURRENT_VERSION "xcash-dpops - Version 1.2.1\n"
 #define BLOCK_VERIFIERS_TOTAL_AMOUNT 100 // The total amount of block verifiers
 #define BLOCK_VERIFIERS_AMOUNT 50 // The amount of block verifiers in a round
-#define BLOCK_VERIFIERS_VALID_AMOUNT 7 // The amount of block verifiers that need to vote true for the part of the round to be valid
+#define BLOCK_VERIFIERS_VALID_AMOUNT 3 // The amount of block verifiers that need to vote true for the part of the round to be valid
 #define MAXIMUM_AMOUNT_OF_DELEGATES 150 // The maximum amount of delegates that can be registered
 #define MAXIMUM_AMOUNT_OF_VOTERS_PER_DELEGATE 1000 // The maximum amount of voters that a delegate can have
 #define MAXIMUM_AMOUNT_OF_VOTERS_PER_DELEGATE_PRIVATE_GROUP 300 // The maximum amount of voters that a delegate can have for a private group
@@ -176,7 +176,7 @@ Using define statements instead of constants for increased efficiency
 
 // Network data nodes
 #define NETWORK_DATA_NODES_AMOUNT 5 // The amount of network data nodes
-#define NETWORK_DATA_NODES_VALID_AMOUNT 3 // The amount of network data nodes need to reach a consensus on the database data
+#define NETWORK_DATA_NODES_VALID_AMOUNT 2 // The amount of network data nodes need to reach a consensus on the database data
 #define NETWORK_DATA_NODES_VALID_AMOUNT_PERCENTAGE 0.40 // The percentage of network data nodes need to reach a consensus on the database data
 
 // Updates data
