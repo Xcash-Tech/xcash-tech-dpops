@@ -176,7 +176,7 @@ Using define statements instead of constants for increased efficiency
 
 // Network data nodes
 #define NETWORK_DATA_NODES_AMOUNT 5 // The amount of network data nodes
-#define NETWORK_DATA_NODES_VALID_AMOUNT 2 // The amount of network data nodes need to reach a consensus on the database data
+#define NETWORK_DATA_NODES_VALID_AMOUNT 3 // The amount of network data nodes need to reach a consensus on the database data
 #define NETWORK_DATA_NODES_VALID_AMOUNT_PERCENTAGE 0.40 // The percentage of network data nodes need to reach a consensus on the database data
 
 // Updates data
