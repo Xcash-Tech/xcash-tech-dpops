@@ -51,6 +51,7 @@ typedef enum {
     XMSG_BLOCK_VERIFIERS_TO_BLOCK_VERIFIERS_STATISTICS_DATABASE_DOWNLOAD_FILE_DOWNLOAD,  // server answer
     XMSG_XCASH_GET_SYNC_INFO, // get server hashes and block_height
     XMSG_XCASH_GET_BLOCK_PRODUCERS, // get current block producers
+    XCASH_GET_BLOCK_HASH, // get block hash
 
     XMSG_MESSAGES_COUNT,
     XMSG_NONE = XMSG_MESSAGES_COUNT  // for iteration purpose

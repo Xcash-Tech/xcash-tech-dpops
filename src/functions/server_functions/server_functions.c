@@ -597,6 +597,14 @@ void socket_thread(const int CLIENT_SOCKET)
  // check if a certain type of message has been received 
 
  // check if a certain type of message has been received 
+ if (strstr(buffer,"\"message_settings\": \"XCASH_GET_BLOCK_HASH\"") != NULL)
+ {
+   if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)
+   {
+     server_received_msg_get_block_hash(CLIENT_SOCKET,buffer);
+     server_limit_IP_addresses(0,(const char*)client_IP_address);
+   }
+ } else
  if (strstr(buffer,"\"message_settings\": \"XCASH_GET_SYNC_INFO\"") != NULL)
  {
    if (server_limit_IP_addresses(1,(const char*)client_IP_address) == 1)

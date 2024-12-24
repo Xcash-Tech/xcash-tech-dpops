@@ -55,6 +55,101 @@ Functions
 -----------------------------------------------------------------------------------------------------------
 */
 
+bool get_block_hash(unsigned long block_height, char* block_hash, size_t block_hash_size) {
+  char db_collection_name[DB_COLLECTION_NAME_SIZE];
+  char block_height_str[DB_COLLECTION_NAME_SIZE];
+
+  unsigned long reserve_bytes_db_index = ((block_height - XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT) / BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME) + 1;
+
+  sprintf(db_collection_name, "reserve_bytes_%zu", reserve_bytes_db_index);
+  sprintf(block_height_str, "%zu", block_height);
+
+  bson_error_t error;
+  bson_t *filter = BCON_NEW("block_height", BCON_UTF8(block_height_str));
+  bson_t *doc = bson_new();
+  if (!db_find_doc(database_name, db_collection_name, filter, doc, &error)) {
+    log_error("Failed to find document: %s", error.message);
+    bson_destroy(filter);
+    bson_destroy(doc);
+    return false;
+  }
+
+  char *str = bson_as_canonical_extended_json(doc, NULL);
+  log_info("Found document: %s", str);
+  bson_free(str);
+
+  bson_iter_t iter;
+  if (bson_iter_init(&iter, doc) && bson_iter_find_descendant(&iter, "0.reserve_bytes_data_hash", &iter) && BSON_ITER_HOLDS_UTF8(&iter)) {
+    const char *hash = bson_iter_utf8(&iter, NULL);
+    strncpy(block_hash, hash, block_hash_size - 1);
+    block_hash[block_hash_size - 1] = '\0';
+  } else {
+    log_error("block_hash not found in document");
+    bson_destroy(filter);
+    bson_destroy(doc);
+    return false;
+  }
+
+  bson_destroy(filter);
+  bson_destroy(doc);
+  return true;
+}
+
+
+void server_received_msg_get_block_hash(const int CLIENT_SOCKET, const char* MESSAGE)
+{
+    (void)MESSAGE;
+    (void)CLIENT_SOCKET;
+
+    log_info("received %s, %s", __func__, "XCASH_GET_BLOCK_HASH");
+
+    json_error_t error;
+    json_t *json_message = json_loads(MESSAGE, 0, &error);
+    if (!json_message) {
+      log_error("Error parsing JSON: %s", error.text);
+      return;
+    }
+
+    json_t *block_height_json = json_object_get(json_message, "block_height");
+    if (!json_is_integer(block_height_json)) {
+      log_error("block_height is not an integer");
+      json_decref(json_message);
+      return;
+    }
+
+    unsigned long block_height = (unsigned long)json_integer_value(block_height_json);
+    json_decref(json_message);
+
+
+    // find block hash
+    const char block_hash[DATA_HASH_LENGTH + 1];
+    if (!get_block_hash(block_height, block_hash, sizeof(block_hash))) {
+      log_error("Failed to get block hash for block height %lu", block_height);
+      return;
+    }
+
+    json_t *reply_json = json_object();
+
+    json_object_set_new(reply_json, "message_settings", json_string("XCASH_GET_BLOCK_PRODUCERS"));
+    json_object_set_new(reply_json, "public_address", json_string(xcash_wallet_public_address));
+    json_object_set_new(reply_json, "block_hash", json_string(block_hash));
+
+
+    char* message_result_data = json_dumps(reply_json, JSON_COMPACT);
+    json_decref(reply_json);
+
+    size_t message_result_size =  strlen(message_result_data);
+
+    message_result_data = realloc(message_result_data, message_result_size + sizeof(SOCKET_END_STRING));
+    strcat(message_result_data, SOCKET_END_STRING);
+
+
+    send_data(CLIENT_SOCKET,(unsigned char*)message_result_data,0,0,"");
+    free(message_result_data);
+
+}
+
+
 
 void server_received_msg_get_block_producers(const int CLIENT_SOCKET, const char* MESSAGE)
 {

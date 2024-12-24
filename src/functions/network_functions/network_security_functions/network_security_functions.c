@@ -749,6 +749,11 @@ int validate_data(const char* MESSAGE)
           strncmp(data, "XCASH_GET_SYNC_INFO", sizeof(data)) != 0) {
           VALIDATE_DATA_ERROR("Invalid message");
       }
+  } else if (strstr(MESSAGE, "XCASH_GET_BLOCK_HASH") != NULL) {
+      if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
+          strncmp(data, "XCASH_GET_BLOCK_HASH", sizeof(data)) != 0) {
+          VALIDATE_DATA_ERROR("Invalid message");
+      }
   } else if (strstr(MESSAGE, "GET_CURRENT_BLOCK_HEIGHT") != NULL) {
       if (parse_json_data(MESSAGE, "message_settings", data, sizeof(data)) == 0 ||
           strncmp(data, "GET_CURRENT_BLOCK_HEIGHT", sizeof(data)) != 0) {
