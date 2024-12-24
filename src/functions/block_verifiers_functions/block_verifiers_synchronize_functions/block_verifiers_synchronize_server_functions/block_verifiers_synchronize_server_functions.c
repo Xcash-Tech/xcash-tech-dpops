@@ -74,9 +74,9 @@ bool get_block_hash(unsigned long block_height, char* block_hash, size_t block_h
     return false;
   }
 
-  char *str = bson_as_canonical_extended_json(doc, NULL);
-  log_info("Found document: %s", str);
-  bson_free(str);
+  // char *str = bson_as_canonical_extended_json(doc, NULL);
+  // log_info("Found document: %s", str);
+  // bson_free(str);
 
   bson_iter_t iter;
   if (bson_iter_init(&iter, doc) && bson_iter_find_descendant(&iter, "0.reserve_bytes_data_hash", &iter) && BSON_ITER_HOLDS_UTF8(&iter)) {
