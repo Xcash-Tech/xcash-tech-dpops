@@ -130,7 +130,7 @@ void server_received_msg_get_block_hash(const int CLIENT_SOCKET, const char* MES
 
     json_t *reply_json = json_object();
 
-    json_object_set_new(reply_json, "message_settings", json_string("XCASH_GET_BLOCK_PRODUCERS"));
+    json_object_set_new(reply_json, "message_settings", json_string("XCASH_GET_BLOCK_HASH"));
     json_object_set_new(reply_json, "public_address", json_string(xcash_wallet_public_address));
     json_object_set_new(reply_json, "block_hash", json_string(block_hash));
 
