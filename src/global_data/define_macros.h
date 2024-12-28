@@ -781,7 +781,7 @@ sleep(BLOCK_VERIFIERS_SETTINGS);
 #define PURPLE_TEXT(text) "\033[35m"text"\033[0m"
 #define LIGHT_PURPLE_TEXT(text) "\033[95m"text"\033[0m"
 #define WHITE_TEXT(text)  "\033[97m"text"\033[0m"
-#define BRIGHT_WHITE_TEXT(text) "\033[1;97m"text"\033[0m"
+#define BRIGHT_WHITE_TEXT(text) "\033[97m"text"\033[0m"
 
 extern int debug_settings; // 1 to show all incoming and outgoing message from the server
 
