@@ -122,7 +122,7 @@ bool download_db_from_node(const char *host, xcash_dbs_t db_type, int db_file_in
             }
             result = true;
         } else {
-            ERROR_PRINT("Could't parse '%s' from reply", message_db_name_field);
+            ERROR_PRINT("Could't parse '%s' from reply:\n%s\n", message_db_name_field, reply[0]->data);
         }
     }
 
@@ -152,9 +152,23 @@ size_t get_db_sub_count(xcash_dbs_t db_type) {
         case XCASH_DB_RESERVE_PROOFS:
             dbs_count = TOTAL_RESERVE_PROOFS_DATABASES;
             break;
-        case XCASH_DB_RESERVE_BYTES:
+        case XCASH_DB_RESERVE_BYTES: {
             // TODO replace to my own function
-            get_reserve_bytes_database(dbs_count, 0);
+            // printf("get_db_sub_count: %s\n", current_block_height);
+            // get_reserve_bytes_database(dbs_count, 0);
+            size_t block_height = 0;
+            sscanf(current_block_height, "%zu", &block_height);
+
+            if (block_height > 0) {
+                block_height--;
+            }
+
+            if (block_height <= XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT ||
+                block_height - 1 == XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT) {
+                dbs_count = 1;
+            } else {
+                dbs_count = ((block_height - XCASH_PROOF_OF_STAKE_BLOCK_HEIGHT) / BLOCKS_PER_DAY_FIVE_MINUTE_BLOCK_TIME) + 1;
+            }
 
             // some nodes could have leftovers from not finished round and in case it's on the next reserve_bytes we have a trouble
             // so, we need to sync next block just in case
@@ -169,6 +183,7 @@ size_t get_db_sub_count(xcash_dbs_t db_type) {
             //     dbs_count++;
             // }
             break;
+        }
         default:
             break;
     }
