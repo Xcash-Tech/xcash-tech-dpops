@@ -755,15 +755,20 @@ bool processing(const arg_config_t *arg_config) {
     
       // load actual nodes list
       if (get_actual_nodes_list(is_seeds_offline)) {
-        if (initial_db_sync_check(&network_majority_count, NULL)) {
+        xcash_node_sync_info_t* nodes_majority_list = NULL;
+
+        if (initial_db_sync_check(&network_majority_count, &nodes_majority_list)) {
+            int seeds_majority_count = count_seeds_in_majority_list(nodes_majority_list, network_majority_count);
+
             INFO_PRINT_STATUS_OK("Initial database sync check finished successfully");
-            if (network_majority_count >= BLOCK_VERIFIERS_VALID_AMOUNT) {
+            if (network_majority_count >= BLOCK_VERIFIERS_VALID_AMOUNT || seeds_majority_count >= NETWORK_DATA_NODES_VALID_AMOUNT) {
               network_recovery_state = false;
             }else {
               network_recovery_state = true;
               
               WARNING_PRINT("Not enough nodes online for block production start. Please wait for a full network recovery");
             }
+            free(nodes_majority_list);
         } else {
           WARNING_PRINT("Can't sync databases. Please wait for network recovery to complete");
           network_recovery_state = true;

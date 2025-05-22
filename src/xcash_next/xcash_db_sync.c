@@ -1354,6 +1354,7 @@ bool initial_db_sync_check(size_t* majority_count, xcash_node_sync_info_t** majo
 
     xcash_node_sync_info_t* nodes_majority_list = NULL;
     size_t nodes_majority_count = 0;
+    size_t seeds_majority_count = 0;
 
     INFO_STAGE_PRINT("Checking the network data majority");
 
@@ -1365,13 +1366,14 @@ bool initial_db_sync_check(size_t* majority_count, xcash_node_sync_info_t** majo
     }
 
     show_majority_statistics(nodes_majority_list, nodes_majority_count);
+    seeds_majority_count = count_seeds_in_majority_list(nodes_majority_list, nodes_majority_count);
 
 
-    if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT)) {
-        INFO_PRINT_STATUS_FAIL("Not enough data majority. All Nodes: [%ld/%d]", nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
+    if ((nodes_majority_count < BLOCK_VERIFIERS_VALID_AMOUNT && seeds_majority_count < NETWORK_DATA_NODES_VALID_AMOUNT) || nodes_majority_count == 0) {
+        INFO_PRINT_STATUS_FAIL("Not enough data majority. All Nodes: [%ld:%ld/%d:%d]", nodes_majority_count, seeds_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT, NETWORK_DATA_NODES_VALID_AMOUNT);
         result = false;
     } else {
-        INFO_PRINT_STATUS_OK("Data majority reached. All Nodes: [%ld/%d]",  nodes_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT);
+        INFO_PRINT_STATUS_OK("Data majority reached. All Nodes: [%ld:%ld/%d:%d]", nodes_majority_count, seeds_majority_count, BLOCK_VERIFIERS_VALID_AMOUNT, NETWORK_DATA_NODES_VALID_AMOUNT);
         int sync_source_index = get_random_majority(nodes_majority_list, nodes_majority_count);
         result = initial_sync_node(&nodes_majority_list[sync_source_index]);
 
