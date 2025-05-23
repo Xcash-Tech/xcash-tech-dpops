@@ -6,6 +6,8 @@
 #include "define_macro_functions.h"
 #include "define_macros.h"
 
+#define HASHES_DATABASE_NAME "hashes2"
+
 // TODO move all db operations to lates functions from xcash_db_operations
 // TODO don't forget to add indexes to hashes2 by 'hash'
 int get_data(mongoc_client_t *client, const char *db_name, const char *field_name, char *data)
@@ -21,7 +23,7 @@ int get_data(mongoc_client_t *client, const char *db_name, const char *field_nam
     int result = -1;
     uint32_t len = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes2");
+    collection = mongoc_client_get_collection(client, database_name, HASHES_DATABASE_NAME);
     query = BCON_NEW("db_name", db_name);
 
     opts = BCON_NEW("projection", "{",
@@ -61,7 +63,7 @@ int get_db_hashes(mongoc_client_t *client, const char *db_name, char *hash, char
     int result = -1;
     uint32_t len = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes2");
+    collection = mongoc_client_get_collection(client, database_name, HASHES_DATABASE_NAME);
 
     query = BCON_NEW("db_name", db_name);
 
@@ -176,7 +178,7 @@ int update_hashes(mongoc_client_t *client, const char *db_name, const char *hash
         return 0;
     }
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes2");
+    collection = mongoc_client_get_collection(client, database_name, HASHES_DATABASE_NAME);
 
     filter = BCON_NEW("db_name", db_name);
 
@@ -324,7 +326,7 @@ int del_hash(mongoc_client_t *client, const char *db_name)
     bson_t *filter;
     int result = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes2");
+    collection = mongoc_client_get_collection(client, database_name, HASHES_DATABASE_NAME);
 
     filter = BCON_NEW("db_name", db_name);
 
@@ -363,7 +365,7 @@ int drop_all_hashes(mongoc_client_t *client)
     bson_error_t error;
     int result = 0;
 
-    collection = mongoc_client_get_collection(client, database_name, "hashes2");
+    collection = mongoc_client_get_collection(client, database_name, HASHES_DATABASE_NAME);
 
     if (!mongoc_collection_drop_with_opts(
             collection, NULL, &error))

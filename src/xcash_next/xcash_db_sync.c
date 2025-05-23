@@ -785,52 +785,64 @@ bool initial_sync_node(xcash_node_sync_info_t* majority_source) {
     xcash_dbs_t sync_db;
     xcash_node_sync_info_t sync_info;
 
-    INFO_STAGE_PRINT("Checking the node DB sync status");
-
-    if (!get_node_sync_info(&sync_info)) {
-        ERROR_PRINT("Can't get local sync info");
-        return false;
-    }
-
-
-
-    // FIXME this mean we definitely need to sync the node
-    if (sync_info.block_height != majority_source->block_height) {
-        WARNING_PRINT("The local node has a block height %ld vs majority %ld, which differs from the majority", sync_info.block_height, majority_source->block_height);
-        // return false;
-    }
-
-    for (size_t i = 0; i < DATABASE_TOTAL; i++)
+    while (true)
     {
-        sync_db = (xcash_dbs_t)i;
-        if (strcmp(sync_info.db_hashes[i], majority_source->db_hashes[i]) == 0){
-            INFO_PRINT(HOST_OK_STATUS("%s", "db synced"), collection_names[sync_db]);
-            continue;
-        }
+        INFO_STAGE_PRINT("Checking the node DB sync status");
 
-        INFO_STAGE_PRINT("Syncing %s db", collection_names[sync_db]);
-
-        bool sync_result = false;
-        switch (sync_db) {
-        case XCASH_DB_DELEGATES:
-        case XCASH_DB_STATISTICS:
-            sync_result = update_db_from_node(majority_source->public_address, sync_db);
-            break;
-        case XCASH_DB_RESERVE_PROOFS:
-        case XCASH_DB_RESERVE_BYTES:
-            sync_result = update_multi_db_from_node(majority_source->public_address, sync_db);
-            break;
-        default:
-            break;
-        }
-
-        if (sync_result) {
-            INFO_PRINT(HOST_OK_STATUS("%s", "db synced"), collection_names[sync_db]);
-        }else{
-            WARNING_PRINT("Can't sync db %s", collection_names[sync_db]);
+        if (!get_node_sync_info(&sync_info)) {
+            ERROR_PRINT("Can't get local sync info");
             return false;
         }
+
+        // FIXME this mean we definitely need to sync the node
+        if (sync_info.block_height != majority_source->block_height) {
+            WARNING_PRINT("The local node has a block height %ld vs majority %ld, which differs from the majority", sync_info.block_height, majority_source->block_height);
+            // return false;
+        }
+
+        bool changes_found = false;
+        for (size_t i = 0; i < DATABASE_TOTAL; i++)
+        {
+            sync_db = (xcash_dbs_t)i;
+            if (strcmp(sync_info.db_hashes[i], majority_source->db_hashes[i]) == 0){
+                INFO_PRINT(HOST_OK_STATUS("%s", "db synced"), collection_names[sync_db]);
+                continue;
+            }else{
+                DEBUG_PRINT("DB %s Hashes mismatch local:\n%s\nvs remote:\n %s", collection_names[sync_db], sync_info.db_hashes[i], majority_source->db_hashes[i]);
+            }
+            changes_found = true;
+            INFO_STAGE_PRINT("Syncing %s db", collection_names[sync_db]);
+
+            bool sync_result = false;
+            switch (sync_db) {
+            case XCASH_DB_DELEGATES:
+            case XCASH_DB_STATISTICS:
+                sync_result = update_db_from_node(majority_source->public_address, sync_db);
+                break;
+            case XCASH_DB_RESERVE_PROOFS:
+            case XCASH_DB_RESERVE_BYTES:
+                sync_result = update_multi_db_from_node(majority_source->public_address, sync_db);
+                break;
+            default:
+                break;
+            }
+
+            if (sync_result) {
+                INFO_PRINT(HOST_OK_STATUS("%s", "db synced"), collection_names[sync_db]);
+            }else{
+                WARNING_PRINT("Can't sync db %s", collection_names[sync_db]);
+                return false;
+            }
+        }
+
+        if (!changes_found)
+        {
+            INFO_PRINT("The node is synced with the majority");
+            break;
+        }
     }
+
+
     return true;
 }
 
